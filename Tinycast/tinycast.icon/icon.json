@@ -4,8 +4,12 @@
     {
       "layers": [
         {
-          "image-name": "thunder.svg",
-          "name": "thunder"
+          "image-name": "prompt-top.svg",
+          "name": "prompt-top"
+        },
+        {
+          "image-name": "prompt-bottom.svg",
+          "name": "prompt-bottom"
         }
       ],
       "shadow": {

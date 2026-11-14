@@ -10,7 +10,7 @@ CHANNEL="${CHANNEL:?CHANNEL is required (beta|stable)}"
 TAG="${TAG:?TAG is required, e.g. v0.9.13-beta.61}"
 SHA="${SHA:-$(git rev-parse HEAD)}"
 VERSION="${VERSION:-${TAG#v}}"
-DISPLAY_NAME="${DISPLAY_NAME:-TermCast}"
+DISPLAY_NAME="${DISPLAY_NAME:-Termcast}"
 BUNDLE_ID="${BUNDLE_ID:-com.mj0lken.termcast}"
 CASK="${CASK:-termcast}"
 

@@ -151,7 +151,7 @@ final class HyperKeyManager: HealthCheckable {
 
     private var otherInstanceName: String {
         instanceLock.holder().flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
-            ?? "Tinycast"
+            ?? "Termcast"
     }
 
     /// That press latched Caps Lock on a keyboard that lost the remap, so undo it once repaired.

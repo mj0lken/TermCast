@@ -35,8 +35,9 @@ git remote set-url --push upstream DISABLE
 git_dir="$(git rev-parse --git-dir)"
 
 finish_merge_and_verify() {
+    node Scripts/rebrand-strings.js
     xcodegen generate
-    git add Tinycast.xcodeproj/project.pbxproj
+    git add Tinycast.xcodeproj/project.pbxproj Tinycast/Resources/Localizable.xcstrings Tinycast/Resources/InfoPlist.xcstrings
     if [ -f "$git_dir/MERGE_HEAD" ]; then
         git commit --no-edit
     fi
@@ -88,6 +89,7 @@ if git merge-base --is-ancestor HEAD upstream/main; then
 fi
 
 if ! git merge --no-commit --no-ff upstream/main; then
+    node Scripts/rebrand-strings.js --resolve-conflicts
     unmerged="$(git diff --name-only --diff-filter=U)"
     # Regenerating from project.yml resolves pbxproj file-list collisions deterministically.
     if echo "$unmerged" | grep -qx "Tinycast.xcodeproj/project.pbxproj" &&

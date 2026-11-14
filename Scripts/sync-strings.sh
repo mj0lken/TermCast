@@ -17,4 +17,5 @@ while IFS= read -r f; do args+=(--stringsdata "$f"); done < <(
 # The catalog's file name is its table, so only `Localizable` strings land in it.
 xcrun xcstringstool sync Tinycast/Resources/Localizable.xcstrings "${args[@]}"
 
+node Scripts/rebrand-strings.js
 node Scripts/check-localizations.js

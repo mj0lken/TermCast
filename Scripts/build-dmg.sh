@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build a signed TermCast.app into build/TermCast-<version>.dmg. Usage: build-dmg.sh [version]
+# Build a signed Termcast.app into build/Termcast-<version>.dmg. Usage: build-dmg.sh [version]
 set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 IDENTITY="Tinycast Self-Signed"
-PRODUCT_NAME="TermCast"
+PRODUCT_NAME="Termcast"
 DERIVED="build/DerivedData"
 
 if ! security find-identity -p codesigning | grep -q "$IDENTITY"; then

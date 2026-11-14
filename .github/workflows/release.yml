@@ -1,6 +1,6 @@
 name: Release
 
-run-name: "TermCast ${{ inputs.version }} · ${{ inputs.channel }} #${{ github.run_number }}"
+run-name: "Termcast ${{ inputs.version }} · ${{ inputs.channel }} #${{ github.run_number }}"
 
 # Beta builds get an auto-incrementing suffix so re-running never collides.
 on:
@@ -82,8 +82,8 @@ jobs:
           BASE_VERSION: ${{ inputs.version }}
         run: |
           case "$CHANNEL" in
-            beta)   SUFFIX="-beta.${GITHUB_RUN_NUMBER}"; DISPLAY="TermCast Beta"; BUNDLE="com.mj0lken.termcast.beta"; CASK="termcast@beta"; PRERELEASE=true ;;
-            stable) SUFFIX="";                           DISPLAY="TermCast";      BUNDLE="com.mj0lken.termcast";      CASK="termcast";      PRERELEASE=false ;;
+            beta)   SUFFIX="-beta.${GITHUB_RUN_NUMBER}"; DISPLAY="Termcast Beta"; BUNDLE="com.mj0lken.termcast.beta"; CASK="termcast@beta"; PRERELEASE=true ;;
+            stable) SUFFIX="";                           DISPLAY="Termcast";      BUNDLE="com.mj0lken.termcast";      CASK="termcast";      PRERELEASE=false ;;
           esac
           FULL="${BASE_VERSION}${SUFFIX}"
           {
@@ -91,8 +91,8 @@ jobs:
             echo "display_name=${DISPLAY}"
             echo "bundle_id=${BUNDLE}"
             echo "cask_name=${CASK}"
-            echo "dmg_file=TermCast-${FULL}.dmg"
-            echo "zip_file=TermCast-${FULL}.zip"
+            echo "dmg_file=Termcast-${FULL}.dmg"
+            echo "zip_file=Termcast-${FULL}.zip"
             echo "prerelease=${PRERELEASE}"
           } >> "$GITHUB_OUTPUT"
 
@@ -183,7 +183,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: TermCast-${{ steps.meta.outputs.full_version }}
+          name: Termcast-${{ steps.meta.outputs.full_version }}
           path: dist/
 
       - name: Compose release notes
@@ -348,11 +348,11 @@ jobs:
           UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
         run: |
           ./Scripts/package-release.sh "$RUNNER_TEMP/DerivedData/Build/Products/Release/${DISPLAY_NAME}.app" \
-            "dist/TermCast-Universal-${VERSION}.dmg" "dist/TermCast-Universal-${VERSION}.zip"
+            "dist/Termcast-Universal-${VERSION}.dmg" "dist/Termcast-Universal-${VERSION}.zip"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: TermCast-Universal-${{ needs.build.outputs.full_version }}
+          name: Termcast-Universal-${{ needs.build.outputs.full_version }}
           path: dist/
 
       - name: Attach to the GitHub Release
@@ -360,9 +360,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "v${VERSION}" \
-            "dist/TermCast-Universal-${VERSION}.dmg" \
-            "dist/TermCast-Universal-${VERSION}.zip" \
-            "dist/TermCast-Universal-${VERSION}.zip.sig"
+            "dist/Termcast-Universal-${VERSION}.dmg" \
+            "dist/Termcast-Universal-${VERSION}.zip" \
+            "dist/Termcast-Universal-${VERSION}.zip.sig"
 
       - name: Update Homebrew cask
         env:
@@ -373,7 +373,7 @@ jobs:
             echo "HOMEBREW_TAP_TOKEN or HOMEBREW_TAP_REPO not set — skipping cask bump."
             exit 0
           fi
-          SHA="$(shasum -a 256 "dist/TermCast-Universal-${VERSION}.dmg" | awk '{print $1}')"
+          SHA="$(shasum -a 256 "dist/Termcast-Universal-${VERSION}.dmg" | awk '{print $1}')"
           git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" tap
           CASK_FILE="tap/Casks/${CASK}.rb"
           if [ ! -f "$CASK_FILE" ]; then

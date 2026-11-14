@@ -56,7 +56,7 @@ enum BackupActions {
     ) async throws
         -> BackupComposer.Result
     {
-        guard let destination = chooseSaveLocation(named: "Tinycast", type: .tinycastBackup) else {
+        guard let destination = chooseSaveLocation(named: "Termcast", type: .tinycastBackup) else {
             throw CancellationError()
         }
         let plan = BackupComposer.plan(categories, from: core)

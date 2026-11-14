@@ -103,6 +103,7 @@ jobs:
           fi
 
           if ! git merge --no-commit --no-ff upstream/main; then
+            node Scripts/rebrand-strings.js --resolve-conflicts
             UNMERGED="$(git diff --name-only --diff-filter=U)"
             if echo "$UNMERGED" | grep -qx "Tinycast.xcodeproj/project.pbxproj" &&
                ! echo "$UNMERGED" | grep -qx "project.yml"; then
@@ -118,9 +119,10 @@ jobs:
             fi
           fi
 
+          node Scripts/rebrand-strings.js
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate
-          git add Tinycast.xcodeproj/project.pbxproj
+          git add Tinycast.xcodeproj/project.pbxproj Tinycast/Resources/Localizable.xcstrings Tinycast/Resources/InfoPlist.xcstrings
           git commit -m "Merge upstream tinycast ($SHA)"
           echo "state=clean" >> "$GITHUB_OUTPUT"
 
