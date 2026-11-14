@@ -80,6 +80,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config merge.ours.driver true
           git fetch --tags "$UPSTREAM_REPO" refs/heads/main:refs/remotes/upstream/main
 
           COUNT="$(git rev-list --count HEAD..upstream/main)"

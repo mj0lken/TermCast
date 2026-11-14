@@ -31,6 +31,7 @@ if ! git remote get-url upstream >/dev/null 2>&1; then
     git remote add upstream "$UPSTREAM_URL"
 fi
 git remote set-url --push upstream DISABLE
+git config merge.ours.driver true
 
 git_dir="$(git rev-parse --git-dir)"
 
