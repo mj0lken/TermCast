@@ -100,17 +100,17 @@ struct UpdatesTests {
     // MARK: - ReleaseChannel
 
     static func derivesChannels() {
-        let stable = ReleaseChannel(bundleID: "com.abueammar.tinycast")
-        let beta = ReleaseChannel(bundleID: "com.abueammar.tinycast.beta")
-        let dev = ReleaseChannel(bundleID: "com.abueammar.tinycast.dev")
+        let stable = ReleaseChannel(bundleID: "com.mj0lken.termcast")
+        let beta = ReleaseChannel(bundleID: "com.mj0lken.termcast.beta")
+        let dev = ReleaseChannel(bundleID: "com.mj0lken.termcast.dev")
 
         expect(stable == .stable, "the stable bundle id is the stable channel")
         expect(beta == .beta, "the beta bundle id is the beta channel")
         expect(dev == .development, "the dev bundle id is a local build")
         expect(ReleaseChannel(bundleID: nil) == .development, "a missing bundle id never updates")
         expect(
-            ReleaseChannel(bundleID: "com.tinycast.app") == .development,
-            "the bundle id from before the move is no channel of this build")
+            ReleaseChannel(bundleID: "com.abueammar.tinycast") == .development,
+            "an upstream Tinycast bundle id is no channel of this build")
 
         expect(stable.updatesItself && beta.updatesItself, "both shipped channels update")
         expect(!dev.updatesItself, "a local build does not update itself")

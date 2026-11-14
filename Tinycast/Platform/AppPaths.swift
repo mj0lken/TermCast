@@ -3,20 +3,20 @@ import Foundation
 /// The per-channel storage roots. Keyed by bundle id so a Dev build never shares a stable's dirs.
 enum AppPaths {
     static func caches(
-        bundleID: String = Bundle.main.bundleIdentifier ?? "com.abueammar.tinycast"
+        bundleID: String = Bundle.main.bundleIdentifier ?? "com.mj0lken.termcast"
     ) -> URL {
         root(.cachesDirectory, bundleID: bundleID)
     }
 
     static func applicationSupport(
-        bundleID: String = Bundle.main.bundleIdentifier ?? "com.abueammar.tinycast"
+        bundleID: String = Bundle.main.bundleIdentifier ?? "com.mj0lken.termcast"
     ) -> URL {
         root(.applicationSupportDirectory, bundleID: bundleID)
     }
 
-    /// `~/.config/tinycast/settings.json`; another channel suffixes the folder, as `tinycast-dev`.
+    /// `~/.config/termcast/settings.json`; another channel suffixes the folder, as `termcast-dev`.
     static func settingsFile(
-        bundleID: String = Bundle.main.bundleIdentifier ?? "com.abueammar.tinycast"
+        bundleID: String = Bundle.main.bundleIdentifier ?? "com.mj0lken.termcast"
     ) -> URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appending(path: ".config", directoryHint: .isDirectory)
@@ -27,7 +27,7 @@ enum AppPaths {
     /// Snippets or Notes: the folder the user chose, else its home in Application Support.
     static func contentFolder(
         _ chosen: String?, named name: String,
-        bundleID: String = Bundle.main.bundleIdentifier ?? "com.abueammar.tinycast"
+        bundleID: String = Bundle.main.bundleIdentifier ?? "com.mj0lken.termcast"
     ) -> URL {
         guard let chosen, isFolderPath(chosen) else {
             return applicationSupport(bundleID: bundleID).appending(path: name, directoryHint: .isDirectory)
@@ -40,7 +40,7 @@ enum AppPaths {
     /// How a chosen folder is stored: nil for the default, else `~`-relative where it can be.
     static func contentFolderSetting(
         for url: URL, named name: String,
-        bundleID: String = Bundle.main.bundleIdentifier ?? "com.abueammar.tinycast"
+        bundleID: String = Bundle.main.bundleIdentifier ?? "com.mj0lken.termcast"
     ) -> String? {
         let chosen = url.standardizedFileURL.resolvingSymlinksInPath()
         let standard = contentFolder(nil, named: name, bundleID: bundleID).resolvingSymlinksInPath()
@@ -54,10 +54,10 @@ enum AppPaths {
     }
 
     private static func configFolderName(bundleID: String) -> String {
-        let stable = "com.abueammar.tinycast"
-        if bundleID == stable { return "tinycast" }
+        let stable = "com.mj0lken.termcast"
+        if bundleID == stable { return "termcast" }
         guard bundleID.hasPrefix(stable + ".") else { return bundleID }
-        return "tinycast-" + bundleID.dropFirst(stable.count + 1)
+        return "termcast-" + bundleID.dropFirst(stable.count + 1)
     }
 
     private static func root(

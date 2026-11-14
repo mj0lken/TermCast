@@ -5350,9 +5350,9 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TINYCAST_BUNDLE_IDENTIFIER = com.abueammar.tinycast.dev;
+				TINYCAST_BUNDLE_IDENTIFIER = com.mj0lken.termcast.dev;
 				TINYCAST_LEGACY_BUNDLE_IDENTIFIER = com.tinycast.app.dev;
-				TINYCAST_URL_SCHEME = "tinycast-dev";
+				TINYCAST_URL_SCHEME = "termcast-dev";
 			};
 			name = Debug;
 		};
@@ -5365,7 +5365,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abueammar.tinycast.ClipboardTextHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mj0lken.termcast.ClipboardTextHelper;
 				PRODUCT_MODULE_NAME = ClipboardTextHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -5398,7 +5398,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abueammar.tinycast.FileIndexHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mj0lken.termcast.FileIndexHelper;
 				PRODUCT_MODULE_NAME = FileIndexHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -5415,7 +5415,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abueammar.tinycast.FileIndexHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mj0lken.termcast.FileIndexHelper;
 				PRODUCT_MODULE_NAME = FileIndexHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -5505,9 +5505,9 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TINYCAST_BUNDLE_IDENTIFIER = com.abueammar.tinycast;
+				TINYCAST_BUNDLE_IDENTIFIER = com.mj0lken.termcast;
 				TINYCAST_LEGACY_BUNDLE_IDENTIFIER = com.tinycast.app;
-				TINYCAST_URL_SCHEME = tinycast;
+				TINYCAST_URL_SCHEME = termcast;
 			};
 			name = Release;
 		};
@@ -5520,7 +5520,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abueammar.tinycast.ClipboardTextHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mj0lken.termcast.ClipboardTextHelper;
 				PRODUCT_MODULE_NAME = ClipboardTextHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
