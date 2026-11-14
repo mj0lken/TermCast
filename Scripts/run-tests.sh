@@ -556,6 +556,12 @@ run CustomCommandTests     Tinycast/Platform/PseudoTerminal.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run CustomCommandListTests Tinycast/Features/CustomCommands/Model/CustomCommand.swift \
                              Tinycast/Features/CustomCommands/UI/CustomCommandListScreen.swift
+run TerminalTests          Tinycast/Platform/PseudoTerminal.swift \
+                           Tinycast/Platform/ProcessExit.swift \
+                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift \
+                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift \
+                           Tinycast/Features/Terminal/Model/*.swift \
+                           Tinycast/Features/Terminal/Service/TerminalSessionRunner.swift
 run UninstallCoordinatorTests Tinycast/Features/Uninstall/Model/*.swift \
                            Tinycast/Features/Uninstall/UI/UninstallCoordinator.swift
 run UninstallTests         Tinycast/Features/Uninstall/Model/UninstallTarget.swift \

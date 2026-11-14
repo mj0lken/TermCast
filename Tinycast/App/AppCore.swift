@@ -66,6 +66,7 @@ final class AppCore {
     let windowSwitch = WindowSwitchSession()
     let activationPolicy = ActivationPolicy()
     let uninstall = UninstallSession()
+    let terminalStore = TerminalStore()
     let notesStore: NotesStore
     let extensions: ExtensionManager
     let chatHistory: ChatHistoryStore
@@ -159,6 +160,10 @@ final class AppCore {
         paletteCoordinator: paletteCoordinator, settingsCoordinator: settingsCoordinator,
         hotKeys: hotKeys, favorites: favorites, visibility: visibility,
         ranking: launcherRanking, aliases: aliases, activationPolicy: activationPolicy, core: self)
+    @ObservationIgnored private(set) lazy var terminalCoordinator = TerminalCoordinator(
+        store: terminalStore, settings: settings, appIndex: appIndex,
+        palette: palette, paletteCoordinator: paletteCoordinator,
+        currencyRates: currencyRates, core: self)
     @ObservationIgnored private(set) lazy var appleShortcutCoordinator = AppleShortcutCoordinator(
         settings: settings, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
         visibility: visibility, ranking: launcherRanking, aliases: aliases,
@@ -321,6 +326,7 @@ final class AppCore {
                 self?.customCommandCoordinator.applyCustomCommandsPresence()
             }
             customCommandCoordinator.applyCustomCommandsPresence()
+            terminalCoordinator.applyEnabled()
             applyWindowCommandsPresence()
             customWindowSizes.onChange = { [weak self] _ in
                 self?.customWindowSizeCoordinator.applyCustomWindowSizesPresence()
@@ -618,6 +624,7 @@ final class AppCore {
         dictationKey.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         roomCoordinator.prepareForTermination()
+        terminalCoordinator.prepareForTermination()
         inputSourceSwitcher.endSession()
         textInjector.prepareForTermination()
         snippetListener.stop()
@@ -712,6 +719,12 @@ final class AppCore {
                 _ = $0.customCommandsEnabled
                 _ = $0.customCommandsShowInLauncher
             }, reproject: { $0.customCommandCoordinator.applyCustomCommandsPresence() })
+        track(
+            { _ = $0.terminalEnabled },
+            reproject: { $0.terminalCoordinator.applyEnabled() })
+        track(
+            { _ = $0.terminalShowInLauncher },
+            reproject: { $0.terminalCoordinator.applyLauncherPresence() })
         track(
             {
                 _ = $0.quicklinksEnabled

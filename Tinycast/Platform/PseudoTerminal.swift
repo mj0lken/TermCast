@@ -14,7 +14,8 @@ final class PseudoTerminal: @unchecked Sendable {
 
     static func spawn(
         executable: String, arguments: [String], environment: [String: String],
-        workingDirectory: String
+        workingDirectory: String, sendsEOF: Bool = true,
+        extraDescriptor: (source: Int32, target: Int32)? = nil
     ) -> PseudoTerminal? {
         var parentEnd: Int32 = 0
         var childEnd: Int32 = 0
@@ -31,6 +32,12 @@ final class PseudoTerminal: @unchecked Sendable {
         posix_spawn_file_actions_addchdir(&actions, workingDirectory)
         for descriptor in Int32(0)...Int32(2) {
             posix_spawn_file_actions_adddup2(&actions, childEnd, descriptor)
+        }
+        if let extraDescriptor {
+            posix_spawn_file_actions_adddup2(&actions, extraDescriptor.source, extraDescriptor.target)
+            if extraDescriptor.source != extraDescriptor.target {
+                posix_spawn_file_actions_addclose(&actions, extraDescriptor.source)
+            }
         }
         posix_spawn_file_actions_addclose(&actions, parentEnd)
         posix_spawn_file_actions_addclose(&actions, childEnd)
@@ -50,10 +57,20 @@ final class PseudoTerminal: @unchecked Sendable {
             Darwin.close(parentEnd)
             return nil
         }
-        // Stands in for `/dev/null` stdin: a prompting command reads EOF and moves on.
-        var endOfTransmission: UInt8 = 0x04
-        _ = write(parentEnd, &endOfTransmission, 1)
+        if sendsEOF {
+            // Stands in for `/dev/null` stdin: a prompting command reads EOF and moves on.
+            var endOfTransmission: UInt8 = 0x04
+            _ = write(parentEnd, &endOfTransmission, 1)
+        }
         return PseudoTerminal(parentEnd: parentEnd, processID: processID)
+    }
+
+    func writeInput(_ text: String) {
+        var bytes = Array(text.utf8)
+        guard !bytes.isEmpty else { return }
+        _ = bytes.withUnsafeMutableBufferPointer { buffer in
+            write(parentEnd, buffer.baseAddress!, buffer.count)
+        }
     }
 
     /// Signals the session rather than the process — the negative pid is what reaches the children.

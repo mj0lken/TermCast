@@ -104,6 +104,11 @@ extension SettingsAnchor {
     static let emojiCommands = Self(tab: .emoji, title: "Commands")
     static let emojiAppearance = Self(tab: .emoji, title: "Appearance")
 
+    static let terminalTerminal = Self(tab: .terminal, title: "Terminal")
+    static let terminalOptions = Self(tab: .terminal, title: "Options")
+    static let terminalCommands = Self(tab: .terminal, title: "Commands")
+    static let terminalRecentFolders = Self(tab: .terminal, title: "Recent Folders")
+
     static let calendarCalendar = Self(tab: .calendar, title: "Calendar")
     static let calendarCommands = Self(tab: .calendar, title: "Commands")
     static let calendarJoining = Self(tab: .calendar, title: "Joining")

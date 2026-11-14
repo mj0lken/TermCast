@@ -108,7 +108,8 @@ enum SettingsSearchCatalog {
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + clipboard + snippets + fileSearch + windowManagement
-        + navigation + notes + calendar + emoji + ai + quickActions + dictation + extensions + permissions
+        + navigation + notes + calendar + emoji + terminal + ai + quickActions + dictation
+        + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -553,6 +554,27 @@ enum SettingsSearchCatalog {
         .init(
             .emojiAppearance, "Column Count",
             keywords: ["columns", "density", "zoom", "six", "eight", "ten"])
+    ]
+
+    private static let terminal: [SettingsSearchEntry] = [
+        .init(
+            pane: .terminal,
+            keywords: ["shell", "zsh", "bash", "cli", "command", "tabs"]),
+        .init(
+            .terminalTerminal, "Enable Terminal",
+            keywords: ["shell", "zsh", "tabs", "shift enter"]),
+        .init(
+            .terminalOptions, "Load shell environment",
+            keywords: ["zshrc", "aliases", "path", "shell"]),
+        .init(
+            group: .terminalCommands, "Terminal commands",
+            keywords: ["shortcut", "hotkey", "open terminal"]),
+        .init(
+            .terminalRecentFolders, "Add Folder…",
+            keywords: ["working directory", "cwd", "path", "folder"]),
+        .init(
+            .terminalRecentFolders, "Clear Recent Folders",
+            keywords: ["working directory", "cwd", "reset", "history"])
     ]
 
     private static let calendar: [SettingsSearchEntry] = [

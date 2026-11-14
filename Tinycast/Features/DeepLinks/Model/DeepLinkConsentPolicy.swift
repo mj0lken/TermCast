@@ -49,7 +49,8 @@ enum DeepLinkConsentPolicy {
             .runShellCommand, .quit:
             true
         case .quickAI, .aiChat, .calculatorHistory, .clipboardHistory, .searchEmoji, .searchFiles,
-            .searchMenuItems, .switchWindows, .switchWindowsBackwards, .createCustomCommand,
+            .searchMenuItems, .switchWindows, .switchWindowsBackwards, .openTerminal,
+            .createCustomCommand,
             .searchCustomCommands, .define, .mySchedule, .createEvent, .showNotes, .createNote,
             .searchNotes, .createWindowLayout, .switchRoom, .createRoom, .createQuicklink,
             .searchQuicklinks, .importQuicklinks, .exportQuicklinks, .searchSnippets, .createSnippet,

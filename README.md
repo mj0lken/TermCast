@@ -1,10 +1,10 @@
 <h1 align="center">
-  <a href="https://tinycast.dev"><img src="docs/images/icon.png" alt="Tinycast app icon" width="128" height="128"></a><br>
-  Tinycast
+  <a href="https://github.com/mj0lken/TermCast"><img src="docs/images/icon.png" alt="TermCast app icon" width="128" height="128"></a><br>
+  TermCast
 </h1>
 
 <p align="center">
-  A native macOS launcher for everyday productivity. Lightweight and open source.
+  A fork of <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> adding an integrated <strong>Terminal Mode</strong> directly inside the launcher palette.
 </p>
 
 <p align="center">
@@ -32,7 +32,17 @@
 Built with SwiftUI and AppKit. No dependencies, no Electron, no telemetry. It runs your Raycast
 extensions, too.
 
-[Explore all features →](https://tinycast.dev/#features)
+## Terminal Mode
+
+Enable **Terminal** in **Settings → Terminal** to run shell commands and live PTY sessions inside the palette without opening a separate Terminal window:
+
+- **Command detection & formatting:** Writing a shell command in the launcher formats the input in monospace, displays the active working directory directly underneath the input bar, and highlights `Terminal ⇧↵`.
+- **`Shift+Enter` (`⇧↵`):** Runs the typed command in a terminal panel tab (or opens the Terminal panel when the input is empty).
+- **`>` quick entry:** Typing `>` (or `> `) jumps straight into the Terminal panel and its open tabs.
+- **`Shift+Tab` (`⇧⇥`):** Cycles through recent folders right under the input bar before running a command.
+- **Multi-tab PTY sessions:** Create (`⌘N`), switch (`⌘1`–`⌘9` or `⇥`), send stdin, stop (`⌘.`), and close (`⌃X`) tabs with full ANSI color streaming and persistent `cd` directory tracking. See [docs/features/terminal.md](docs/features/terminal.md).
+
+[Explore all Tinycast features →](https://tinycast.dev/#features)
 
 For anything private, feel free to email [iabueammar@gmail.com](mailto:iabueammar@gmail.com).
 

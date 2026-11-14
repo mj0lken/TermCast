@@ -201,6 +201,8 @@ final class LauncherCoordinator {
             core.dictionaryCoordinator.show()
         case .openInBrowser, .runShellCommand:
             break  // Query-driven: each runs where the typed text is, never through this funnel.
+        case .openTerminal:
+            core.terminalCoordinator.showTerminal()
         case .joinNextMeeting:
             calendarCoordinator.joinNextMeeting()
         case .copyMeetingLink:

@@ -39,6 +39,8 @@ extension View {
             .environment(core.extensions)
             .environment(core.calendarStore)
             .environment(core.meetingClock)
+            .environment(core.terminalStore)
+            .environment(core.terminalCoordinator)
             .environment(core.updateCoordinator)
             .motionScope()
     }

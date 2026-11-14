@@ -19,6 +19,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case openCamera = "command:open-camera"
     case openInBrowser = "command:open-in-browser"
     case runShellCommand = "command:run-shell-command"
+    case openTerminal = "command:open-terminal"
     case createCustomCommand = "command:create-custom-command"
     case searchCustomCommands = "command:search-custom-commands"
     case define = "command:define"
@@ -55,7 +56,7 @@ enum CommandID: String, CaseIterable, Sendable {
 
     static let compactBarOptions: [CommandID] =
         defaultCompactBarCommands + [
-            .searchSnippets, .showNotes, .mySchedule, .quickAI
+            .searchSnippets, .showNotes, .mySchedule, .quickAI, .openTerminal
         ]
 
     static let compactBarLimit = 4
@@ -94,6 +95,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .openCamera: return "Open Camera"
         case .openInBrowser: return "Open in Browser"
         case .runShellCommand: return "Run Shell Command"
+        case .openTerminal: return "Open Terminal"
         case .createCustomCommand: return "Create Custom Command"
         case .searchCustomCommands: return "Search Custom Commands"
         case .define: return "Define Word"
@@ -144,6 +146,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .openCamera: return "camera"
         case .openInBrowser: return "globe"
         case .runShellCommand: return "terminal"
+        case .openTerminal: return "apple.terminal"
         case .createCustomCommand: return "terminal"
         case .searchCustomCommands: return "terminal"
         case .define: return "book.closed"

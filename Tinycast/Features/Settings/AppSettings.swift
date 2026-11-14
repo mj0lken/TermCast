@@ -429,6 +429,23 @@ final class AppSettings {
         }
     }
 
+    var terminalEnabled: Bool {
+        didSet { defaults.set(terminalEnabled, forKey: Key.terminalEnabled.rawValue) }
+    }
+
+    var terminalShowInLauncher: Bool {
+        didSet {
+            defaults.set(terminalShowInLauncher, forKey: Key.terminalShowInLauncher.rawValue)
+        }
+    }
+
+    var terminalLoadsShellEnvironment: Bool {
+        didSet {
+            defaults.set(
+                terminalLoadsShellEnvironment, forKey: Key.terminalLoadsShellEnvironment.rawValue)
+        }
+    }
+
     /// Also keyword-expansion consent, so it confirms first and never rides a backup.
     var snippetsEnabled: Bool {
         didSet { defaults.set(snippetsEnabled, forKey: Key.snippetsEnabled.rawValue) }
@@ -831,6 +848,13 @@ final class AppSettings {
         customCommandsShowInLauncher =
             defaults.object(forKey: Key.customCommandsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.customCommandsShowInLauncher.rawValue)
+        terminalEnabled = defaults.bool(forKey: Key.terminalEnabled.rawValue)
+        terminalShowInLauncher =
+            defaults.object(forKey: Key.terminalShowInLauncher.rawValue) == nil
+            || defaults.bool(forKey: Key.terminalShowInLauncher.rawValue)
+        terminalLoadsShellEnvironment =
+            defaults.object(forKey: Key.terminalLoadsShellEnvironment.rawValue) == nil
+            || defaults.bool(forKey: Key.terminalLoadsShellEnvironment.rawValue)
         snippetsEnabled = defaults.bool(forKey: Key.snippetsEnabled.rawValue)
         quickActionsEnabled = defaults.bool(forKey: Key.quickActionsEnabled.rawValue)
         snippetsShowInLauncher =

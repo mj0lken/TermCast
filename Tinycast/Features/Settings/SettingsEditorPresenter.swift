@@ -397,6 +397,8 @@ extension View {
             .environment(core.fallbacks)
             .environment(core.customCommands)
             .environment(core.customCommandCoordinator)
+            .environment(core.terminalStore)
+            .environment(core.terminalCoordinator)
             .environment(core.snippetsStore)
             .environment(core.snippetCoordinator)
             .environment(core.quicklinks)

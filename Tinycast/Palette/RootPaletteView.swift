@@ -23,6 +23,8 @@ struct RootPaletteView: View {
     @Environment(QuicklinkStore.self) private var quicklinks
     @Environment(SnippetsStore.self) private var snippets
     @Environment(ExtensionManager.self) private var extensions
+    @Environment(TerminalStore.self) private var terminalStore
+    @Environment(TerminalCoordinator.self) private var terminalCoordinator
     @Environment(AppSettings.self) private var settings
     @Environment(\.metrics) private var metrics
     @Environment(\.openURL) private var openURL
@@ -109,6 +111,10 @@ struct RootPaletteView: View {
         case .customCommands:
             return CustomCommandListScreen(
                 store: core.customCommands, coordinator: core.customCommandCoordinator,
+                vm: vm, metrics: metrics, openActions: openActions)
+        case .terminal:
+            return TerminalScreen(
+                store: terminalStore, coordinator: terminalCoordinator, core: core,
                 vm: vm, metrics: metrics, openActions: openActions)
         case .meetingDetails:
             return MeetingDetailsScreen(store: calendarStore, core: core)
@@ -424,10 +430,16 @@ struct RootPaletteView: View {
                 compactSelection.reconcile(commands: compactCommands)
             }
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
-            .modifier(PaletteHideObserver { if menuOpen { closeMenus() } })
+            .modifier(
+                PaletteHideObserver {
+                    if menuOpen { closeMenus() }
+                    terminalCoordinator.resetLauncherTransientState()
+                }
+            )
             .onChange(of: vm.query) {
                 resetCompactSelection()
                 if vm.collapseQueryLineBreaks() { return }
+                if terminalCoordinator.handleQueryChanged(vm.query, mode: vm.mode) { return }
                 land(restoringSelection: true)
                 if vm.mode == .fileSearch { fileSearch.search(vm.query, filter: vm.fileSearchFilter) }
                 if vm.mode == .launcher { core.fileSearchCoordinator.searchFromLauncher(vm.query) }
@@ -581,9 +593,16 @@ struct RootPaletteView: View {
             .onKeyPress(keys: [.return, KeyEquivalent("\u{3}")], phases: .down) { press in
                 let command = press.modifiers.contains(.command)
                 let option = press.modifiers.contains(.option)
+                let shift = press.modifiers.contains(.shift)
+                let control = press.modifiers.contains(.control)
                 if menuOpen, !command, !option {
                     activateMenuItem(menuSelection)
                     return .handled
+                }
+                if shift, !command, !option, !control, !vm.isComposing, !vm.isControlListOpen {
+                    if terminalCoordinator.handleShiftReturn() {
+                        return .handled
+                    }
                 }
                 if isCollapsed, !command, !option {
                     guard !vm.isComposing, !vm.isControlListOpen else { return .ignored }
@@ -650,7 +669,15 @@ struct RootPaletteView: View {
                 // ⇥ inside an open list belongs to the list, not to the form's field order.
                 if vm.isControlListOpen || menuOpen { return .handled }
                 if vm.isComposing { return .ignored }
-                advanceTabFocus(backwards: press.modifiers.contains(.shift))
+                let shift = press.modifiers.contains(.shift)
+                if shift,
+                    press.modifiers.isDisjoint(with: [.command, .option, .control]),
+                    vm.mode == .terminal || (vm.mode == .launcher && argumentFocused == nil),
+                    terminalCoordinator.handleShiftTab()
+                {
+                    return .handled
+                }
+                advanceTabFocus(backwards: shift)
                 return .handled
             }
             .modifier(
@@ -726,24 +753,29 @@ struct RootPaletteView: View {
     }
 
     private var header: some View {
-        headerBar
-            // The field stops where the capsule will, so it never runs under a button.
-            .frame(width: compactCapsuleWidth)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Behind the row, which a glass container would otherwise paint over.
-            .background(alignment: .topLeading) {
-                if isCollapsed {
-                    CompactBar(
-                        commands: compactCommands, selection: compactSelection.command,
-                        onRun: runCompactCommand, onSettled: { hostWindow?.invalidateShadow() })
+        VStack(spacing: 0) {
+            headerBar
+                // The field stops where the capsule will, so it never runs under a button.
+                .frame(width: compactCapsuleWidth)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Behind the row, which a glass container would otherwise paint over.
+                .background(alignment: .topLeading) {
+                    if isCollapsed {
+                        CompactBar(
+                            commands: compactCommands, selection: compactSelection.command,
+                            onRun: runCompactCommand, onSettled: { hostWindow?.invalidateShadow() })
+                    }
                 }
+            if showsTerminalFolderStrip {
+                TerminalFolderStrip(openFolderMenu: openTerminalFolderMenu)
             }
-            // Next turn, once the show's `land()` and search refocus are done, so neither undoes it.
-            .onChange(of: vm.pendingArgumentEntryID) {
-                Task { @MainActor in focusPendingArgument() }
-            }
-            .onChange(of: argumentFocused) { _, field in vm.noteEditingField(field != nil) }
-            .onChange(of: quickAI.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
+        }
+        // Next turn, once the show's `land()` and search refocus are done, so neither undoes it.
+        .onChange(of: vm.pendingArgumentEntryID) {
+            Task { @MainActor in focusPendingArgument() }
+        }
+        .onChange(of: argumentFocused) { _, field in vm.noteEditingField(field != nil) }
+        .onChange(of: quickAI.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
     }
 
     private var compactCommands: [CommandID] {
@@ -790,10 +822,10 @@ struct RootPaletteView: View {
             if vm.mode != .launcher {
                 HeaderBackButton(help: backHelp, action: goBack)
             } else {
-                Image(systemName: vm.mode.systemImage)
+                Image(systemName: isFormattingTerminalInput ? "apple.terminal" : vm.mode.systemImage)
                     .font(metrics.typography.headerIcon)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isFormattingTerminalInput ? Color.accentColor : .secondary)
                     .frame(width: metrics.size.headerIconSlot)
                     .windowDraggable(settings.paletteDraggable, onBegan: beginDrag, onEnded: endDrag)
             }
@@ -806,6 +838,10 @@ struct RootPaletteView: View {
                 accessory.view
                 // Given room last: at the default priority it would split it with the field.
                 Spacer(minLength: 0).layoutPriority(-1)
+            }
+            if showsLauncherTerminalRunHint {
+                headerGutter(width: metrics.spacing.md)
+                terminalRunHint
             }
             if tabOpensChat {
                 headerGutter(width: metrics.spacing.md)
@@ -903,6 +939,57 @@ struct RootPaletteView: View {
         .help("Press Tab to ask Quick AI")
     }
 
+    private var terminalRunHint: some View {
+        BarButton(chrome: .rounded, action: { _ = terminalCoordinator.handleShiftReturn() }) {
+            HStack(spacing: metrics.spacing.sm) {
+                Text("Terminal")
+                    .font(metrics.typography.bar)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                KeyCapChip(text: "⇧↵", style: .outline)
+                    .accessibilityHidden(true)
+            }
+        }
+        .help("Press Shift+Return to run in Terminal")
+    }
+
+    private var isFormattingTerminalInput: Bool {
+        vm.mode == .terminal
+            || (!isCollapsed && vm.mode == .launcher
+                && terminalCoordinator.isFormattingLauncherInput(vm.query))
+    }
+
+    private var showsLauncherTerminalRunHint: Bool {
+        !isCollapsed && vm.mode == .launcher
+            && (headerAccessory?.fieldNames.isEmpty ?? true)
+            && terminalCoordinator.isFormattingLauncherInput(vm.query)
+    }
+
+    private var showsTerminalFolderStrip: Bool {
+        !isCollapsed
+            && (vm.mode == .terminal
+                || (vm.mode == .launcher
+                    && terminalCoordinator.shouldShowLauncherFolderStrip(vm.query)))
+    }
+
+    private var searchFieldFont: Font {
+        isFormattingTerminalInput
+            ? .system(size: metrics.typography.searchFieldSize, weight: .regular, design: .monospaced)
+            : metrics.typography.searchField
+    }
+
+    private func openTerminalFolderMenu(_ frame: CGRect) {
+        let current = RecentFolders.normalize(
+            terminalStore.activeWorkingDirectory, homeDirectory: terminalStore.homeDirectory)
+        let selectedIndex =
+            terminalStore.recentFolders.firstIndex {
+                RecentFolders.normalize($0, homeDirectory: terminalStore.homeDirectory) == current
+            } ?? 0
+        openInputOptions(
+            terminalCoordinator.folderMenuContent(reopeningPalette: true),
+            corner: .belowControl(frame, trailing: false),
+            selection: selectedIndex)
+    }
+
     /// Resolved through `PaletteTabAction`, so the hint cannot promise the wrong destination.
     private var tabOpensChat: Bool {
         guard !isCollapsed, headerAccessory?.fieldNames.isEmpty ?? true else { return false }
@@ -964,7 +1051,7 @@ struct RootPaletteView: View {
         @Bindable var vm = vm
         return TextField("", text: $vm.query)
             .textFieldStyle(.plain)
-            .font(metrics.typography.searchField)
+            .font(searchFieldFont)
             .tint(Theme.Colors.textPrimary)
             .focused($searchFocused)
             // Fills the row's height, so there's no gap above it for topDragStrip to meet.

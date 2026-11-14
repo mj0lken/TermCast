@@ -163,6 +163,9 @@ enum SettingsFileSchema {
         case .calendarMenuBarHidesWhenEmpty: return bind(settings, \.calendarMenuBarHidesWhenEmpty)
         case .hideCurrentEvent: return bind(settings, \.hideCurrentEvent)
         case .calendarCommands: return launcher.commandsBinding(for: key, owner: .calendar)
+        case .terminalShowInLauncher: return bind(settings, \.terminalShowInLauncher)
+        case .terminalLoadsShellEnvironment: return bind(settings, \.terminalLoadsShellEnvironment)
+        case .terminalCommands: return launcher.commandsBinding(for: key, owner: .terminal)
         case .extensionsShowInLauncher: return bind(settings, \.extensionsShowInLauncher)
         }
     }
