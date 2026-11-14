@@ -1,0 +1,245 @@
+name: Sync Upstream
+
+# Polls abue-ammar/tinycast:main and opens or updates a sync PR into main when new commits land.
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: https://github.com/abue-ammar/tinycast.git
+  SYNC_BRANCH: sync/upstream-main
+
+jobs:
+  check:
+    if: github.repository != 'abue-ammar/tinycast'
+    runs-on: ubuntu-latest
+    outputs:
+      ahead: ${{ steps.diff.outputs.ahead }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check upstream for new commits
+        id: diff
+        run: |
+          git fetch --tags "$UPSTREAM_REPO" refs/heads/main:refs/remotes/upstream/main
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "ahead=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date with upstream/main ($(git rev-parse --short upstream/main))."
+          else
+            echo "ahead=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream is ahead by $(git rev-list --count HEAD..upstream/main) commit(s)."
+          fi
+
+      - name: Close superseded sync PR if already merged
+        if: steps.diff.outputs.ahead == 'false'
+        uses: actions/github-script@v8
+        env:
+          SYNC_BRANCH: ${{ env.SYNC_BRANCH }}
+        with:
+          script: |
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const head = `${repo.owner}:${process.env.SYNC_BRANCH}`;
+            const { data: prs } = await github.rest.pulls.list({ ...repo, state: "open", head, base: "main" });
+            for (const pr of prs) {
+              await github.rest.issues.createComment({
+                ...repo,
+                issue_number: pr.number,
+                body: "Closing automatically: `main` now includes all commits from `abue-ammar/tinycast:main`.",
+              });
+              await github.rest.pulls.update({ ...repo, pull_number: pr.number, state: "closed" });
+            }
+
+  sync:
+    needs: check
+    if: needs.check.outputs.ahead == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Merge upstream and regenerate Xcode project
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --tags "$UPSTREAM_REPO" refs/heads/main:refs/remotes/upstream/main
+
+          COUNT="$(git rev-list --count HEAD..upstream/main)"
+          SHA="$(git rev-parse --short upstream/main)"
+          {
+            echo "count=$COUNT"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+
+          git log --no-merges --pretty=format:'- `abue-ammar/tinycast@%h` %s' HEAD..upstream/main | head -n 60 > "$RUNNER_TEMP/commits.md"
+          if [ "$COUNT" -gt 60 ]; then
+            echo "- …and $((COUNT - 60)) earlier commit(s)" >> "$RUNNER_TEMP/commits.md"
+          fi
+
+          git checkout -B "$SYNC_BRANCH" HEAD
+
+          if git merge-base --is-ancestor HEAD upstream/main; then
+            git merge --ff-only upstream/main
+            echo "state=clean" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git merge --no-commit --no-ff upstream/main; then
+            UNMERGED="$(git diff --name-only --diff-filter=U)"
+            if echo "$UNMERGED" | grep -qx "Tinycast.xcodeproj/project.pbxproj" &&
+               ! echo "$UNMERGED" | grep -qx "project.yml"; then
+              git checkout --ours Tinycast.xcodeproj/project.pbxproj
+            fi
+            UNMERGED="$(git diff --name-only --diff-filter=U)"
+            if [ -n "$UNMERGED" ]; then
+              printf '%s\n' "$UNMERGED" > "$RUNNER_TEMP/conflicts.txt"
+              git merge --abort
+              git reset --hard upstream/main
+              echo "state=conflicted" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+          git add Tinycast.xcodeproj/project.pbxproj
+          git commit -m "Merge upstream tinycast ($SHA)"
+          echo "state=clean" >> "$GITHUB_OUTPUT"
+
+      - name: Verify merged tree
+        if: steps.merge.outputs.state == 'clean'
+        run: |
+          STATUS_FILE="$RUNNER_TEMP/checks.md"
+          : > "$STATUS_FILE"
+
+          record() {
+            local label="$1"
+            shift
+            if "$@"; then
+              echo "- [x] $label" >> "$STATUS_FILE"
+            else
+              echo "- [ ] $label *(failed — inspect workflow logs)*" >> "$STATUS_FILE"
+            fi
+          }
+
+          check_model_purity() {
+            ! grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/
+          }
+
+          record "Pure `Model/` layer check" check_model_purity
+          record "Settings search catalog (`check-settings-search.js`)" node Scripts/check-settings-search.js
+          record "Localizations (`check-localizations.js`)" node Scripts/check-localizations.js
+          record "Migrations (`check-migrations.sh`)" ./Scripts/check-migrations.sh
+
+          SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1 || echo 0)"
+          if [ "${SDK_MAJOR:-0}" -ge 26 ]; then
+            record "Test harnesses (`./Scripts/run-tests.sh`)" ./Scripts/run-tests.sh
+          else
+            echo "- [ ] `./Scripts/run-tests.sh` *(runner has macOS SDK ${SDK_MAJOR}; run locally on macOS 26+ before merging)*" >> "$STATUS_FILE"
+          fi
+
+      - name: Push sync branch
+        run: git push --force origin "$SYNC_BRANCH"
+
+      - name: Create or update sync PR
+        uses: actions/github-script@v8
+        env:
+          SYNC_BRANCH: ${{ env.SYNC_BRANCH }}
+          MERGE_STATE: ${{ steps.merge.outputs.state }}
+          COMMIT_COUNT: ${{ steps.merge.outputs.count }}
+          UPSTREAM_SHA: ${{ steps.merge.outputs.sha }}
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const branch = process.env.SYNC_BRANCH;
+            const state = process.env.MERGE_STATE;
+            const count = process.env.COMMIT_COUNT;
+            const sha = process.env.UPSTREAM_SHA;
+            const temp = process.env.RUNNER_TEMP;
+
+            const commits = fs.readFileSync(path.join(temp, "commits.md"), "utf8").trim();
+            const title = `chore(sync): integrate upstream tinycast (${count} commit${count === "1" ? "" : "s"} through ${sha})`;
+
+            const lines = [];
+            if (state === "clean") {
+              const checks = fs.readFileSync(path.join(temp, "checks.md"), "utf8").trim();
+              lines.push(
+                "> [!IMPORTANT]",
+                "> Merge this PR with **Create a merge commit** (do **not** use *Squash and merge* or *Rebase and merge*), so Git preserves the merge-base with `abue-ammar/tinycast:main`.",
+                "",
+                "### Verification",
+                checks,
+              );
+            } else {
+              const conflicts = fs.readFileSync(path.join(temp, "conflicts.txt"), "utf8")
+                .trim()
+                .split("\n")
+                .map((f) => `- \`${f}\``)
+                .join("\n");
+              lines.push(
+                "> [!WARNING]",
+                "> Automatic merge hit source conflicts that need local resolution before merging.",
+                "",
+                "### Conflicting files",
+                conflicts,
+                "",
+                "### Resolve locally",
+                "```sh",
+                "git checkout main && git pull origin main",
+                "./Scripts/sync-upstream.sh",
+                "# resolve conflicts, git add them, then:",
+                "./Scripts/sync-upstream.sh --continue",
+                "git push origin main",
+                "```",
+              );
+            }
+
+            lines.push("", `### Upstream commits (\`${sha}\`)`, commits);
+            const body = lines.join("\n");
+
+            const head = `${repo.owner}:${branch}`;
+            const { data: existing } = await github.rest.pulls.list({ ...repo, state: "open", head, base: "main" });
+
+            try {
+              if (existing.length > 0) {
+                const pr = existing[0];
+                await github.rest.pulls.update({ ...repo, pull_number: pr.number, title, body });
+                core.info(`Updated sync PR #${pr.number}: ${pr.html_url}`);
+              } else {
+                const { data: pr } = await github.rest.pulls.create({
+                  ...repo,
+                  title,
+                  head: branch,
+                  base: "main",
+                  body,
+                });
+                core.info(`Created sync PR #${pr.number}: ${pr.html_url}`);
+              }
+            } catch (err) {
+              const compare = `https://github.com/${repo.owner}/${repo.repo}/compare/main...${branch}?expand=1`;
+              const settings = `https://github.com/${repo.owner}/${repo.repo}/settings/actions`;
+              core.error(`Branch '${branch}' was pushed. Open PR manually: ${compare}`);
+              core.setFailed(
+                `Could not create PR automatically (${err.message}). Enable "Allow GitHub Actions to create and approve pull requests" in ${settings}.`
+              );
+            }
