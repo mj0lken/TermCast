@@ -152,7 +152,7 @@ jobs:
           record "Localizations (\`check-localizations.js\`)" node Scripts/check-localizations.js
           record "Migrations (\`check-migrations.sh\`)" ./Scripts/check-migrations.sh
 
-          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_(27|26)(\.[0-9]+)*\.app' | sort -V | tail -n1 || true)"
+          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_27(\.[0-9]+)*\.app' | sort -V | tail -n1 || true)"
           if [ -z "$XCODE_PATH" ] && [ -d /Applications/Xcode.app ]; then
             XCODE_PATH="/Applications/Xcode.app"
           fi
@@ -161,14 +161,14 @@ jobs:
           fi
 
           SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1 || echo 0)"
-          if [ "${SDK_MAJOR:-0}" -ge 26 ]; then
+          if [ "${SDK_MAJOR:-0}" -ge 27 ]; then
             record "Debug build (\`xcodebuild -configuration Debug\`)" \
               xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
                 -derivedDataPath "$RUNNER_TEMP/DerivedData" \
                 CODE_SIGN_IDENTITY="-" \
                 build
           else
-            echo "- [x] Xcode build skipped on runner SDK ${SDK_MAJOR} *(macOS 26+ SDK not installed on this runner)*" >> "$STATUS_FILE"
+            echo "- [x] Xcode 27+ build skipped on runner SDK ${SDK_MAJOR} *(Tinycast uses Swift 6.4+ / Xcode 27 memberwise init synthesis)*" >> "$STATUS_FILE"
           fi
 
           if [ "$FAILED" -eq 0 ]; then
