@@ -6,11 +6,11 @@ the signing identity itself is in [signing.md](signing.md).
 ## Packaging a DMG locally
 
 ```sh
-./Scripts/build-dmg.sh            # -> build/Tinycast-<version>.dmg (version from project.yml)
-./Scripts/build-dmg.sh 0.5.7      # -> build/Tinycast-0.5.7.dmg
+./Scripts/build-dmg.sh            # -> build/TermCast-<version>.dmg (version from project.yml)
+./Scripts/build-dmg.sh 0.5.7      # -> build/TermCast-0.5.7.dmg
 ```
 
-It builds a Release `Tinycast.app` signed with `Tinycast Self-Signed` and packs it with an
+It builds a Release `TermCast.app` signed with `Tinycast Self-Signed` and packs it with an
 `/Applications` symlink. Official per-channel releases are built by CI, below.
 
 ## Signing & Gatekeeper
