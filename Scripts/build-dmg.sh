@@ -30,6 +30,10 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 ditto "$APP" "$STAGE/${PRODUCT_NAME}.app"
 ln -s /Applications "$STAGE/Applications"
+if [ -f "$APP/Contents/Resources/tinycast.icns" ]; then
+    cp "$APP/Contents/Resources/tinycast.icns" "$STAGE/.VolumeIcon.icns"
+    xcrun SetFile -a C "$STAGE"
+fi
 rm -f "$DMG"
 diskutil image create from "$STAGE" --format UDZO --volumeName "$PRODUCT_NAME" "$DMG" >/dev/null
 

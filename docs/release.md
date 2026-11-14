@@ -21,13 +21,13 @@ opens without a Gatekeeper warning. Local builds, `build-dmg.sh` included, keep 
 
 ## How the in-app updater consumes a release
 
-Every release publishes three assets from one build: `Tinycast-<version>.dmg`, which people download
-by hand and which the cask installs, `Tinycast-<version>.zip`, which the in-app updater installs, and
-`Tinycast-<version>.zip.sig`, the zip's signature by the release key. The zip is produced with
+Every release publishes three assets from one build: `Termcast-<version>.dmg`, which people download
+by hand and which the cask installs, `Termcast-<version>.zip`, which the in-app updater installs, and
+`Termcast-<version>.zip.sig`, the zip's signature by the release key. The zip is produced with
 `ditto -c -k --keepParent --sequesterRsrc` — the only zip that leaves the code signature verifiable,
 which matters because the updater refuses any bundle it cannot prove is ours.
 
-A stable release publishes two more from the `universal` job, `Tinycast-Universal-<version>.dmg` and
+A stable release publishes two more from the `universal` job, `Termcast-Universal-<version>.dmg` and
 `.zip`, built from the same commit at the same version and bundle id but with both slices. They are
 uploaded _after_ the thin pair, which keeps the thin zip first in the asset list so builds predating
 architecture-aware selection keep choosing it.
@@ -56,8 +56,8 @@ There is no CI workflow and no automated reviewer, so the whole bar in
 `.github/workflows/release.yml` builds and publishes a DMG from GitHub Actions, no local machine
 needed. Run it from the **Actions** tab (`Release` → **Run workflow**) and pick:
 
-- **channel** — `beta` or `stable`. Each builds a distinct app (`Tinycast Beta.app` / `Tinycast.app`)
-  with its own bundle id, alongside the local `Tinycast Dev.app`. Beta gets an auto-incrementing
+- **channel** — `beta` or `stable`. Each builds a distinct app (`Termcast Beta.app` / `Termcast.app`)
+  with its own bundle id, alongside the local `Termcast Dev.app`. Beta gets an auto-incrementing
   `-beta.N` suffix (`N` = the Actions run number) so re-running never collides; stable ships the
   version as-is.
 - **version** — base semver, e.g. `0.2.0`.
@@ -73,7 +73,7 @@ the site reads the latest version and the [changelog](https://tinycast.dev/chang
 build time.
 
 A stable run then fans out to a second job, `universal`, which rebuilds the same commit with
-`ARCHS="arm64 x86_64"` and attaches `Tinycast-Universal-<version>.dmg` / `.zip` to the release the
+`ARCHS="arm64 x86_64"` and attaches `Termcast-Universal-<version>.dmg` / `.zip` to the release the
 first job created, then bumps `tinycast-universal`. macOS 26 is the last release that boots on Intel,
 and those Macs need both slices. Both jobs pin `ARCHS` explicitly and assert the slices on _every_
 shipping binary — the app, `ClipboardTextHelper`, `FileIndexHelper` and `Tinycast Dictation`:

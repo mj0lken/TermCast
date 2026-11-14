@@ -111,7 +111,12 @@ private struct SupportActionButton: View {
             .frame(height: Self.height)
             .background(
                 Capsule()
-                    .fill(Theme.Colors.brand)
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.Colors.brand, Theme.Colors.brandSecondary],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
                     .brightness(hovered ? 0.08 : 0)
             )
             .contentShape(Capsule())

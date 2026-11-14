@@ -1,6 +1,6 @@
 <h1 align="center">
-  <a href="https://github.com/mj0lken/TermCast"><img src="docs/images/icon.png" alt="TermCast app icon" width="128" height="128"></a><br>
-  TermCast
+  <a href="https://github.com/mj0lken/TermCast"><img src="docs/images/icon.png" alt="Termcast app icon" width="128" height="128"></a><br>
+  Termcast
 </h1>
 
 <p align="center">
@@ -8,17 +8,16 @@
 </p>
 
 <p align="center">
-  <a href="https://tinycast.dev"><strong>Website</strong></a> ·
+  <a href="https://github.com/mj0lken/TermCast/releases"><strong>Releases</strong></a> ·
   <a href="#install"><strong>Install</strong></a> ·
-  <a href="https://tinycast.dev/docs/"><strong>Docs</strong></a> ·
-  <a href="https://tinycast.dev/support"><strong>Support</strong></a>
+  <a href="docs/features/terminal.md"><strong>Terminal Docs</strong></a> ·
+  <a href="https://tinycast.dev/docs/"><strong>Launcher Docs</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/abue-ammar/tinycast/releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/release/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;label=RELEASE&amp;logo=lu:Tag&amp;valueColor=60A5FA" /><img alt="Latest release" src="https://shieldcn.dev/github/release/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;label=RELEASE&amp;logo=lu:Tag&amp;valueColor=2563EB" /></picture></a>
-  <a href="https://github.com/abue-ammar/tinycast/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/downloads/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;label=DOWNLOADS&amp;logo=lu:CloudDownload&amp;valueColor=A78BFA" /><img alt="Total downloads" src="https://shieldcn.dev/github/downloads/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;label=DOWNLOADS&amp;logo=lu:CloudDownload&amp;valueColor=7C3AED" /></picture></a>
-  <a href="https://github.com/abue-ammar/tinycast/actions/workflows/release.yml"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;workflow=release.yml&amp;label=BUILD&amp;logo=lu:Hammer&amp;valueColor=4ADE80" /><img alt="Release build status" src="https://shieldcn.dev/github/ci/abue-ammar/tinycast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;workflow=release.yml&amp;label=BUILD&amp;logo=lu:Hammer&amp;valueColor=16A34A" /></picture></a>
-  <a href="https://discord.gg/v2Eeb4QQy3"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/DISCORD-JOIN.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;logo=discord&amp;valueColor=A5B4FC" /><img alt="Join the Tinycast Discord" src="https://shieldcn.dev/badge/DISCORD-JOIN.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;logo=discord&amp;valueColor=5865F2" /></picture></a>
+  <a href="https://github.com/mj0lken/TermCast/releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/release/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;label=RELEASE&amp;logo=lu:Tag&amp;valueColor=60A5FA" /><img alt="Latest release" src="https://shieldcn.dev/github/release/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;label=RELEASE&amp;logo=lu:Tag&amp;valueColor=2563EB" /></picture></a>
+  <a href="https://github.com/mj0lken/TermCast/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/downloads/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;label=DOWNLOADS&amp;logo=lu:CloudDownload&amp;valueColor=A78BFA" /><img alt="Total downloads" src="https://shieldcn.dev/github/downloads/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;label=DOWNLOADS&amp;logo=lu:CloudDownload&amp;valueColor=7C3AED" /></picture></a>
+  <a href="https://github.com/mj0lken/TermCast/actions/workflows/release.yml"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;workflow=release.yml&amp;label=BUILD&amp;logo=lu:Hammer&amp;valueColor=4ADE80" /><img alt="Release build status" src="https://shieldcn.dev/github/ci/mj0lken/TermCast.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;workflow=release.yml&amp;label=BUILD&amp;logo=lu:Hammer&amp;valueColor=16A34A" /></picture></a>
   <br>
   <picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/MACOS-26%2B.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;logo=apple" /><img alt="macOS 26 or later" src="https://shieldcn.dev/badge/MACOS-26%2B.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;logo=apple" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/SWIFT-6.svg?variant=ghost&amp;font=geist-mono&amp;mode=dark&amp;logo=swift&amp;valueColor=FB923C" /><img alt="Swift 6" src="https://shieldcn.dev/badge/SWIFT-6.svg?variant=ghost&amp;font=geist-mono&amp;mode=light&amp;logo=swift&amp;valueColor=EA580C" /></picture>
@@ -26,7 +25,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.jpg" alt="Tinycast command palette">
+  <img src="docs/screenshot.jpg" alt="Termcast command palette">
 </p>
 
 Built with SwiftUI and AppKit. No dependencies, no Electron, no telemetry. It runs your Raycast
@@ -42,26 +41,18 @@ Enable **Terminal** in **Settings → Terminal** to run shell commands and live 
 - **`Shift+Tab` (`⇧⇥`):** Cycles through recent folders right under the input bar before running a command.
 - **Multi-tab PTY sessions:** Create (`⌘N`), switch (`⌘1`–`⌘9` or `⇥`), send stdin, stop (`⌘.`), and close (`⌃X`) tabs with full ANSI color streaming and persistent `cd` directory tracking. See [docs/features/terminal.md](docs/features/terminal.md).
 
-[Explore all Tinycast features →](https://tinycast.dev/#features)
-
-For anything private, feel free to email [iabueammar@gmail.com](mailto:iabueammar@gmail.com).
+[Explore all inherited launcher features →](https://tinycast.dev/#features)
 
 ## Install
 
-On an Apple silicon Mac with macOS 26 or newer:
+Requires macOS 26 or newer:
 
-```sh
-brew install --cask tinycast
-brew install --cask tinycast@beta
-```
+- **DMG:** Download the latest `Termcast-<version>.dmg` (or `Termcast-Universal-<version>.dmg` on Intel) from [Releases](https://github.com/mj0lken/TermCast/releases) and drag `Termcast.app` to `/Applications`.
+- **Build from source:** Run `./Scripts/build-dmg.sh` to build a signed `build/Termcast-<version>.dmg` locally (see [docs/development.md](docs/development.md)).
 
-- **DMG:** notarized, download from [Releases](https://github.com/abue-ammar/tinycast/releases). Drag `Tinycast.app` to `/Applications`.
-- **Intel Mac:** install from [Homebrew tap](https://github.com/abue-ammar/homebrew-tinycast).
+## Upstream & Support
 
-## Support
-
-Tinycast is free and stays free. If it earns a place on your Mac, consider supporting its
-development. Thank you!
+Termcast builds on [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. If you'd like to support upstream Tinycast development:
 
 <p align="center">
   <a href="https://tinycast.dev/support"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/SUPPORT-CARD.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=dark&amp;logo=lu:CircleDollarSign&amp;logoColor=A78BFA&amp;valueColor=A78BFA" /><img alt="Support by card payment" src="https://shieldcn.dev/badge/SUPPORT-CARD.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=light&amp;logo=lu:CircleDollarSign&amp;logoColor=7C3AED&amp;valueColor=7C3AED" /></picture></a>
@@ -70,4 +61,4 @@ development. Thank you!
 
 ## License
 
-Tinycast is licensed under the [AGPL-3.0 license](LICENSE).
+Termcast is licensed under the [AGPL-3.0 license](LICENSE).

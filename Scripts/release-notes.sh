@@ -13,6 +13,7 @@ VERSION="${VERSION:-${TAG#v}}"
 DISPLAY_NAME="${DISPLAY_NAME:-Termcast}"
 BUNDLE_ID="${BUNDLE_ID:-com.mj0lken.termcast}"
 CASK="${CASK:-termcast}"
+TAP_REPO="${TAP_REPO:-}"
 
 # Everything below this line is for the download page; the update window cuts here.
 MARKER="<!-- tinycast:install -->"
@@ -51,8 +52,13 @@ CHANGELOG="$(printf '%s\n' "$GENERATED" | sed -E \
     printf 'Built from %s.' "$SHA"
     if [ -n "$COMPARE_URL" ]; then printf ' [Full changelog](%s)' "$COMPARE_URL"; fi
     printf '\n\n'
-    printf 'Install via Homebrew, or open the DMG below and drag %s to Applications:\n' "$DISPLAY_NAME"
-    printf '```sh\nbrew install --cask %s\n```\n' "$CASK"
+    if [ -n "$TAP_REPO" ]; then
+        TAP_SLUG="${TAP_REPO%/homebrew-*}/${TAP_REPO#*/homebrew-}"
+        printf 'Install via Homebrew, or open the DMG below and drag `%s.app` to `/Applications`:\n' "$DISPLAY_NAME"
+        printf '```sh\nbrew install --cask %s/%s\n```\n' "$TAP_SLUG" "$CASK"
+    else
+        printf 'Open **%s-%s.dmg** below and drag `%s.app` to `/Applications`.\n' "$DISPLAY_NAME" "$VERSION" "$DISPLAY_NAME"
+    fi
 } > "$BODY_OUT"
 
 printf '%s\n' "$CHANGELOG" | awk -v budget="$DISCORD_BUDGET" -v bullets="$DISCORD_BULLETS" '

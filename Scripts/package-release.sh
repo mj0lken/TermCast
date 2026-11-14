@@ -12,6 +12,10 @@ AUTH=(--key "$KEY" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID")
 
 ditto "$APP" "$STAGE/${APP##*/}"
 ln -s /Applications "$STAGE/Applications"
+if [ -f "$APP/Contents/Resources/tinycast.icns" ]; then
+    cp "$APP/Contents/Resources/tinycast.icns" "$STAGE/.VolumeIcon.icns"
+    xcrun SetFile -a C "$STAGE"
+fi
 mkdir -p "$(dirname "$DMG")" "$(dirname "$ZIP")"
 diskutil image create from "$STAGE" --format UDZO --volumeName "$(basename "$APP" .app)" "$DMG"
 codesign -s "$SIGNING_IDENTITY" --timestamp "$DMG"

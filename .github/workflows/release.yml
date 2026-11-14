@@ -68,7 +68,7 @@ jobs:
           export DEVELOPER_DIR="$XCODE_PATH/Contents/Developer"
           SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1 || echo 0)"
           if [ "${SDK_MAJOR:-0}" -lt 26 ]; then
-            echo "::error::TermCast requires macOS 26+ SDK (found macOS SDK ${SDK_MAJOR} in $XCODE_PATH). Set repository variable MACOS_RUNNER to a macOS 26 / Xcode 26+ runner."
+            echo "::error::Termcast requires macOS 26+ SDK (found macOS SDK ${SDK_MAJOR} in $XCODE_PATH). Set repository variable MACOS_RUNNER to a macOS 26 / Xcode 26+ runner."
             ls /Applications | grep -i xcode || true
             exit 1
           fi
@@ -197,6 +197,7 @@ jobs:
           DISPLAY_NAME: ${{ steps.meta.outputs.display_name }}
           BUNDLE_ID: ${{ steps.meta.outputs.bundle_id }}
           CASK: ${{ steps.meta.outputs.cask_name }}
+          TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO }}
         run: ./Scripts/release-notes.sh "$RUNNER_TEMP/notes.md" "$RUNNER_TEMP/changelog.md"
 
       - name: Publish GitHub Release
@@ -227,6 +228,7 @@ jobs:
           DISPLAY_NAME: ${{ steps.meta.outputs.display_name }}
           VERSION: ${{ steps.meta.outputs.full_version }}
           CASK: ${{ steps.meta.outputs.cask_name }}
+          TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO }}
           TAG: v${{ steps.meta.outputs.full_version }}
         run: |
           if [ -z "${DISCORD_WEBHOOK_URL}" ]; then
@@ -235,12 +237,17 @@ jobs:
           fi
           if [ "${CHANNEL}" = "stable" ]; then COLOR=3066993; else COLOR=15844367; fi
           RELEASE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
-          INSTALL="brew install --cask ${CASK}"
+          if [ -n "${TAP_REPO}" ]; then
+            TAP_SLUG="${TAP_REPO%/homebrew-*}/${TAP_REPO#*/homebrew-}"
+            INSTALL_NOTE="**Install / update via Homebrew**\n\`\`\`\nbrew install --cask ${TAP_SLUG}/${CASK}\n\`\`\`"
+          else
+            INSTALL_NOTE="Download **${DISPLAY_NAME}-${VERSION}.dmg** from GitHub Releases."
+          fi
           jq -n \
             --argjson color "${COLOR}" \
             --arg heading "## 🚀 ${DISPLAY_NAME} ${VERSION}" \
             --arg sub "Now available on the **${CHANNEL}** channel." \
-            --arg install "${INSTALL}" \
+            --arg install_note "${INSTALL_NOTE}" \
             --arg url "${RELEASE_URL}" \
             --rawfile changelog "${RUNNER_TEMP}/changelog.md" \
             '{
@@ -256,7 +263,7 @@ jobs:
                   { type: 14 },
                   { type: 10, content: ($changelog | rtrimstr("\n")) },
                   { type: 14 },
-                  { type: 10, content: ("**Install / update via Homebrew**\n```\n" + $install + "\n```") }
+                  { type: 10, content: $install_note }
                 ] }
               ]
             }' > payload.json

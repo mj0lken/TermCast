@@ -96,14 +96,26 @@ struct AboutView: View {
     private var support: some View {
         Section {
             HStack(spacing: Theme.Spacing.xl) {
-                // Brand is a fixed hue, so an alpha on it holds up in both appearances.
                 RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .fill(Theme.Colors.brand.opacity(0.16))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Theme.Colors.brand.opacity(0.18),
+                                Theme.Colors.brandSecondary.opacity(0.18)
+                            ],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: Self.supportTile, height: Self.supportTile)
                     .overlay(
                         Image(systemName: "heart.fill")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.brand)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Theme.Colors.brand, Theme.Colors.brandSecondary],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                )
+                            )
                     )
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                     SettingsRowTitle(.aboutLinks, "Support")
@@ -144,10 +156,6 @@ private struct AboutLink: Identifiable {
 
     static let all: [AboutLink] = [
         AboutLink(
-            id: "website", glyph: .symbol("globe"), title: String(localized: "Website"),
-            detail: "tinycast.dev",
-            url: URL(string: "https://tinycast.dev/")!),
-        AboutLink(
             id: "github", glyph: .brand("BrandGitHub"), title: "GitHub",
             detail: "github.com/mj0lken/TermCast",
             url: URL(string: "https://github.com/mj0lken/TermCast")!),
@@ -155,6 +163,10 @@ private struct AboutLink: Identifiable {
             id: "upstream", glyph: .brand("BrandGitHub"), title: "Tinycast",
             detail: "github.com/abue-ammar/tinycast",
             url: URL(string: "https://github.com/abue-ammar/tinycast")!),
+        AboutLink(
+            id: "website", glyph: .symbol("globe"), title: String(localized: "Website"),
+            detail: "tinycast.dev",
+            url: URL(string: "https://tinycast.dev/")!),
         AboutLink(
             id: "discord", glyph: .brand("BrandDiscord"), title: "Discord",
             detail: String(localized: "Join the Tinycast community"),
