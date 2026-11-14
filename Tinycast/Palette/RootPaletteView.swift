@@ -523,6 +523,7 @@ struct RootPaletteView: View {
             .onDisappear {
                 menuPanel.hide()
                 (hostWindow as? PalettePanel)?.onHeaderFieldBoundaryArrow = nil
+                (hostWindow as? PalettePanel)?.onShiftTab = nil
             }
             // The first show builds this view after `prepare`, so no handler saw that reset.
             .onAppear {
@@ -665,11 +666,11 @@ struct RootPaletteView: View {
                 }
                 return .handled
             }
-            .onKeyPress(keys: [.tab], phases: .down) { press in
+            .onKeyPress(keys: [.tab, KeyEquivalent("\u{19}")], phases: .down) { press in
                 // ⇥ inside an open list belongs to the list, not to the form's field order.
                 if vm.isControlListOpen || menuOpen { return .handled }
                 if vm.isComposing { return .ignored }
-                let shift = press.modifiers.contains(.shift)
+                let shift = press.modifiers.contains(.shift) || press.key == KeyEquivalent("\u{19}")
                 if shift,
                     press.modifiers.isDisjoint(with: [.command, .option, .control]),
                     vm.mode == .terminal || (vm.mode == .launcher && argumentFocused == nil),
@@ -1602,6 +1603,18 @@ struct RootPaletteView: View {
             case .trailing:
                 advanceTabFocus(backwards: false)
             }
+            return true
+        }
+        panel.onShiftTab = {
+            if vm.isControlListOpen || menuOpen { return true }
+            if vm.isComposing { return false }
+            if vm.mode == .terminal || (vm.mode == .launcher && argumentFocused == nil),
+                terminalCoordinator.handleShiftTab()
+            {
+                if !searchFocused { searchFocused = true }
+                return true
+            }
+            advanceTabFocus(backwards: true)
             return true
         }
     }

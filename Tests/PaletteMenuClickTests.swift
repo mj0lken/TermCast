@@ -262,5 +262,27 @@ struct PaletteMenuClickTests {
         send(kVK_RightArrow)
         check(boundaries.count == 3, "marked IME text owns boundary arrows")
         editor.unmarkText()
+
+        var shiftTabs = 0
+        panel.onShiftTab = {
+            shiftTabs += 1
+            return true
+        }
+        let backtab = NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: .shift,
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber,
+            context: nil, characters: "\u{19}", charactersIgnoringModifiers: "\u{19}",
+            isARepeat: false, keyCode: UInt16(kVK_Tab))!
+        panel.sendEvent(backtab)
+        check(shiftTabs == 1, "Shift-Tab backtab event reaches onShiftTab")
+        check(panel.firstResponder === editor, "Shift-Tab leaves focus in the field editor")
+
+        let plainTab = NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber,
+            context: nil, characters: "\t", charactersIgnoringModifiers: "\t",
+            isARepeat: false, keyCode: UInt16(kVK_Tab))!
+        panel.sendEvent(plainTab)
+        check(shiftTabs == 1, "plain Tab does not trigger onShiftTab")
     }
 }

@@ -18,6 +18,8 @@ final class PalettePanel: NSPanel, AnimatedPanel {
     var onFieldEditorFocused: ((NSTextInputContext) -> Void)?
     /// Inline argument fields use arrows at their text boundaries to continue their focus ring.
     var onHeaderFieldBoundaryArrow: ((HeaderFieldBoundary) -> Bool)?
+    /// macOS maps Shift-Tab to backtab (`\u{19}`), which the field editor eats before `onKeyPress`.
+    var onShiftTab: (() -> Bool)?
     var onDismissMenu: (() -> Void)?
     private var dismissingMouseButton: Int?
     /// Arms hover from `sendEvent`, the one place both event streams pass through.
@@ -221,6 +223,14 @@ final class PalettePanel: NSPanel, AnimatedPanel {
         }
         if event.type == .keyDown, let boundary = headerFieldBoundary(for: event),
             onHeaderFieldBoundaryArrow?(boundary) == true
+        {
+            return
+        }
+        if event.type == .keyDown,
+            Int(event.keyCode) == kVK_Tab,
+            event.modifierFlags.intersection([.command, .option, .control, .shift]) == .shift,
+            fieldEditor?.hasMarkedText() != true,
+            onShiftTab?() == true
         {
             return
         }
