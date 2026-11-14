@@ -1,5 +1,10 @@
 {
-  "fill": "automatic",
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.16500,0.17300,0.19600,1.00000",
+      "display-p3:0.07800,0.08600,0.10600,1.00000"
+    ]
+  },
   "groups": [
     {
       "layers": [
@@ -18,7 +23,7 @@
       },
       "translucency": {
         "enabled": true,
-        "value": 0.5
+        "value": 0.35
       }
     }
   ],

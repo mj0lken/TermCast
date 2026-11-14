@@ -57,16 +57,16 @@ environment deploys from `main` only, so a workflow pushed to any other branch c
 
 Export the Developer ID identity alone — `security export -t identities` bundles every identity in
 the keychain. In Keychain Access, open **My Certificates**, select
-`Developer ID Application: … (J656U8XZ93)`, choose **File → Export Items…** and save a `.p12` with a
-password. Then:
+`Developer ID Application: … (<TEAM_ID>)`, choose **File → Export Items…** and save a `.p12` with a
+password. Then run `./Scripts/setup-release-secrets.sh` (or upload manually):
 
 ```sh
-base64 -i DeveloperID.p12 | gh secret set DEVELOPER_ID_P12_BASE64 --env release --repo abue-ammar/tinycast
-gh secret set DEVELOPER_ID_P12_PASSWORD --env release --repo abue-ammar/tinycast
-base64 -i AuthKey_<key-id>.p8 | gh secret set NOTARY_KEY_P8_BASE64 --env release --repo abue-ammar/tinycast
-gh secret set NOTARY_KEY_ID --env release --repo abue-ammar/tinycast --body "<key-id>"
-gh secret set NOTARY_ISSUER_ID --env release --repo abue-ammar/tinycast --body "<issuer-id>"
-gh secret set UPDATE_SIGNING_KEY --env release --repo abue-ammar/tinycast
+base64 -i DeveloperID.p12 | gh secret set DEVELOPER_ID_P12_BASE64 --env release --repo mj0lken/TermCast
+gh secret set DEVELOPER_ID_P12_PASSWORD --env release --repo mj0lken/TermCast
+base64 -i AuthKey_<key-id>.p8 | gh secret set NOTARY_KEY_P8_BASE64 --env release --repo mj0lken/TermCast
+gh secret set NOTARY_KEY_ID --env release --repo mj0lken/TermCast
+gh secret set NOTARY_ISSUER_ID --env release --repo mj0lken/TermCast
+gh secret set UPDATE_SIGNING_KEY --env release --repo mj0lken/TermCast
 ```
 
 The password and the private key go in at `gh`'s prompt, never through `--body`, which would leave

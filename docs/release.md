@@ -3,15 +3,20 @@
 How a build reaches a user. The local development loop is in [development.md](development.md);
 the signing identity itself is in [signing.md](signing.md).
 
-## Packaging a DMG locally
+## Packaging & publishing locally
 
 ```sh
-./Scripts/build-dmg.sh            # -> build/Termcast-<version>.dmg (version from project.yml)
-./Scripts/build-dmg.sh 0.5.7      # -> build/Termcast-0.5.7.dmg
+./Scripts/build-dmg.sh                # -> build/Termcast-<version>.dmg (version from project.yml)
+./Scripts/build-dmg.sh 0.1.1          # -> build/Termcast-0.1.1.dmg
+./Scripts/publish-release.sh 0.1.1    # builds arm64 + Universal, publishes v0.1.1, bumps mj0lken/homebrew-tap
+./Scripts/publish-release.sh 0.2.0 beta
 ```
 
-It builds a Release `Termcast.app` signed with `Tinycast Self-Signed` and packs it with an
-`/Applications` symlink. Official per-channel releases are built by CI, below.
+`build-dmg.sh` builds a single local Release `Termcast.app` signed with `Tinycast Self-Signed` into
+`build/`. `publish-release.sh` runs from a clean `main` synced with `origin/main` using Xcode 27+,
+builds and slice-verifies both `arm64` and `Universal` variants, publishes the GitHub Release, and
+updates `Casks/termcast.rb` in `mj0lken/homebrew-tap` (or notarizes automatically when Developer ID
+and App Store Connect Notary variables are exported). CI releases run via `.github/workflows/release.yml`, below.
 
 ## Signing & Gatekeeper
 
@@ -147,22 +152,14 @@ after the first stable handoff release; the universal cask in the tap needs the 
 the migration check fails, and the handoff goes with everything its row in
 [migrations.md](migrations.md) lists.
 
-### Homebrew casks
+### Homebrew cask (`mj0lken/homebrew-tap`)
 
-`tinycast` and `tinycast@beta` are in [homebrew/cask](https://github.com/Homebrew/homebrew-cask),
-where Homebrew's autobump bot bumps each one after a release.
+`Casks/termcast.rb` in [`mj0lken/homebrew-tap`](https://github.com/mj0lken/homebrew-tap) serves both
+Apple Silicon (`Termcast-<version>.dmg`) and Intel (`Termcast-Universal-<version>.dmg`) via Homebrew's
+`arch arm: "", intel: "-Universal"` stanza (`brew install --cask mj0lken/tap/termcast`).
 
-`tinycast-universal` is the only cask left in the
-[`homebrew-tinycast`](https://github.com/abue-ammar/homebrew-tinycast) tap, and the `universal` job
-is the only job that touches it: its last step rewrites the cask's `version` + `sha256` and pushes.
-The tap's `tap_migrations.json` hands anyone who installed `tinycast` or `tinycast@beta` from the tap
-to homebrew/cask on `brew update`.
-
-The step needs a `HOMEBREW_TAP_TOKEN` repo secret — a fine-grained PAT with **Contents: read/write**
-on the tap repo. Without the secret the step logs a warning and skips; the release still publishes.
-The `sed` is anchored to `^  version` / `^  sha256`, so a cask's two-space indent on those lines is
-load-bearing.
-
-Both stable casks install `Tinycast.app` under `com.abueammar.tinycast`, so `tinycast-universal`
-declares `conflicts_with cask: "tinycast"`. `tinycast` requires `arch: :arm64`; `tinycast-universal`
-installs on any Mac.
+`./Scripts/publish-release.sh` updates `version` and both `arm:` / `intel:` `sha256` lines directly
+via `gh`. In CI (`.github/workflows/release.yml`), the `universal` job updates the same three lines
+when `HOMEBREW_TAP_TOKEN` (a fine-grained PAT with **Contents: read/write** on `mj0lken/homebrew-tap`)
+and `HOMEBREW_TAP_REPO=mj0lken/homebrew-tap` are set; without the token it logs a notice and skips so
+the GitHub Release still publishes.

@@ -1,4 +1,6 @@
 README.md merge=ours
+Tinycast/tinycast.icon/** merge=ours
+Tinycast/Assets.xcassets/MenuBarIcon.imageset/** merge=ours
 Tinycast.xcodeproj/project.pbxproj -diff linguist-generated=true
 Tinycast/Resources/Localizable.xcstrings -diff linguist-generated=true
 Tinycast/Resources/InfoPlist.xcstrings -diff linguist-generated=true

@@ -27,6 +27,7 @@ jobs:
       full_version: ${{ steps.meta.outputs.full_version }}
       display_name: ${{ steps.meta.outputs.display_name }}
       bundle_id: ${{ steps.meta.outputs.bundle_id }}
+      arm_dmg_sha256: ${{ steps.notarize.outputs.arm_dmg_sha256 }}
     steps:
       - name: Verify release secrets
         env:
@@ -54,9 +55,9 @@ jobs:
       - name: Check migrations
         run: ./Scripts/check-migrations.sh
 
-      - name: Select Xcode (macOS 26+ SDK)
+      - name: Select Xcode 27+
         run: |
-          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_(27|26)(\.[0-9]+)*\.app' | sort -V | tail -n1)"
+          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_27(\.[0-9]+)*\.app' | sort -V | tail -n1)"
           if [ -z "$XCODE_PATH" ] && [ -d /Applications/Xcode.app ]; then
             XCODE_PATH="/Applications/Xcode.app"
           fi
@@ -67,8 +68,8 @@ jobs:
           fi
           export DEVELOPER_DIR="$XCODE_PATH/Contents/Developer"
           SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1 || echo 0)"
-          if [ "${SDK_MAJOR:-0}" -lt 26 ]; then
-            echo "::error::Termcast requires macOS 26+ SDK (found macOS SDK ${SDK_MAJOR} in $XCODE_PATH). Set repository variable MACOS_RUNNER to a macOS 26 / Xcode 26+ runner."
+          if [ "${SDK_MAJOR:-0}" -lt 27 ]; then
+            echo "::error::Termcast requires Xcode 27+ (Swift 6.4+), found macOS SDK ${SDK_MAJOR} in $XCODE_PATH. Set repository variable MACOS_RUNNER to an Xcode 27 runner (or release locally via ./Scripts/publish-release.sh)."
             ls /Applications | grep -i xcode || true
             exit 1
           fi
@@ -169,6 +170,7 @@ jobs:
           ./Scripts/check-update-path.sh "$RUNNER_TEMP/DerivedData/Build/Products/Release/${DISPLAY_NAME}.app" "$CHANNEL"
 
       - name: Notarize DMG and ZIP
+        id: notarize
         env:
           DISPLAY_NAME: ${{ steps.meta.outputs.display_name }}
           DMG_FILE: ${{ steps.meta.outputs.dmg_file }}
@@ -180,6 +182,7 @@ jobs:
         run: |
           ./Scripts/package-release.sh "$RUNNER_TEMP/DerivedData/Build/Products/Release/${DISPLAY_NAME}.app" \
             "dist/${DMG_FILE}" "dist/${ZIP_FILE}"
+          echo "arm_dmg_sha256=$(shasum -a 256 "dist/${DMG_FILE}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -279,13 +282,14 @@ jobs:
       VERSION: ${{ needs.build.outputs.full_version }}
       DISPLAY_NAME: ${{ needs.build.outputs.display_name }}
       BUNDLE_ID: ${{ needs.build.outputs.bundle_id }}
-      CASK: termcast-universal
+      ARM_SHA: ${{ needs.build.outputs.arm_dmg_sha256 }}
+      CASK: termcast
     steps:
       - uses: actions/checkout@v7
 
-      - name: Select Xcode (macOS 26+ SDK)
+      - name: Select Xcode 27+
         run: |
-          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_(27|26)(\.[0-9]+)*\.app' | sort -V | tail -n1)"
+          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_27(\.[0-9]+)*\.app' | sort -V | tail -n1)"
           if [ -z "$XCODE_PATH" ] && [ -d /Applications/Xcode.app ]; then
             XCODE_PATH="/Applications/Xcode.app"
           fi
@@ -380,7 +384,7 @@ jobs:
             echo "HOMEBREW_TAP_TOKEN or HOMEBREW_TAP_REPO not set — skipping cask bump."
             exit 0
           fi
-          SHA="$(shasum -a 256 "dist/Termcast-Universal-${VERSION}.dmg" | awk '{print $1}')"
+          INTEL_SHA="$(shasum -a 256 "dist/Termcast-Universal-${VERSION}.dmg" | awk '{print $1}')"
           git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" tap
           CASK_FILE="tap/Casks/${CASK}.rb"
           if [ ! -f "$CASK_FILE" ]; then
@@ -388,7 +392,9 @@ jobs:
             exit 1
           fi
           sed -i '' -E "s|^  version \".*\"|  version \"${VERSION}\"|" "$CASK_FILE"
-          sed -i '' -E "s|^  sha256 \".*\"|  sha256 \"${SHA}\"|" "$CASK_FILE"
+          sed -i '' -E "s|^(  sha256 arm:[[:space:]]+)\"[0-9a-f]+\"|\\1\"${ARM_SHA}\"|" "$CASK_FILE"
+          sed -i '' -E "s|^(         intel:[[:space:]]+)\"[0-9a-f]+\"|\\1\"${INTEL_SHA}\"|" "$CASK_FILE"
+          ruby -c "$CASK_FILE"
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
