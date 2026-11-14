@@ -4,7 +4,7 @@
 </h1>
 
 <p align="center">
-  A native macOS 26 launcher built on <a href="https://github.com/abue-ammar/tinycast">TinyCast</a> with an integrated, multi-tab PTY <strong>Terminal Mode</strong> directly inside the command palette.
+  A fork that brings the full power of a native terminal directly into <a href="https://github.com/abue-ammar/tinycast">TinyCast</a>—run shell commands, cycle working folders, and manage live multi-tab PTY sessions without leaving the launcher palette.
 </p>
 
 <p align="center">
@@ -26,14 +26,22 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.jpg" alt="TermCast command palette running Terminal Mode">
+  <img src="docs/screenshot.png" alt="TermCast command palette running Terminal Mode" width="750">
 </p>
 
 Built natively with SwiftUI and AppKit—zero third-party dependencies, no Electron, and no telemetry. Runs your existing Raycast extensions natively in JavaScriptCore.
 
-## Terminal Mode
+## Install
 
-Enable **Terminal** in **Settings → Terminal** to run shell commands and live PTY sessions right inside the palette without context-switching to a separate Terminal window:
+Requires **macOS 26** or newer:
+
+```bash
+brew install --cask mj0lken/tap/termcast
+```
+
+Or download the signed `Termcast-<version>.dmg` (or `Termcast-Universal-<version>.dmg` for Intel) directly from [**Releases**](https://github.com/mj0lken/TermCast/releases), drag `Termcast.app` into `/Applications`, and enable **Settings → Terminal**.
+
+## Terminal Mode
 
 | Shortcut | Action |
 | :--- | :--- |
@@ -55,33 +63,11 @@ Everything from upstream [TinyCast](https://github.com/abue-ammar/tinycast) come
 - **Clipboard, Snippets & Quicklinks** — Searchable text/image clipboard history, keyword text expansion, and parameterized URLs.
 - **Inline Calculator, Notes & Window Management** — Live unit/currency/timezone math, a persistent floating scratchpad, emoji search, and keyboard window snapping.
 
-## Install
-
-Requires **macOS 26** or newer:
-
-1. **Download DMG:** Grab `Termcast-<version>.dmg` (or `Termcast-Universal-<version>.dmg` for Intel) from [**Releases**](https://github.com/mj0lken/TermCast/releases) and drag `Termcast.app` into `/Applications`.
-2. **Build from source:**
-   ```bash
-   git clone https://github.com/mj0lken/TermCast.git
-   cd TermCast
-   ./Scripts/build-dmg.sh
-   ```
-   Produces a signed `build/Termcast-<version>.dmg` locally (see [`docs/development.md`](docs/development.md)).
-
-## Upstream & Support
-
-TermCast is an open-source fork of [TinyCast](https://github.com/abue-ammar/tinycast) created by Abue Ammar, kept synced with `upstream/main` via [`Scripts/sync-upstream.sh`](Scripts/sync-upstream.sh). To support upstream TinyCast development:
-
-<p align="center">
-  <a href="https://tinycast.dev/support"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/SUPPORT-CARD.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=dark&amp;logo=lu:CircleDollarSign&amp;logoColor=A78BFA&amp;valueColor=A78BFA" /><img alt="Support by card payment" src="https://shieldcn.dev/badge/SUPPORT-CARD.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=light&amp;logo=lu:CircleDollarSign&amp;logoColor=7C3AED&amp;valueColor=7C3AED" /></picture></a>
-  <a href="https://tinycast.dev/support?method=crypto"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/SUPPORT-CRYPTO.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=dark&amp;logo=lu:Bitcoin&amp;logoColor=FBBF24&amp;valueColor=FBBF24" /><img alt="Support with crypto" src="https://shieldcn.dev/badge/SUPPORT-CRYPTO.svg?variant=outline&amp;size=lg&amp;font=geist-mono&amp;mode=light&amp;logo=lu:Bitcoin&amp;logoColor=B45309&amp;valueColor=B45309" /></picture></a>
-</p>
-
 ---
 
 <p align="center">
-  <a href="https://mj0lken.github.io/TermCast/">Landing Page</a> ·
-  <a href="https://github.com/mj0lken/TermCast">TermCast on GitHub</a> ·
-  <a href="https://github.com/abue-ammar/tinycast">TinyCast on GitHub</a> ·
+  <a href="https://mj0lken.github.io/TermCast/">Website</a> ·
+  <a href="https://github.com/mj0lken/TermCast">GitHub</a> ·
+  <a href="https://github.com/mj0lken/TermCast/releases">Releases</a> ·
   <a href="LICENSE">AGPL-3.0 License</a>
 </p>
