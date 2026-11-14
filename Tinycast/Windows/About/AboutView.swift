@@ -120,7 +120,7 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                     SettingsRowTitle(.aboutLinks, "Support")
                         .font(.body.weight(.medium))
-                    Text("Free and open source, funded out of pocket.")
+                    Text("Free and open source. Your support sustains its development.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -176,7 +176,7 @@ private struct AboutLink: Identifiable {
             url: URL(string: "https://x.com/abue_ammar")!),
         AboutLink(
             id: "email", glyph: .symbol("envelope"), title: String(localized: "Email"),
-            detail: "iabueammar@gmail.com", url: URL(string: "mailto:iabueammar@gmail.com")!)
+            detail: "hello@tinycast.dev", url: URL(string: "mailto:hello@tinycast.dev")!)
     ]
 }
 
