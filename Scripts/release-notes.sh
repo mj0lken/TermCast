@@ -5,14 +5,14 @@ set -euo pipefail
 BODY_OUT="${1:?usage: release-notes.sh <body.md> <discord.md>}"
 DISCORD_OUT="${2:?usage: release-notes.sh <body.md> <discord.md>}"
 
-REPO="${REPO:-abue-ammar/tinycast}"
+REPO="${REPO:-mj0lken/TermCast}"
 CHANNEL="${CHANNEL:?CHANNEL is required (beta|stable)}"
 TAG="${TAG:?TAG is required, e.g. v0.9.13-beta.61}"
 SHA="${SHA:-$(git rev-parse HEAD)}"
 VERSION="${VERSION:-${TAG#v}}"
-DISPLAY_NAME="${DISPLAY_NAME:-Tinycast}"
-BUNDLE_ID="${BUNDLE_ID:-com.abueammar.tinycast}"
-CASK="${CASK:-tinycast}"
+DISPLAY_NAME="${DISPLAY_NAME:-TermCast}"
+BUNDLE_ID="${BUNDLE_ID:-com.mj0lken.termcast}"
+CASK="${CASK:-termcast}"
 
 # Everything below this line is for the download page; the update window cuts here.
 MARKER="<!-- tinycast:install -->"
