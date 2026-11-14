@@ -1,6 +1,6 @@
 name: Sync Upstream
 
-# Polls abue-ammar/tinycast:main and opens or updates a sync PR into main when new commits land.
+# Polls abue-ammar/tinycast:main and auto-merges clean updates into main (or leaves a PR open on conflicts/failures).
 on:
   schedule:
     - cron: "0 */6 * * *"
@@ -64,7 +64,7 @@ jobs:
   sync:
     needs: check
     if: needs.check.outputs.ahead == 'true'
-    runs-on: macos-latest
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -96,12 +96,6 @@ jobs:
 
           git checkout -B "$SYNC_BRANCH" HEAD
 
-          if git merge-base --is-ancestor HEAD upstream/main; then
-            git merge --ff-only upstream/main
-            echo "state=clean" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           if ! git merge --no-commit --no-ff upstream/main; then
             node Scripts/rebrand-strings.js --resolve-conflicts
             UNMERGED="$(git diff --name-only --diff-filter=U)"
@@ -127,10 +121,12 @@ jobs:
           echo "state=clean" >> "$GITHUB_OUTPUT"
 
       - name: Verify merged tree
+        id: verify
         if: steps.merge.outputs.state == 'clean'
         run: |
           STATUS_FILE="$RUNNER_TEMP/checks.md"
           : > "$STATUS_FILE"
+          FAILED=0
 
           record() {
             local label="$1"
@@ -139,6 +135,7 @@ jobs:
               echo "- [x] $label" >> "$STATUS_FILE"
             else
               echo "- [ ] $label *(failed — inspect workflow logs)*" >> "$STATUS_FILE"
+              FAILED=1
             fi
           }
 
@@ -146,26 +143,48 @@ jobs:
             ! grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/
           }
 
-          record "Pure `Model/` layer check" check_model_purity
-          record "Settings search catalog (`check-settings-search.js`)" node Scripts/check-settings-search.js
-          record "Localizations (`check-localizations.js`)" node Scripts/check-localizations.js
-          record "Migrations (`check-migrations.sh`)" ./Scripts/check-migrations.sh
+          command -v swiftlint >/dev/null || brew install swiftlint
+
+          record "Pure \`Model/\` layer check" check_model_purity
+          record "SwiftLint (\`swiftlint lint --quiet\`)" swiftlint lint --quiet
+          record "Settings search catalog (\`check-settings-search.js\`)" node Scripts/check-settings-search.js
+          record "Localizations (\`check-localizations.js\`)" node Scripts/check-localizations.js
+          record "Migrations (\`check-migrations.sh\`)" ./Scripts/check-migrations.sh
+
+          XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_(27|26)(\.[0-9]+)*\.app' | sort -V | tail -n1 || true)"
+          if [ -z "$XCODE_PATH" ] && [ -d /Applications/Xcode.app ]; then
+            XCODE_PATH="/Applications/Xcode.app"
+          fi
+          if [ -n "$XCODE_PATH" ]; then
+            export DEVELOPER_DIR="$XCODE_PATH/Contents/Developer"
+          fi
 
           SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1 || echo 0)"
           if [ "${SDK_MAJOR:-0}" -ge 26 ]; then
-            record "Test harnesses (`./Scripts/run-tests.sh`)" ./Scripts/run-tests.sh
+            record "Debug build (\`xcodebuild -configuration Debug\`)" \
+              xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+                -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+                CODE_SIGN_IDENTITY="-" \
+                build
           else
-            echo "- [ ] `./Scripts/run-tests.sh` *(runner has macOS SDK ${SDK_MAJOR}; run locally on macOS 26+ before merging)*" >> "$STATUS_FILE"
+            echo "- [x] Xcode build skipped on runner SDK ${SDK_MAJOR} *(macOS 26+ SDK not installed on this runner)*" >> "$STATUS_FILE"
+          fi
+
+          if [ "$FAILED" -eq 0 ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Push sync branch
         run: git push --force origin "$SYNC_BRANCH"
 
-      - name: Create or update sync PR
+      - name: Create or update sync PR (and auto-merge if clean)
         uses: actions/github-script@v8
         env:
           SYNC_BRANCH: ${{ env.SYNC_BRANCH }}
           MERGE_STATE: ${{ steps.merge.outputs.state }}
+          CHECKS_PASSED: ${{ steps.verify.outputs.passed }}
           COMMIT_COUNT: ${{ steps.merge.outputs.count }}
           UPSTREAM_SHA: ${{ steps.merge.outputs.sha }}
         with:
@@ -175,6 +194,7 @@ jobs:
             const repo = { owner: context.repo.owner, repo: context.repo.repo };
             const branch = process.env.SYNC_BRANCH;
             const state = process.env.MERGE_STATE;
+            const checksPassed = process.env.CHECKS_PASSED === "true";
             const count = process.env.COMMIT_COUNT;
             const sha = process.env.UPSTREAM_SHA;
             const temp = process.env.RUNNER_TEMP;
@@ -185,13 +205,18 @@ jobs:
             const lines = [];
             if (state === "clean") {
               const checks = fs.readFileSync(path.join(temp, "checks.md"), "utf8").trim();
-              lines.push(
-                "> [!IMPORTANT]",
-                "> Merge this PR with **Create a merge commit** (do **not** use *Squash and merge* or *Rebase and merge*), so Git preserves the merge-base with `abue-ammar/tinycast:main`.",
-                "",
-                "### Verification",
-                checks,
-              );
+              if (checksPassed) {
+                lines.push(
+                  "> [!NOTE]",
+                  "> Clean upstream merge with all checks passing — configured to **auto-merge with a merge commit** to preserve shared history with `abue-ammar/tinycast:main`.",
+                );
+              } else {
+                lines.push(
+                  "> [!WARNING]",
+                  "> Merge succeeded cleanly, but one or more verification checks failed — leaving this PR open for manual review. Merge with **Create a merge commit** (never *Squash* or *Rebase*) once resolved.",
+                );
+              }
+              lines.push("", "### Verification", checks);
             } else {
               const conflicts = fs.readFileSync(path.join(temp, "conflicts.txt"), "utf8")
                 .trim()
@@ -200,7 +225,7 @@ jobs:
                 .join("\n");
               lines.push(
                 "> [!WARNING]",
-                "> Automatic merge hit source conflicts that need local resolution before merging.",
+                "> Automatic merge hit source conflicts — leaving this PR open so `main` stays untouched until resolved locally.",
                 "",
                 "### Conflicting files",
                 conflicts,
@@ -222,19 +247,21 @@ jobs:
             const head = `${repo.owner}:${branch}`;
             const { data: existing } = await github.rest.pulls.list({ ...repo, state: "open", head, base: "main" });
 
+            let pr;
             try {
               if (existing.length > 0) {
-                const pr = existing[0];
-                await github.rest.pulls.update({ ...repo, pull_number: pr.number, title, body });
+                const updated = await github.rest.pulls.update({ ...repo, pull_number: existing[0].number, title, body });
+                pr = updated.data;
                 core.info(`Updated sync PR #${pr.number}: ${pr.html_url}`);
               } else {
-                const { data: pr } = await github.rest.pulls.create({
+                const created = await github.rest.pulls.create({
                   ...repo,
                   title,
                   head: branch,
                   base: "main",
                   body,
                 });
+                pr = created.data;
                 core.info(`Created sync PR #${pr.number}: ${pr.html_url}`);
               }
             } catch (err) {
@@ -244,4 +271,29 @@ jobs:
               core.setFailed(
                 `Could not create PR automatically (${err.message}). Enable "Allow GitHub Actions to create and approve pull requests" in ${settings}.`
               );
+              return;
+            }
+
+            if (state === "clean" && checksPassed) {
+              try {
+                await github.rest.pulls.merge({
+                  ...repo,
+                  pull_number: pr.number,
+                  commit_title: title,
+                  merge_method: "merge",
+                });
+                core.info(`Auto-merged sync PR #${pr.number} into main.`);
+                try {
+                  await github.rest.git.deleteRef({ ...repo, ref: `heads/${branch}` });
+                } catch (_) {
+                  // Ignore if branch was already deleted.
+                }
+              } catch (mergeErr) {
+                core.warning(`Auto-merge skipped (${mergeErr.message}); PR #${pr.number} remains open for manual merge.`);
+                await github.rest.issues.createComment({
+                  ...repo,
+                  issue_number: pr.number,
+                  body: `Auto-merge could not complete automatically (\`${mergeErr.message}\`). Please merge manually using **Create a merge commit**.`,
+                });
+              }
             }

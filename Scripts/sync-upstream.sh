@@ -78,16 +78,6 @@ fi
 incoming="$(git rev-list --count HEAD..upstream/main)"
 echo "Integrating $incoming commit(s) from upstream/main…"
 
-if git merge-base --is-ancestor HEAD upstream/main; then
-    git merge --ff-only upstream/main
-    if [ "$verify" -eq 1 ]; then
-        ./Scripts/lint.sh
-        ./Scripts/run-tests.sh
-    fi
-    echo "✓ Fast-forwarded to upstream/main ($(git rev-parse --short HEAD))"
-    exit 0
-fi
-
 if ! git merge --no-commit --no-ff upstream/main; then
     node Scripts/rebrand-strings.js --resolve-conflicts
     unmerged="$(git diff --name-only --diff-filter=U)"
