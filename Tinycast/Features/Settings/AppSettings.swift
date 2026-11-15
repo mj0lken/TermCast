@@ -446,6 +446,37 @@ final class AppSettings {
         }
     }
 
+    var terminalDetectionBehavior: TerminalDetectionBehavior {
+        didSet {
+            defaults.set(
+                terminalDetectionBehavior.rawValue,
+                forKey: Key.terminalDetectionBehavior.rawValue)
+        }
+    }
+
+    var terminalColorTheme: TerminalColorTheme {
+        didSet {
+            defaults.set(
+                terminalColorTheme.rawValue,
+                forKey: Key.terminalColorTheme.rawValue)
+        }
+    }
+
+    var terminalExternalApp: ExternalTerminalApp {
+        didSet {
+            defaults.set(
+                terminalExternalApp.rawValue,
+                forKey: Key.terminalExternalApp.rawValue)
+        }
+    }
+
+    var terminalShortcuts: TerminalShortcuts {
+        didSet {
+            let data = try? JSONEncoder().encode(terminalShortcuts)
+            defaults.set(data, forKey: Key.terminalShortcuts.rawValue)
+        }
+    }
+
     /// Also keyword-expansion consent, so it confirms first and never rides a backup.
     var snippetsEnabled: Bool {
         didSet { defaults.set(snippetsEnabled, forKey: Key.snippetsEnabled.rawValue) }
@@ -848,13 +879,26 @@ final class AppSettings {
         customCommandsShowInLauncher =
             defaults.object(forKey: Key.customCommandsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.customCommandsShowInLauncher.rawValue)
-        terminalEnabled = defaults.bool(forKey: Key.terminalEnabled.rawValue)
+        terminalEnabled =
+            defaults.object(forKey: Key.terminalEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.terminalEnabled.rawValue)
         terminalShowInLauncher =
             defaults.object(forKey: Key.terminalShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.terminalShowInLauncher.rawValue)
         terminalLoadsShellEnvironment =
             defaults.object(forKey: Key.terminalLoadsShellEnvironment.rawValue) == nil
             || defaults.bool(forKey: Key.terminalLoadsShellEnvironment.rawValue)
+        terminalDetectionBehavior =
+            defaults.string(forKey: Key.terminalDetectionBehavior.rawValue)
+            .flatMap(TerminalDetectionBehavior.init(rawValue:)) ?? .topResult
+        terminalColorTheme = TerminalColorTheme.resolve(
+            stored: defaults.string(forKey: Key.terminalColorTheme.rawValue))
+        terminalExternalApp =
+            defaults.string(forKey: Key.terminalExternalApp.rawValue)
+            .flatMap(ExternalTerminalApp.init(rawValue:)) ?? .automatic
+        terminalShortcuts =
+            defaults.data(forKey: Key.terminalShortcuts.rawValue)
+            .flatMap { try? JSONDecoder().decode(TerminalShortcuts.self, from: $0) } ?? .defaults
         snippetsEnabled = defaults.bool(forKey: Key.snippetsEnabled.rawValue)
         quickActionsEnabled = defaults.bool(forKey: Key.quickActionsEnabled.rawValue)
         snippetsShowInLauncher =

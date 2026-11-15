@@ -2,6 +2,16 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
+@MainActor
+protocol TerminalKeyInputView: AnyObject {
+    var hasActiveMarkedText: Bool { get }
+    func handleTerminalKeyDown(_ event: NSEvent)
+    func handleTerminalEscape() -> Bool
+    func copySelectionIfPresent() -> Bool
+    func pasteFromClipboard()
+    func selectAllTerminalText()
+}
+
 final class PalettePanel: NSPanel, AnimatedPanel {
     enum HeaderFieldBoundary {
         case leading
@@ -20,6 +30,7 @@ final class PalettePanel: NSPanel, AnimatedPanel {
     var onHeaderFieldBoundaryArrow: ((HeaderFieldBoundary) -> Bool)?
     /// macOS maps Shift-Tab to backtab (`\u{19}`), which the field editor eats before `onKeyPress`.
     var onShiftTab: (() -> Bool)?
+    var onTerminalShortcut: ((NSEvent) -> Bool)?
     var onDismissMenu: (() -> Void)?
     private var dismissingMouseButton: Int?
     /// Arms hover from `sendEvent`, the one place both event streams pass through.
@@ -65,7 +76,9 @@ final class PalettePanel: NSPanel, AnimatedPanel {
         guard super.makeFirstResponder(responder) else { return false }
         fieldEditor?.insertionPointColor = Self.caretColor
         trackComposition()
-        if let context = fieldEditorContext { onFieldEditorFocused?(context) }
+        if let context = fieldEditorContext ?? (responder as? NSView)?.inputContext {
+            onFieldEditorFocused?(context)
+        }
         return true
     }
 
@@ -161,6 +174,7 @@ final class PalettePanel: NSPanel, AnimatedPanel {
         guard !view.isHidden, view.alphaValue > 0,
             view.bounds.intersection(view.visibleRect).contains(local)
         else { return false }
+        if view is TerminalKeyInputView { return true }
         if let field = view as? NSTextField { return field.isEditable }
         if let text = view as? NSTextView { return text.isEditable }
         return view.subviews.contains { isEditableText(in: $0, at: point) }
@@ -193,6 +207,60 @@ final class PalettePanel: NSPanel, AnimatedPanel {
         default: break
         }
         defer { applyCursorPolicy(for: event) }
+        if event.type == .keyDown,
+            paletteState?.menuOpen != true,
+            let terminalView = firstResponder as? TerminalKeyInputView
+        {
+            if !terminalView.hasActiveMarkedText {
+                if onTerminalShortcut?(event) == true { return }
+                let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
+                if Int(event.keyCode) == kVK_Escape, mods.isEmpty {
+                    if terminalView.handleTerminalEscape() { return }
+                    if onEscape?() == true { return }
+                    super.sendEvent(event)
+                    return
+                }
+                if mods.contains(.command) {
+                    let ch =
+                        ASCIIKeyboardLayout.character(for: event)?.lowercased()
+                        ?? event.charactersIgnoringModifiers?.lowercased()
+                    if mods == .command {
+                        switch ch {
+                        case "c":
+                            _ = terminalView.copySelectionIfPresent()
+                            return
+                        case "v":
+                            terminalView.pasteFromClipboard()
+                            return
+                        case "a":
+                            terminalView.selectAllTerminalText()
+                            return
+                        case "l":
+                            terminalView.handleTerminalKeyDown(event)
+                            return
+                        default:
+                            break
+                        }
+                        if Int(event.keyCode) == kVK_LeftArrow || Int(event.keyCode) == kVK_RightArrow {
+                            terminalView.handleTerminalKeyDown(event)
+                            return
+                        }
+                    }
+                    if onCommandShortcut?(event) == true { return }
+                    super.sendEvent(event)
+                    return
+                }
+            }
+            terminalView.handleTerminalKeyDown(event)
+            return
+        }
+        if event.type == .keyDown,
+            paletteState?.menuOpen != true,
+            fieldEditor?.hasMarkedText() != true,
+            onTerminalShortcut?(event) == true
+        {
+            return
+        }
         // Before every other rule, so the arrows' own policies apply to the chords too.
         if event.type == .keyDown, let arrow = Self.emacsArrow(for: event) {
             sendEvent(arrow)
@@ -236,12 +304,30 @@ final class PalettePanel: NSPanel, AnimatedPanel {
         }
         // The controller owns the chords the field editor or a missing main menu would eat.
         if event.type == .keyDown,
+            event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command,
+            (ASCIIKeyboardLayout.character(for: event)?.lowercased()
+                ?? event.charactersIgnoringModifiers?.lowercased()) == "c",
+            (fieldEditor?.selectedRange().length ?? 0) == 0,
+            let contentView,
+            copyTerminalSelection(in: contentView)
+        {
+            return
+        }
+        if event.type == .keyDown,
             event.modifierFlags.contains(.command),
             onCommandShortcut?(event) == true
         {
             return
         }
         super.sendEvent(event)
+    }
+
+    private func copyTerminalSelection(in view: NSView) -> Bool {
+        guard !view.isHidden, view.alphaValue > 0 else { return false }
+        if let terminalView = view as? TerminalKeyInputView {
+            return terminalView.copySelectionIfPresent()
+        }
+        return view.subviews.contains { copyTerminalSelection(in: $0) }
     }
 
     private func consumeMenuDismissal(_ event: NSEvent) -> Bool {

@@ -165,6 +165,10 @@ enum SettingsFileSchema {
         case .calendarCommands: return launcher.commandsBinding(for: key, owner: .calendar)
         case .terminalShowInLauncher: return bind(settings, \.terminalShowInLauncher)
         case .terminalLoadsShellEnvironment: return bind(settings, \.terminalLoadsShellEnvironment)
+        case .terminalDetectionBehavior: return bind(settings, \.terminalDetectionBehavior)
+        case .terminalColorTheme: return bind(settings, \.terminalColorTheme)
+        case .terminalExternalApp: return bind(settings, \.terminalExternalApp)
+        case .terminalShortcuts: return bind(settings, \.terminalShortcuts)
         case .terminalCommands: return launcher.commandsBinding(for: key, owner: .terminal)
         case .extensionsShowInLauncher: return bind(settings, \.extensionsShowInLauncher)
         }
@@ -197,6 +201,38 @@ extension DictationMode: SettingsFileRawValue {}
 extension DictationDestination: SettingsFileRawValue {}
 extension DictationIdleRelease: SettingsFileRawValue {}
 extension JoinWindow: SettingsFileRawValue {}
+extension TerminalDetectionBehavior: SettingsFileRawValue {}
+extension TerminalColorTheme: SettingsFileRawValue {}
+extension ExternalTerminalApp: SettingsFileRawValue {}
+
+extension TerminalShortcuts: SettingsFileValue {
+    init?(settingsJSON: SettingsFileJSON) {
+        guard let members = settingsJSON.members else { return nil }
+        var parsed: [TerminalShortcutAction: TerminalKeyChord?] = [:]
+        for member in members {
+            guard let action = TerminalShortcutAction(rawValue: member.key),
+                parsed[action] == nil
+            else { return nil }
+            if member.value == .null {
+                parsed[action] = .some(nil)
+            } else if let text = member.value.string, let chord = TerminalKeyChord(text: text) {
+                parsed[action] = .some(chord)
+            } else {
+                return nil
+            }
+        }
+        self.init(bindings: parsed)
+    }
+
+    var settingsJSON: SettingsFileJSON {
+        .object(
+            TerminalShortcutAction.allCases.map { action in
+                SettingsFileJSON.Member(
+                    key: action.rawValue,
+                    value: chord(for: action).map { .string($0.text) } ?? .null)
+            })
+    }
+}
 
 extension ClipboardRetention: SettingsFileToken {
     var settingsToken: SettingsFileJSON {

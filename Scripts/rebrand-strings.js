@@ -105,6 +105,11 @@ if (resolveConflicts) {
   }
 }
 
+const PRESERVE_TINYCAST_KEYS = new Set([
+  "Tinycast",
+  "Join the Tinycast community",
+]);
+
 let updatedEntries = 0;
 for (const relPath of CATALOGS) {
   const fullPath = path.join(ROOT, relPath);
@@ -114,6 +119,7 @@ for (const relPath of CATALOGS) {
 
   for (const [key, entry] of Object.entries(catalog.strings ?? {})) {
     if (!entry || typeof entry !== "object") continue;
+    if (PRESERVE_TINYCAST_KEYS.has(key)) continue;
     if (/Tinycast(?![A-Za-z])|tinycast:\/\//.test(key)) {
       entry.localizations = entry.localizations ?? {};
       if (!entry.localizations.en) {

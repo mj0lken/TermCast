@@ -1,7 +1,7 @@
 enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, clipboard, snippets, fileSearch, windowManagement, navigation, notes, calendar, emoji,
-        terminal, dictation, ai, quickActions, extensions, permissions, backup, about
+        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, navigation, notes,
+        calendar, emoji, dictation, ai, quickActions, extensions, permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
 
@@ -125,8 +125,8 @@ enum SettingsSection: CaseIterable, Identifiable {
         case .features:
             // Everyday tools first; AI and extensions are opt-in extras.
             return [
-                .clipboard, .snippets, .fileSearch, .windowManagement, .navigation, .notes,
-                .calendar, .emoji, .terminal, .dictation, .ai, .quickActions, .extensions
+                .clipboard, .snippets, .terminal, .fileSearch, .windowManagement, .navigation,
+                .notes, .calendar, .emoji, .dictation, .ai, .quickActions, .extensions
             ]
         case .advanced: return [.backup, .about]
         }

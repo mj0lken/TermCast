@@ -123,6 +123,10 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case calendarCommands = "calendar.commands"
     case terminalShowInLauncher = "terminal.showInLauncher"
     case terminalLoadsShellEnvironment = "terminal.loadsShellEnvironment"
+    case terminalDetectionBehavior = "terminal.detectionBehavior"
+    case terminalColorTheme = "terminal.colorTheme"
+    case terminalExternalApp = "terminal.externalApp"
+    case terminalShortcuts = "terminal.shortcuts"
     case terminalCommands = "terminal.commands"
     case extensionsShowInLauncher = "extensions.showInLauncher"
 

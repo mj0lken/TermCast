@@ -114,8 +114,8 @@ struct RootPaletteView: View {
                 vm: vm, metrics: metrics, openActions: openActions)
         case .terminal:
             return TerminalScreen(
-                store: terminalStore, coordinator: terminalCoordinator, core: core,
-                vm: vm, metrics: metrics, openActions: openActions)
+                store: terminalStore, coordinator: terminalCoordinator,
+                vm: vm, metrics: metrics)
         case .meetingDetails:
             return MeetingDetailsScreen(store: calendarStore, core: core)
         case .clipboard:
@@ -347,6 +347,13 @@ struct RootPaletteView: View {
                             formPrimaryShortcut: screen.hidesSearchField && screen.actsWithoutRows,
                             primaryActionEnabled: screen.isPrimaryActionEnabled(at: sel),
                             showActions: screen.hasActions(at: sel))
+                            .transformEnvironment(\.colorScheme) { scheme in
+                                if showsTerminalCanvas,
+                                    let overrideIsDark = settings.terminalColorTheme.overridesIsDark
+                                {
+                                    scheme = overrideIsDark ? .dark : .light
+                                }
+                            }
                     }
                 }
                 // No title bar, so this thin top margin is the only place left to grab the panel.
@@ -421,6 +428,7 @@ struct RootPaletteView: View {
             .onChange(of: vm.focusToken) {
                 resetCompactSelection()
                 searchFocused = !screen.hidesSearchField
+                if vm.mode == .terminal { terminalStore.selectedTab?.requestFocus() }
             }
             .onChange(of: vm.isVisible) { resetCompactSelection() }
             .onChange(of: vm.isComposing) {
@@ -464,7 +472,8 @@ struct RootPaletteView: View {
                 land()
                 fileSearch.search(vm.query, filter: vm.fileSearchFilter)
             }
-            .onChange(of: vm.mode) {
+            .onChange(of: vm.mode) { oldMode, newMode in
+                terminalCoordinator.noteModeChanged(from: oldMode, to: newMode)
                 vm.clipboardFilter = .all
                 vm.fileSearchFilter = .all
                 vm.emojiCategoryFilter = .all
@@ -507,7 +516,11 @@ struct RootPaletteView: View {
                 if menuOpen { closeMenus() }
                 searchFocused = true
                 // Next turn, past the refocus that selects all, so typing extends the answer.
-                Task { @MainActor in (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd() }
+                Task { @MainActor in
+                    (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd()
+                    await Task.yield()
+                    (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd()
+                }
             }
             .onChange(of: vm.favoriteSlotToken) {
                 if let index = vm.favoriteSlotIndex { performShortcut(.favoriteSlot(index)) }
@@ -524,6 +537,7 @@ struct RootPaletteView: View {
                 menuPanel.hide()
                 (hostWindow as? PalettePanel)?.onHeaderFieldBoundaryArrow = nil
                 (hostWindow as? PalettePanel)?.onShiftTab = nil
+                (hostWindow as? PalettePanel)?.onTerminalShortcut = nil
             }
             // The first show builds this view after `prepare`, so no handler saw that reset.
             .onAppear {
@@ -563,6 +577,9 @@ struct RootPaletteView: View {
                     core.paletteCoordinator.expandFromCompact()
                     return .handled
                 }
+                if vm.mode == .launcher, terminalCoordinator.stepHybridHistory(older: false) {
+                    return .handled
+                }
                 return moveVertically(1)
             }
             .onKeyPress(keys: [.upArrow], phases: [.down, .repeat]) { press in
@@ -574,6 +591,9 @@ struct RootPaletteView: View {
                     return .handled
                 }
                 if vm.isComposing { return .ignored }
+                if vm.mode == .launcher, terminalCoordinator.stepHybridHistory(older: true) {
+                    return .handled
+                }
                 return moveVertically(-1)
             }
             .onKeyPress(keys: [.leftArrow], phases: [.down, .repeat]) { press in
@@ -594,16 +614,9 @@ struct RootPaletteView: View {
             .onKeyPress(keys: [.return, KeyEquivalent("\u{3}")], phases: .down) { press in
                 let command = press.modifiers.contains(.command)
                 let option = press.modifiers.contains(.option)
-                let shift = press.modifiers.contains(.shift)
-                let control = press.modifiers.contains(.control)
                 if menuOpen, !command, !option {
                     activateMenuItem(menuSelection)
                     return .handled
-                }
-                if shift, !command, !option, !control, !vm.isComposing, !vm.isControlListOpen {
-                    if terminalCoordinator.handleShiftReturn() {
-                        return .handled
-                    }
                 }
                 if isCollapsed, !command, !option {
                     guard !vm.isComposing, !vm.isControlListOpen else { return .ignored }
@@ -637,6 +650,13 @@ struct RootPaletteView: View {
                 // An open control list owns Escape before the palette beneath it.
                 if vm.isControlListOpen { return .ignored }
                 if vm.isComposing, !menuOpen { return .ignored }
+                if !menuOpen, argumentFocused == nil, vm.query.isEmpty,
+                    vm.mode == .launcher, terminalStore.isLauncherTerminalMode
+                {
+                    terminalCoordinator.exitLauncherTerminalMode()
+                    resetCompactSelection()
+                    return .handled
+                }
                 switch PaletteEscapeAction.resolve(
                     menuOpen: menuOpen, menuQuery: vm.menuQuery,
                     argumentFocused: argumentFocused != nil, query: vm.query, mode: vm.mode,
@@ -649,13 +669,18 @@ struct RootPaletteView: View {
                 case .leaveArgumentField:
                     returnFocusToSearchField()
                 case .clearQuery:
-                    if settings.compactMode, vm.mode == .launcher { vm.forceExpanded = true }
+                    if settings.compactMode || terminalStore.isLauncherTerminalMode,
+                        vm.mode == .launcher
+                    {
+                        vm.forceExpanded = true
+                    }
                     vm.query = ""
                 case .exitExtensionScreen:
                     core.extensionCoordinator.exitExtensionScreen()
                 case .goBack:
                     goBack()
                 case .collapsePalette:
+                    terminalCoordinator.exitLauncherTerminalMode()
                     vm.forceExpanded = false
                     resetCompactSelection()
                 case .hidePalette:
@@ -671,13 +696,6 @@ struct RootPaletteView: View {
                 if vm.isControlListOpen || menuOpen { return .handled }
                 if vm.isComposing { return .ignored }
                 let shift = press.modifiers.contains(.shift) || press.key == KeyEquivalent("\u{19}")
-                if shift,
-                    press.modifiers.isDisjoint(with: [.command, .option, .control]),
-                    vm.mode == .terminal || (vm.mode == .launcher && argumentFocused == nil),
-                    terminalCoordinator.handleShiftTab()
-                {
-                    return .handled
-                }
                 advanceTabFocus(backwards: shift)
                 return .handled
             }
@@ -834,6 +852,11 @@ struct RootPaletteView: View {
             headerGutter(width: metrics.spacing.xl)
             // One structural position: a field inside a branch loses first responder when it flips.
             headerField
+                .overlay(alignment: .leading) {
+                    if !isCollapsed, vm.mode == .terminal {
+                        terminalHeaderTitle
+                    }
+                }
                 .simultaneousGesture(TapGesture().onEnded { resetCompactSelection() })
             if let accessory = headerAccessory {
                 accessory.view
@@ -843,6 +866,10 @@ struct RootPaletteView: View {
             if showsLauncherTerminalRunHint {
                 headerGutter(width: metrics.spacing.md)
                 terminalRunHint
+            }
+            if !isCollapsed, vm.mode == .terminal {
+                headerGutter(width: metrics.spacing.md)
+                terminalLauncherReturnButton
             }
             if tabOpensChat {
                 headerGutter(width: metrics.spacing.md)
@@ -902,6 +929,10 @@ struct RootPaletteView: View {
                     accessory, isOpen: openMenu == .extensionAccessory,
                     action: toggleExtensionSearchAccessory)
             }
+            if showsActiveTerminalSessionsBadge {
+                headerGutter(width: metrics.spacing.md)
+                TerminalActiveSessionsBadge()
+            }
             if isCollapsed { UpdatePill() }
             // The slack above and below, so the pill stays concentric with the capsule.
             headerGutter(width: isCollapsed ? metrics.size.headerPadding : metrics.spacing.md * 2)
@@ -940,29 +971,82 @@ struct RootPaletteView: View {
         .help("Press Tab to ask Quick AI")
     }
 
-    private var terminalRunHint: some View {
-        BarButton(chrome: .rounded, action: { _ = terminalCoordinator.handleShiftReturn() }) {
+    private var terminalHeaderTitle: some View {
+        HStack(spacing: metrics.spacing.sm) {
+            Image(systemName: "apple.terminal")
+                .font(.system(size: metrics.scaled(13), weight: .medium))
+                .foregroundStyle(Color.accentColor)
+            Text("Terminal")
+                .font(metrics.typography.searchField)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .windowDraggable(settings.paletteDraggable, onBegan: beginDrag, onEnded: endDrag)
+    }
+
+    private var terminalLauncherReturnButton: some View {
+        let keys = terminalCoordinator.shortcutDisplay(for: .switchToTerminal)
+        return BarButton(
+            chrome: .rounded, action: { _ = terminalCoordinator.toggleLauncherAndTerminal() }
+        ) {
             HStack(spacing: metrics.spacing.sm) {
-                Text("Terminal")
+                Text("Hybrid Mode")
                     .font(metrics.typography.bar)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                KeyCapChip(text: "⇧↵", style: .outline)
-                    .accessibilityHidden(true)
+                if let keys {
+                    KeyCapChip(text: keys, style: .outline)
+                        .accessibilityHidden(true)
+                }
             }
         }
-        .help("Press Shift+Return to run in Terminal")
+        .help(
+            keys.map { String(localized: "Switch to Hybrid Mode") + "  " + $0 }
+                ?? String(localized: "Switch to Hybrid Mode"))
+    }
+
+    private var terminalRunHint: some View {
+        let keys = terminalCoordinator.shortcutDisplay(for: .switchToTerminal)
+        return BarButton(
+            chrome: .rounded, action: { _ = terminalCoordinator.toggleLauncherAndTerminal() }
+        ) {
+            HStack(spacing: metrics.spacing.sm) {
+                Text("Terminal Mode")
+                    .font(metrics.typography.bar)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                if let keys {
+                    KeyCapChip(text: keys, style: .outline)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .help(
+            keys.map { String(localized: "Switch to Terminal Mode") + "  " + $0 }
+                ?? String(localized: "Switch to Terminal Mode"))
+    }
+
+    private var showsTerminalCanvas: Bool {
+        !isCollapsed
+            && (vm.mode == .terminal
+                || (vm.mode == .launcher && terminalCoordinator.isHybridModeActive(query: vm.query)))
     }
 
     private var isFormattingTerminalInput: Bool {
         vm.mode == .terminal
             || (!isCollapsed && vm.mode == .launcher
-                && terminalCoordinator.isFormattingLauncherInput(vm.query))
+                && terminalCoordinator.isHybridModeActive(query: vm.query))
     }
 
     private var showsLauncherTerminalRunHint: Bool {
         !isCollapsed && vm.mode == .launcher
             && (headerAccessory?.fieldNames.isEmpty ?? true)
-            && terminalCoordinator.isFormattingLauncherInput(vm.query)
+            && terminalCoordinator.isHybridModeActive(query: vm.query)
+    }
+
+    private var showsActiveTerminalSessionsBadge: Bool {
+        settings.terminalEnabled
+            && terminalStore.sessionSummary.showsBadge
+            && (isCollapsed || (headerAccessory?.fieldNames.isEmpty ?? true))
     }
 
     private var showsTerminalFolderStrip: Bool {
@@ -979,21 +1063,17 @@ struct RootPaletteView: View {
     }
 
     private func openTerminalFolderMenu(_ frame: CGRect) {
-        let current = RecentFolders.normalize(
-            terminalStore.activeWorkingDirectory, homeDirectory: terminalStore.homeDirectory)
-        let selectedIndex =
-            terminalStore.recentFolders.firstIndex {
-                RecentFolders.normalize($0, homeDirectory: terminalStore.homeDirectory) == current
-            } ?? 0
         openInputOptions(
             terminalCoordinator.folderMenuContent(reopeningPalette: true),
             corner: .belowControl(frame, trailing: false),
-            selection: selectedIndex)
+            selection: 0)
     }
 
     /// Resolved through `PaletteTabAction`, so the hint cannot promise the wrong destination.
     private var tabOpensChat: Bool {
-        guard !isCollapsed, headerAccessory?.fieldNames.isEmpty ?? true else { return false }
+        guard !isCollapsed, !isFormattingTerminalInput,
+            headerAccessory?.fieldNames.isEmpty ?? true
+        else { return false }
         return PaletteTabAction.resolve(
             mode: vm.mode, aiEnabled: settings.aiEnabled,
             clipboardEnabled: settings.clipboardEnabled) == .ask
@@ -1041,6 +1121,9 @@ struct RootPaletteView: View {
     private var searchPrompt: String {
         // Squeezed to the caret, the field has no room for a prompt; beside one it keeps it.
         if headerAccessory?.placement == .afterQuery, vm.mode != .ai { return "" }
+        if vm.mode == .launcher, terminalCoordinator.isHybridModeActive(query: vm.query) {
+            return String(localized: "Enter a shell command…")
+        }
         if vm.mode == .extensionCommand, let placeholder = extensionScreen.searchPlaceholder {
             return placeholder
         }
@@ -1126,26 +1209,39 @@ struct RootPaletteView: View {
         }
     }
 
+    private var showsPrimaryActionButton: Bool {
+        if vm.mode == .terminal { return false }
+        if vm.mode == .launcher,
+            terminalCoordinator.isHybridModeActive(query: vm.query),
+            vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            return false
+        }
+        return true
+    }
+
     private func actionGroup(
         pillLabel: String, formPrimaryShortcut: Bool, primaryActionEnabled: Bool, showActions: Bool
     ) -> some View {
         HStack(spacing: 2) {
-            BarButton(action: activateSelection) {
-                HStack(spacing: metrics.spacing.sm) {
-                    Text(pillLabel)
-                        .font(metrics.typography.bar)
-                        .foregroundStyle(pillTint)
-                    if formPrimaryShortcut {
-                        HStack(spacing: metrics.spacing.xxs) {
-                            KeyCapChip(text: "⌘", style: .outline)
+            if showsPrimaryActionButton {
+                BarButton(action: activateSelection) {
+                    HStack(spacing: metrics.spacing.sm) {
+                        Text(pillLabel)
+                            .font(metrics.typography.bar)
+                            .foregroundStyle(pillTint)
+                        if formPrimaryShortcut {
+                            HStack(spacing: metrics.spacing.xxs) {
+                                KeyCapChip(text: "⌘", style: .outline)
+                                KeyCapChip(text: "↵", style: .outline)
+                            }
+                        } else {
                             KeyCapChip(text: "↵", style: .outline)
                         }
-                    } else {
-                        KeyCapChip(text: "↵", style: .outline)
                     }
                 }
+                .disabled(!primaryActionEnabled)
             }
-            .disabled(!primaryActionEnabled)
             if showActions {
                 BarButton(action: toggleActions) {
                     HStack(spacing: metrics.spacing.sm) {
@@ -1306,7 +1402,10 @@ struct RootPaletteView: View {
 
     private func closeMenus() {
         menuPanel.hide()
-        if menuOpen { searchFocused = !screen.hidesSearchField }
+        if menuOpen {
+            searchFocused = !screen.hidesSearchField
+            if vm.mode == .terminal { terminalStore.selectedTab?.requestFocus() }
+        }
         openMenu = nil
         argumentOptionsField = nil
         inputOptions = nil
@@ -1405,6 +1504,12 @@ struct RootPaletteView: View {
             return true
         }
         if modifiers.contains(.command), character == "p", performFilterAction() { return true }
+        if !modifiers.isDisjoint(with: [.command, .control, .option, .shift]),
+            (hostWindow as? PalettePanel)?.onTerminalShortcut?(event) == true
+        {
+            closeMenus()
+            return true
+        }
         if let shortcut = PaletteShortcut.resolve(
             command: modifiers.contains(.command), shift: modifiers.contains(.shift),
             option: modifiers.contains(.option), control: modifiers.contains(.control),
@@ -1543,7 +1648,9 @@ struct RootPaletteView: View {
         // Close first: an action opening a window must find the palette key, or nothing hides it.
         closeMenus()
         // A mouse click on a row takes the caret with it; menus close back into the field.
-        if argumentFocused == nil, !vm.mode.isNativeEditor { searchFocused = true }
+        if argumentFocused == nil, !vm.mode.isNativeEditor, !screen.hidesSearchField {
+            searchFocused = true
+        }
         content.activate(index)
     }
 
@@ -1608,13 +1715,17 @@ struct RootPaletteView: View {
         panel.onShiftTab = {
             if vm.isControlListOpen || menuOpen { return true }
             if vm.isComposing { return false }
-            if vm.mode == .terminal || (vm.mode == .launcher && argumentFocused == nil),
-                terminalCoordinator.handleShiftTab()
-            {
-                if !searchFocused { searchFocused = true }
-                return true
-            }
             advanceTabFocus(backwards: true)
+            return true
+        }
+        panel.onTerminalShortcut = { event in
+            let meetingSelected =
+                (screen as? LauncherScreen).map { $0.hasMeeting(at: selection(in: $0)) } ?? false
+            guard
+                terminalCoordinator.handleKeyEvent(
+                    event, launcherMeetingSelected: meetingSelected)
+            else { return false }
+            if !searchFocused, !hidesSearchField { searchFocused = true }
             return true
         }
     }

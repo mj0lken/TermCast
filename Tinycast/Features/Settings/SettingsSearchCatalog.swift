@@ -107,8 +107,8 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
-        + appleShortcuts + fallbacks + clipboard + snippets + fileSearch + windowManagement
-        + navigation + notes + calendar + emoji + terminal + ai + quickActions + dictation
+        + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
+        + windowManagement + navigation + notes + calendar + emoji + ai + quickActions + dictation
         + extensions + permissions
         + backup + about
 
@@ -564,11 +564,62 @@ enum SettingsSearchCatalog {
             .terminalTerminal, "Enable Terminal",
             keywords: ["shell", "zsh", "tabs", "shift enter"]),
         .init(
+            .terminalOptions, "Detected commands",
+            keywords: ["auto open", "top result", "launcher", "cli", "shell"]),
+        .init(
+            .terminalOptions, "Terminal look",
+            keywords: [
+                "color theme", "appearance", "default", "paper", "slate", "midnight",
+                "light", "dark", "ansi", "truecolor", "palette"
+            ]),
+        .init(
+            .terminalOptions, "External terminal",
+            keywords: ["ghostty", "iterm", "warp", "kitty", "alacritty", "wezterm", "handoff"]),
+        .init(
             .terminalOptions, "Load shell environment",
             keywords: ["zshrc", "aliases", "path", "shell"]),
         .init(
+            .terminalOptions, "Recommended shell config",
+            keywords: ["init.zsh", "oh my zsh", "colors", "ls", "aliases", "readability"]),
+        .init(
             group: .terminalCommands, "Terminal commands",
-            keywords: ["shortcut", "hotkey", "open terminal"]),
+            keywords: ["shortcut", "hotkey", "open terminal", "hyper"]),
+        .init(
+            .terminalShortcuts, "Toggle Hybrid Mode",
+            keywords: ["shortcut", "hotkey", "cmd t", "hybrid mode", "terminal mode", "launcher"]),
+        .init(
+            .terminalShortcuts, "Switch Hybrid / Terminal Mode",
+            keywords: ["shortcut", "hotkey", "cmd i", "switch", "hyper", "hybrid", "terminal mode"]),
+        .init(
+            .terminalShortcuts, "Copy Latest Output",
+            keywords: ["shortcut", "hotkey", "shift cmd c", "copy", "output", "clipboard"]),
+        .init(
+            .terminalShortcuts, "Continue in External Terminal",
+            keywords: ["shortcut", "hotkey", "cmd o", "ghostty", "warp", "iterm", "handoff"]),
+        .init(
+            .terminalShortcuts, "Run in New Tab",
+            keywords: ["shortcut", "shift return", "enter", "new tab"]),
+        .init(
+            .terminalShortcuts, "Cycle Recent Folder",
+            keywords: ["shortcut", "shift tab", "working directory", "cwd"]),
+        .init(
+            .terminalShortcuts, "New Tab",
+            keywords: ["shortcut", "cmd n", "tab"]),
+        .init(
+            .terminalShortcuts, "Close Tab",
+            keywords: ["shortcut", "ctrl x", "tab"]),
+        .init(
+            .terminalShortcuts, "Stop Command",
+            keywords: ["shortcut", "sigint", "cancel", "interrupt"]),
+        .init(
+            .terminalShortcuts, "Clear Output",
+            keywords: ["shortcut", "scrollback", "log", "erase"]),
+        .init(
+            .terminalShortcuts, "Reset Shortcuts to Defaults",
+            keywords: ["default", "restore", "keybindings"]),
+        .init(
+            .terminalHistory, "Clear Command History",
+            keywords: ["up arrow", "down arrow", "previous commands", "recall"]),
         .init(
             .terminalRecentFolders, "Add Folder…",
             keywords: ["working directory", "cwd", "path", "folder"]),
@@ -707,10 +758,13 @@ enum SettingsSearchCatalog {
             .aboutAbout, "Check for Updates",
             keywords: ["version", "upgrade", "release"]),
         .init(
-            group: .aboutLinks, "Links",
-            keywords: ["github", "source", "issues", "website"]),
+            group: .aboutTermcast, "Termcast",
+            keywords: ["links", "github", "source", "issues", "website"]),
         .init(
-            .aboutLinks, "Support",
+            group: .aboutTinycast, "Tinycast",
+            keywords: ["links", "upstream", "github", "website", "discord", "x", "email"]),
+        .init(
+            .aboutTinycast, "Support",
             keywords: ["donate", "sponsor", "funding"])
     ]
 }

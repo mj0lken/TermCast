@@ -117,6 +117,13 @@ struct SettingsHistoryTests {
             Set(grouped) == Set(SettingsTab.allCases),
             "every pane appears in exactly one sidebar group")
         expect(grouped.count == SettingsTab.allCases.count, "and none appears twice")
+        let featureTabs = SettingsSection.features.tabs
+        if let snippetsIndex = featureTabs.firstIndex(of: .snippets) {
+            expect(
+                featureTabs.indices.contains(snippetsIndex + 1)
+                    && featureTabs[snippetsIndex + 1] == .terminal,
+                "Terminal follows Snippets in the Features sidebar")
+        }
     }
 
     /// A selectable `List` flattens section and row IDs into one namespace.

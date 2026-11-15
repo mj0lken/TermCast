@@ -212,6 +212,7 @@ enum CommandID: String, CaseIterable, Sendable {
     var suggestionPriority: Int? {
         switch self {
         case .clipboardHistory: 80
+        case .openTerminal: 75
         case .searchFiles: 70
         case .mySchedule: 60
         case .searchEmoji: 50

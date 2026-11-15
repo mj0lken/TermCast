@@ -33,7 +33,8 @@ struct AboutView: View {
                         .padding(.vertical, Theme.Spacing.lg)
                 }
                 .settingsAnchor(.aboutAbout)
-                links
+                termcastLinks
+                tinycastLinks
                 support
             }
             .formStyle(.grouped)
@@ -83,13 +84,23 @@ struct AboutView: View {
         }
     }
 
-    private var links: some View {
+    private var termcastLinks: some View {
         Section {
-            ForEach(AboutLink.all) { link in
+            ForEach(AboutLink.termcast) { link in
                 AboutLinkRow(link: link)
             }
         } header: {
-            SettingsSectionHeader(.aboutLinks)
+            SettingsSectionHeader(.aboutTermcast)
+        }
+    }
+
+    private var tinycastLinks: some View {
+        Section {
+            ForEach(AboutLink.tinycast) { link in
+                AboutLinkRow(link: link)
+            }
+        } header: {
+            SettingsSectionHeader(.aboutTinycast)
         }
     }
 
@@ -118,7 +129,7 @@ struct AboutView: View {
                             )
                     )
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    SettingsRowTitle(.aboutLinks, "Support")
+                    SettingsRowTitle(.aboutTinycast, "Support")
                         .font(.body.weight(.medium))
                     Text("Free and open source. Your support sustains its development.")
                         .font(.caption)
@@ -154,28 +165,35 @@ private struct AboutLink: Identifiable {
     let detail: String
     let url: URL
 
-    static let all: [AboutLink] = [
+    static let termcast: [AboutLink] = [
         AboutLink(
-            id: "github", glyph: .brand("BrandGitHub"), title: "GitHub",
-            detail: "github.com/mj0lken/TermCast",
-            url: URL(string: "https://github.com/mj0lken/TermCast")!),
-        AboutLink(
-            id: "upstream", glyph: .brand("BrandGitHub"), title: "Tinycast",
-            detail: "github.com/abue-ammar/tinycast",
-            url: URL(string: "https://github.com/abue-ammar/tinycast")!),
-        AboutLink(
-            id: "website", glyph: .symbol("globe"), title: String(localized: "Website"),
+            id: "termcast-website", glyph: .symbol("globe"), title: String(localized: "Website"),
             detail: "mj0lken.github.io/TermCast",
             url: URL(string: "https://mj0lken.github.io/TermCast/")!),
         AboutLink(
-            id: "discord", glyph: .brand("BrandDiscord"), title: "Discord",
+            id: "termcast-github", glyph: .brand("BrandGitHub"), title: "GitHub",
+            detail: "github.com/mj0lken/TermCast",
+            url: URL(string: "https://github.com/mj0lken/TermCast")!)
+    ]
+
+    static let tinycast: [AboutLink] = [
+        AboutLink(
+            id: "tinycast-website", glyph: .symbol("globe"), title: String(localized: "Website"),
+            detail: "tinycast.dev",
+            url: URL(string: "https://tinycast.dev/")!),
+        AboutLink(
+            id: "tinycast-github", glyph: .brand("BrandGitHub"), title: "GitHub",
+            detail: "github.com/abue-ammar/tinycast",
+            url: URL(string: "https://github.com/abue-ammar/tinycast")!),
+        AboutLink(
+            id: "tinycast-discord", glyph: .brand("BrandDiscord"), title: "Discord",
             detail: String(localized: "Join the Tinycast community"),
             url: URL(string: "https://discord.gg/v2Eeb4QQy3")!),
         AboutLink(
-            id: "x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
+            id: "tinycast-x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
             url: URL(string: "https://x.com/abue_ammar")!),
         AboutLink(
-            id: "email", glyph: .symbol("envelope"), title: String(localized: "Email"),
+            id: "tinycast-email", glyph: .symbol("envelope"), title: String(localized: "Email"),
             detail: "hello@tinycast.dev", url: URL(string: "mailto:hello@tinycast.dev")!)
     ]
 }

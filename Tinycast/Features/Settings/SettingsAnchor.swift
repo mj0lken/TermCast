@@ -107,6 +107,8 @@ extension SettingsAnchor {
     static let terminalTerminal = Self(tab: .terminal, title: "Terminal")
     static let terminalOptions = Self(tab: .terminal, title: "Options")
     static let terminalCommands = Self(tab: .terminal, title: "Commands")
+    static let terminalShortcuts = Self(tab: .terminal, title: "Shortcuts")
+    static let terminalHistory = Self(tab: .terminal, title: "Command History")
     static let terminalRecentFolders = Self(tab: .terminal, title: "Recent Folders")
 
     static let calendarCalendar = Self(tab: .calendar, title: "Calendar")
@@ -136,7 +138,8 @@ extension SettingsAnchor {
     static let backupSettingsFile = Self(tab: .backup, title: "Settings File")
 
     static let aboutAbout = Self(tab: .about, title: "About")
-    static let aboutLinks = Self(tab: .about, title: "Links")
+    static let aboutTermcast = Self(tab: .about, title: "Termcast")
+    static let aboutTinycast = Self(tab: .about, title: "Tinycast")
 }
 
 enum SettingsTarget: Hashable, Sendable {

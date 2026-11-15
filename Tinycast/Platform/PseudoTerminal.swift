@@ -65,11 +65,91 @@ final class PseudoTerminal: @unchecked Sendable {
         return PseudoTerminal(parentEnd: parentEnd, processID: processID)
     }
 
+    static func spawnInteractive(
+        executable: String,
+        arguments: [String],
+        environment: [String: String],
+        workingDirectory: String,
+        rows: Int = 24,
+        cols: Int = 80
+    ) -> PseudoTerminal? {
+        var parentEnd: Int32 = 0
+        var childEnd: Int32 = 0
+        var windowSize = winsize(
+            ws_row: UInt16(clamping: max(rows, 2)),
+            ws_col: UInt16(clamping: max(cols, 10)),
+            ws_xpixel: 0,
+            ws_ypixel: 0)
+        guard openpty(&parentEnd, &childEnd, nil, nil, &windowSize) == 0 else { return nil }
+
+        var settings = termios()
+        if tcgetattr(childEnd, &settings) == 0 {
+            settings.c_iflag |= tcflag_t(IUTF8)
+            _ = tcsetattr(childEnd, TCSANOW, &settings)
+        }
+
+        var attributes: posix_spawnattr_t?
+        posix_spawnattr_init(&attributes)
+        posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_SETSID))
+
+        var actions: posix_spawn_file_actions_t?
+        posix_spawn_file_actions_init(&actions)
+        posix_spawn_file_actions_addchdir(&actions, workingDirectory)
+        for descriptor in Int32(0)...Int32(2) {
+            posix_spawn_file_actions_adddup2(&actions, childEnd, descriptor)
+        }
+        posix_spawn_file_actions_addclose(&actions, parentEnd)
+        posix_spawn_file_actions_addclose(&actions, childEnd)
+
+        defer {
+            posix_spawnattr_destroy(&attributes)
+            posix_spawn_file_actions_destroy(&actions)
+        }
+
+        var processID: pid_t = 0
+        let argv = CStringArray([executable] + arguments)
+        let envp = CStringArray(environment.map { "\($0.key)=\($0.value)" })
+        let status = posix_spawn(
+            &processID, executable, &actions, &attributes, argv.pointers, envp.pointers)
+        Darwin.close(childEnd)
+        guard status == 0, processID > 0 else {
+            Darwin.close(parentEnd)
+            return nil
+        }
+        return PseudoTerminal(parentEnd: parentEnd, processID: processID)
+    }
+
     func writeInput(_ text: String) {
-        var bytes = Array(text.utf8)
+        writeBytes(Array(text.utf8))
+    }
+
+    func writeBytes(_ bytes: [UInt8]) {
         guard !bytes.isEmpty else { return }
-        _ = bytes.withUnsafeMutableBufferPointer { buffer in
-            write(parentEnd, buffer.baseAddress!, buffer.count)
+        var mutable = bytes
+        mutable.withUnsafeMutableBufferPointer { buffer in
+            var offset = 0
+            while offset < buffer.count {
+                let written = Darwin.write(
+                    parentEnd, buffer.baseAddress!.advanced(by: offset), buffer.count - offset)
+                if written > 0 {
+                    offset += written
+                } else if written < 0 && errno == EINTR {
+                    continue
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    func resize(rows: Int, cols: Int) {
+        var windowSize = winsize(
+            ws_row: UInt16(clamping: max(rows, 2)),
+            ws_col: UInt16(clamping: max(cols, 10)),
+            ws_xpixel: 0,
+            ws_ypixel: 0)
+        if ioctl(parentEnd, TIOCSWINSZ, &windowSize) == 0 {
+            signalSession(SIGWINCH)
         }
     }
 
@@ -77,6 +157,29 @@ final class PseudoTerminal: @unchecked Sendable {
     func signalSession(_ signal: Int32) {
         guard processID > 0 else { return }
         kill(-processID, signal)
+    }
+
+    func hasChildProcesses() -> Bool {
+        guard processID > 0 else { return false }
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        var byteCount = 0
+        guard sysctl(&mib, 4, nil, &byteCount, nil, 0) == 0, byteCount > 0 else { return false }
+        let stride = MemoryLayout<kinfo_proc>.stride
+        let capacity = byteCount / stride + 32
+        var procs = [kinfo_proc](repeating: kinfo_proc(), count: capacity)
+        var actualBytes = capacity * stride
+        guard sysctl(&mib, 4, &procs, &actualBytes, nil, 0) == 0 else { return false }
+        let count = actualBytes / stride
+        for idx in 0..<count {
+            let proc = procs[idx]
+            if proc.kp_eproc.e_ppid == processID,
+                proc.kp_proc.p_pid != processID,
+                Int32(proc.kp_proc.p_stat) != SZOMB
+            {
+                return true
+            }
+        }
+        return false
     }
 
     /// Blocks until the command exits. A signalled death reports the signal, the way a shell does.

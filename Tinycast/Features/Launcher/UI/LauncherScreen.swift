@@ -20,6 +20,7 @@ struct LauncherScreen: PaletteScreen {
     private let results: [AppEntry]
     private let calc: CalcResult?
     private let color: ColorValue?
+    let isHybridMode: Bool
     /// Only the empty query pins favorites — a category shows its sections without one of its own.
     private let pinsFavorites: Bool
     private let pinnedFavorites: [FavoritesStore.Item]
@@ -68,36 +69,55 @@ struct LauncherScreen: PaletteScreen {
             results.insert(browser, at: 0)
             matchCount += 1
         }
+        let isHybridMode = pinned == nil && core.terminalCoordinator.isHybridModeActive(query: vm.query)
         // No card over a pinned row: its fields hang off the selection, which must start on it.
         let calc =
-            pinned == nil
+            pinned == nil && !isHybridMode
             ? CalcMemo.evaluate(vm.query, rates: currencyRates.rates, format: core.calcNumberFormat) : nil
         // After the calculator: `#FF5733` is never arithmetic, so the two can't both answer.
-        let color = calc == nil && pinned == nil ? ColorValue.parse(vm.query) : nil
-        let files = pinned == nil ? core.fileSearchCoordinator.launcherFiles(for: vm.query) : []
-        let fallbacks = core.fallbackCoordinator.entries(for: vm.query)
-        let pinsFavorites = vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let pinnedFavorites = favorites.orderedItems(
-            entries: Array(results.prefix(ordered.favoriteCount)),
-            files: pinsFavorites ? core.fileSearchCoordinator.favoriteFiles : [])
+        let color =
+            calc == nil && pinned == nil && !isHybridMode
+            ? ColorValue.parse(vm.query) : nil
+        let terminalCommand =
+            isHybridMode
+            ? (TerminalCommandDetector.stripExplicitPrefix(vm.query) ?? vm.query)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
+        let files =
+            pinned == nil && !isHybridMode
+            ? core.fileSearchCoordinator.launcherFiles(for: vm.query) : []
+        let fallbacks = isHybridMode ? [] : core.fallbackCoordinator.entries(for: vm.query)
+        let pinsFavorites =
+            !isHybridMode && vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let pinnedFavorites =
+            isHybridMode
+            ? []
+            : favorites.orderedItems(
+                entries: Array(results.prefix(ordered.favoriteCount)),
+                files: pinsFavorites ? core.fileSearchCoordinator.favoriteFiles : [])
         results.removeFirst(ordered.favoriteCount)
         let entries =
-            pinnedFavorites.map(Row.init) + results.map(Row.entry) + files.map(Row.file)
-            + fallbacks.map { Row.fallback($0.fallback, $0.entry) }
+            isHybridMode
+            ? []
+            : (pinnedFavorites.map(Row.init) + results.map(Row.entry) + files.map(Row.file)
+                + fallbacks.map { Row.fallback($0.fallback, $0.entry) })
         // At most one of them leads, so the flat index keeps a single-row offset.
         let meeting = pinsFavorites ? meeting : nil
         self.meeting = meeting
-        self.results = results
+        self.results = isHybridMode ? [] : results
         self.calc = calc
         self.files = files
         self.fallbacks = fallbacks
         self.color = color
+        self.isHybridMode = isHybridMode
         self.pinsFavorites = pinsFavorites
         self.pinnedFavorites = pinnedFavorites
         self.meetingCount = pinsFavorites ? ordered.meetingCount : 0
         self.suggestionCount = pinsFavorites ? ordered.suggestionCount : 0
-        self.matchCount = matchCount
-        if let calc {
+        self.matchCount = isHybridMode ? 0 : matchCount
+        if isHybridMode {
+            self.rows = [.terminal(terminalCommand)]
+        } else if let calc {
             self.rows = [.calc(calc)] + entries
         } else if let color {
             self.rows = [.color(color)] + entries
@@ -113,6 +133,7 @@ struct LauncherScreen: PaletteScreen {
         case calc(CalcResult)
         case meeting(MeetingEvent)
         case color(ColorValue)
+        case terminal(String)
         case entry(AppEntry)
         /// Prefixed, because an application's entry id is the same bundle path a file hit carries.
         case file(FileSearchResult)
@@ -140,6 +161,7 @@ struct LauncherScreen: PaletteScreen {
             case .calc: return "calc-card"
             case .meeting: return "meeting-card"
             case .color: return "color-card"
+            case .terminal: return "terminal-command-row"
             case .entry(let app): return app.id
             case .file(let result): return "file-" + result.id
             case .fallback(let fallback, _): return "fallback-" + fallback.id
@@ -157,6 +179,7 @@ struct LauncherScreen: PaletteScreen {
         switch row(at: clampedSelection) {
         case .calc: return String(localized: "Copy Answer")
         case .color: return String(localized: "Copy Color")
+        case .terminal: return String(localized: "Run Command")
         case .meeting(let meeting):
             return meeting.link == nil
                 ? String(localized: "Open in Calendar") : String(localized: "Join Meeting")
@@ -220,7 +243,7 @@ struct LauncherScreen: PaletteScreen {
 
     private func isCardSelected(_ selection: Int) -> Bool {
         switch row(at: selection) {
-        case .calc, .meeting, .color: return true
+        case .calc, .meeting, .color, .terminal: return true
         case .entry, .file, .fallback, nil: return false
         }
     }
@@ -237,12 +260,22 @@ struct LauncherScreen: PaletteScreen {
         return result.isActionable
     }
 
+    func ownsVerticalKeys(at selection: Int) -> Bool {
+        isHybridMode
+    }
+
+    func tab(at selection: Int, backwards: Bool) -> Bool {
+        isHybridMode ? core.terminalCoordinator.stepHybridTabCompletion(backwards: backwards) : false
+    }
+
     func actions(at selection: Int) -> PopoverMenuContent? {
         switch row(at: selection) {
         case .calc(let result):
             return result.isActionable ? CalcActionsMenu.content(result: result, core: core) : nil
         case .color(let color):
             return ColorActionsMenu.content(color: color, core: core)
+        case .terminal(let command):
+            return core.terminalCoordinator.launcherRowActions(command: command)
         case .meeting(let meeting):
             return MeetingActionsMenu.content(meeting: meeting, core: core)
         case .entry(let app):
@@ -273,6 +306,8 @@ struct LauncherScreen: PaletteScreen {
         case .calc(let result): core.calculatorCoordinator.copyCalculatorResult(result)
         case .color(let color):
             core.clipboardCoordinator.copyColor(color, as: ColorFormat.primary(for: color))
+        case .terminal(let command):
+            core.terminalCoordinator.runDetectedLauncherCommand(command, inNewTab: false)
         case .meeting(let meeting): core.calendarCoordinator.activateMeeting(id: meeting.id)
         case .entry(let app):
             core.launcherCoordinator.launch(
@@ -294,8 +329,16 @@ struct LauncherScreen: PaletteScreen {
         }
     }
 
+    func hasMeeting(at selection: Int) -> Bool {
+        meeting(at: selection) != nil
+    }
+
     /// ⌘↵ — a meeting copies its link, an answer becomes the query, an entry on disk is revealed.
     func secondary(at selection: Int) -> Bool {
+        if case .terminal(let command) = row(at: selection) {
+            core.terminalCoordinator.runDetectedLauncherCommand(command, inNewTab: true)
+            return true
+        }
         if let meeting = meeting(at: selection) {
             return MeetingActionsMenu.secondary(meeting: meeting, core: core)
         }
@@ -320,6 +363,10 @@ struct LauncherScreen: PaletteScreen {
 
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool {
         if shortcut == .toggleFavorite { return toggleFavorite(at: selection) }
+        if case .terminal(let command) = row(at: selection) {
+            return core.terminalCoordinator.performPaletteShortcut(
+                shortcut, focusTerminal: false, explicitCommand: command)
+        }
         if let file = file(at: selection),
             FileSearchActionsMenu.perform(shortcut, result: file, core: core)
         {
@@ -512,42 +559,52 @@ struct LauncherScreen: PaletteScreen {
 
     @ViewBuilder
     private func content(selection: Int, scroll: ScrollIntent) -> some View {
-        LauncherList(
-            results: results,
-            selectedRowID: row(at: selection)?.id,
-            favorites: pinnedFavorites,
-            meetingCount: meetingCount,
-            suggestionCount: suggestionCount,
-            matchCount: matchCount,
-            scroll: scroll,
-            card: leadCard,
-            cardSelected: isCardSelected(selection),
-            onActivateCard: {
-                vm.selection = 0
-                activate(at: 0)
-            },
-            onCardActions: {
-                guard hasPrimaryAction(at: 0) else { return }
-                vm.selection = 0
-                openActions()
-            },
-            onActivate: {
-                core.launcherCoordinator.launch(
-                    $0, searchQuery: vm.query, arguments: core.launcherCoordinator.argumentValues(for: $0))
-            },
-            onActions: { app in
-                if let index = rows.firstIndex(of: .entry(app)) { vm.selection = index }
-                openActions()
-            },
-            onActivateFavorite: { _ = launchFavorite(at: $0) },
-            onFavoriteActions: {
-                vm.selection = $0 + (leadCard == nil ? 0 : 1)
-                openActions()
-            },
-            onDropped: { core.paletteCoordinator.dragLanded() },
-            files: fileSection,
-            fallbacks: fallbackSection
-        )
+        if isHybridMode {
+            TerminalPanelContentView(
+                store: core.terminalStore,
+                coordinator: core.terminalCoordinator,
+                vm: vm,
+                metrics: core.settings.interfaceSize.metrics,
+                interactiveFocusEnabled: false)
+        } else {
+            LauncherList(
+                results: results,
+                selectedRowID: row(at: selection)?.id,
+                favorites: pinnedFavorites,
+                meetingCount: meetingCount,
+                suggestionCount: suggestionCount,
+                matchCount: matchCount,
+                scroll: scroll,
+                card: leadCard,
+                cardSelected: isCardSelected(selection),
+                onActivateCard: {
+                    vm.selection = 0
+                    activate(at: 0)
+                },
+                onCardActions: {
+                    guard hasPrimaryAction(at: 0) else { return }
+                    vm.selection = 0
+                    openActions()
+                },
+                onActivate: {
+                    core.launcherCoordinator.launch(
+                        $0, searchQuery: vm.query,
+                        arguments: core.launcherCoordinator.argumentValues(for: $0))
+                },
+                onActions: { app in
+                    if let index = rows.firstIndex(of: .entry(app)) { vm.selection = index }
+                    openActions()
+                },
+                onActivateFavorite: { _ = launchFavorite(at: $0) },
+                onFavoriteActions: {
+                    vm.selection = $0 + (leadCard == nil ? 0 : 1)
+                    openActions()
+                },
+                onDropped: { core.paletteCoordinator.dragLanded() },
+                files: fileSection,
+                fallbacks: fallbackSection
+            )
+        }
     }
 
     private var fileSection: LauncherList.FileSection? {

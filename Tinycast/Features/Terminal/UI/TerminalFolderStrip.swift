@@ -3,6 +3,7 @@ import SwiftUI
 struct TerminalFolderStrip: View {
     @Environment(TerminalStore.self) private var store
     @Environment(TerminalCoordinator.self) private var coordinator
+    @Environment(AppSettings.self) private var settings
     @Environment(PaletteState.self) private var vm
     @Environment(\.metrics) private var metrics
 
@@ -10,7 +11,6 @@ struct TerminalFolderStrip: View {
 
     @State private var folderButtonFrame: CGRect = .zero
     @State private var folderHovered = false
-    @State private var tabsHovered = false
     @State private var cycleHovered = false
 
     var body: some View {
@@ -57,35 +57,6 @@ struct TerminalFolderStrip: View {
                 }
                 .help(String(localized: "Choose working directory"))
 
-                if vm.mode == .launcher, !store.tabs.isEmpty {
-                    Button {
-                        coordinator.navigateToTerminal()
-                    } label: {
-                        HStack(spacing: metrics.spacing.xs) {
-                            Circle()
-                                .fill(
-                                    store.tabs.contains(where: \.isRunning)
-                                        ? Theme.Colors.success : Theme.Colors.textTertiary
-                                )
-                                .frame(width: metrics.scaled(6), height: metrics.scaled(6))
-                            Text(tabsBadgeText)
-                                .font(.system(size: metrics.scaled(11), weight: .medium))
-                                .foregroundStyle(Theme.Colors.textSecondary)
-                        }
-                        .padding(.horizontal, metrics.spacing.md)
-                        .padding(.vertical, metrics.spacing.xxs)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    tabsHovered
-                                        ? Theme.Colors.controlHover : Theme.Colors.controlSurface)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { tabsHovered = $0 }
-                    .help(String(localized: "Open Terminal tabs  >"))
-                }
-
                 Spacer(minLength: 0)
 
                 if store.recentFolders.count > 1 {
@@ -98,8 +69,10 @@ struct TerminalFolderStrip: View {
                                 .foregroundStyle(
                                     cycleHovered
                                         ? Theme.Colors.textPrimary : Theme.Colors.textTertiary)
-                            KeyCapChip(text: "⇧⇥", style: .outline)
-                                .accessibilityHidden(true)
+                            if let keys = displayedCycleKeys {
+                                KeyCapChip(text: keys, style: .outline)
+                                    .accessibilityHidden(true)
+                            }
                         }
                         .padding(.horizontal, metrics.spacing.xs)
                         .padding(.vertical, metrics.spacing.xxs)
@@ -107,7 +80,7 @@ struct TerminalFolderStrip: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { cycleHovered = $0 }
-                    .help(String(localized: "Cycle recent folders  ⇧⇥"))
+                    .help(cycleHelpText)
                 }
             }
             .padding(.horizontal, metrics.spacing.md * 2)
@@ -119,10 +92,20 @@ struct TerminalFolderStrip: View {
         }
     }
 
-    private var tabsBadgeText: String {
-        let count = store.tabs.count
-        return count == 1
-            ? String(localized: "1 tab")
-            : String(localized: "\(count) tabs")
+    private var displayedCycleKeys: String? {
+        if vm.mode == .terminal,
+            settings.terminalShortcuts.chord(for: .cycleFolder)
+                == TerminalShortcutAction.cycleFolder.defaultChord
+        {
+            return nil
+        }
+        return coordinator.shortcutDisplay(for: .cycleFolder)
+    }
+
+    private var cycleHelpText: String {
+        if let keys = displayedCycleKeys {
+            return String(localized: "Cycle recent folders") + "  " + keys
+        }
+        return String(localized: "Cycle recent folders")
     }
 }

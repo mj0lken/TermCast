@@ -390,6 +390,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             if core.palette.mode == .ai, core.quickAICoordinator.removeLastAttachment() {
                 return true
             }
+            if core.palette.mode == .launcher, core.terminalStore.isLauncherTerminalMode {
+                core.terminalCoordinator.exitLauncherTerminalMode()
+                return true
+            }
             if core.palette.pop() { return true }
             guard core.palette.mode != .launcher else { return false }
             core.palette.prepare(mode: .launcher)

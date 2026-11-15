@@ -195,13 +195,23 @@ enum SettingsBackupCoverage {
         AppSettingsKey.notesFolder.rawValue:
             "Names a folder on this Mac; the one a backup lands on may not have it.",
         AppSettingsKey.terminalEnabled.rawValue:
-            "Doubles as consent to run interactive shell sessions; a backup must not enable it.",
+            "Controls interactive shell sessions on this Mac; a backup must not override it.",
         AppSettingsKey.terminalShowInLauncher.rawValue:
             "Terminal preferences stay local alongside the opt-in shell capability on this Mac.",
         AppSettingsKey.terminalLoadsShellEnvironment.rawValue:
             "Sources ~/.zshrc on this Mac, which runs startup shell code; an import must not set it.",
+        AppSettingsKey.terminalDetectionBehavior.rawValue:
+            "Terminal preferences stay local alongside the opt-in shell capability on this Mac.",
+        AppSettingsKey.terminalColorTheme.rawValue:
+            "Terminal preferences stay local alongside the opt-in shell capability on this Mac.",
+        AppSettingsKey.terminalExternalApp.rawValue:
+            "Names a terminal app on this Mac; the machine a backup lands on may not have it.",
+        AppSettingsKey.terminalShortcuts.rawValue:
+            "Terminal preferences stay local alongside the opt-in shell capability on this Mac.",
         AppSettingsKey.terminalRecentFolders.rawValue:
             "Names folders on this Mac; the machine a backup lands on may not have them.",
+        AppSettingsKey.terminalCommandHistory.rawValue:
+            "Shell commands run on this Mac are session history and may hold local paths or flags.",
         AppSettingsKey.settingsFileEnabled.rawValue:
             "Lets a file on this Mac change its settings; an import must not hand that to another."
     ]
