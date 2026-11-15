@@ -86,7 +86,14 @@ if ! security find-identity -p codesigning | grep -Fq "$IDENTITY"; then
     exit 1
 fi
 
+KEYCHAIN_SERVICE="com.mj0lken.termcast.update-signing-key"
+if [ -z "${UPDATE_SIGNING_KEY:-}" ]; then
+    UPDATE_SIGNING_KEY="$(security find-generic-password -s "$KEYCHAIN_SERVICE" -a "UPDATE_SIGNING_KEY" -w 2>/dev/null || true)"
+    export UPDATE_SIGNING_KEY
+fi
+
 NOTARIZE=0
+SIGN_ZIP=0
 TEAM="${DEVELOPMENT_TEAM:-}"
 SIGN_FLAGS=(--timestamp=none)
 if [[ "$IDENTITY" == Developer\ ID\ Application:* ]]; then
@@ -94,6 +101,9 @@ if [[ "$IDENTITY" == Developer\ ID\ Application:* ]]; then
         TEAM="$(printf '%s\n' "$IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p')"
     fi
     SIGN_FLAGS=(--timestamp)
+    if [ -n "${UPDATE_SIGNING_KEY:-}" ]; then
+        SIGN_ZIP=1
+    fi
     if [ -n "${NOTARY_KEY_P8_BASE64:-}" ] && [ -n "${NOTARY_KEY_ID:-}" ] &&
        [ -n "${NOTARY_ISSUER_ID:-}" ] && [ -n "${UPDATE_SIGNING_KEY:-}" ]; then
         NOTARIZE=1
@@ -176,6 +186,9 @@ build_and_package() {
         diskutil image create from "$stage" --format UDZO --volumeName "$DISPLAY_NAME" "$dmg_out" >/dev/null
         codesign -s "$IDENTITY" "${SIGN_FLAGS[@]}" "$dmg_out"
         ditto -c -k --keepParent --sequesterRsrc "$app" "$zip_out"
+        if [ "$SIGN_ZIP" -eq 1 ]; then
+            ./Scripts/sign-update.swift "$app" "$zip_out"
+        fi
     fi
     echo "✓ Packaged $(basename "$dmg_out") + $(basename "$zip_out")"
 }

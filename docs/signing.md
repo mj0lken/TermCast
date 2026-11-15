@@ -67,6 +67,8 @@ base64 -i AuthKey_<key-id>.p8 | gh secret set NOTARY_KEY_P8_BASE64 --env release
 gh secret set NOTARY_KEY_ID --env release --repo mj0lken/TermCast
 gh secret set NOTARY_ISSUER_ID --env release --repo mj0lken/TermCast
 gh secret set UPDATE_SIGNING_KEY --env release --repo mj0lken/TermCast
+# Optional: store in your local Keychain so ./Scripts/publish-release.sh auto-signs Developer ID zips:
+security add-generic-password -U -s "com.mj0lken.termcast.update-signing-key" -a "UPDATE_SIGNING_KEY" -w "<base64-private-key>"
 ```
 
 The password and the private key go in at `gh`'s prompt, never through `--body`, which would leave
