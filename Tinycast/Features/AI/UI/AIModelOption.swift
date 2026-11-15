@@ -15,6 +15,7 @@ struct AIModelOption: Identifiable {
     ) -> [AIModelOptionGroup] {
         let enabled = settings.enabledInstalledProviders
         let claude = installedAI.status(for: .claude)
+        let antigravity = installedAI.status(for: .antigravity)
         let grok = installedAI.status(for: .grok)
         let openCode = installedAI.status(for: .openCode)
         let cursor = installedAI.status(for: .cursor)
@@ -32,6 +33,8 @@ struct AIModelOption: Identifiable {
             codex: enabled.contains(.codex) && subscription.isConnected
                 ? subscription.models.filter { shown($0.id, .codex) } : [],
             claude: enabled.contains(.claude) && claude.isReady ? shown(claude.models, .claude) : [],
+            antigravity: enabled.contains(.antigravity) && antigravity.isReady
+                ? shown(antigravity.models, .antigravity) : [],
             grok: enabled.contains(.grok) && grok.isReady ? shown(grok.models, .grok) : [],
             openCode: enabled.contains(.openCode) && openCode.isReady
                 ? shown(openCode.models, .openCode) : [],
@@ -56,6 +59,7 @@ struct AIModelOption: Identifiable {
         appleIntelligence: Bool,
         codex: [ChatGPTSubscription.Model],
         claude: [InstalledAIModel],
+        antigravity: [InstalledAIModel],
         grok: [InstalledAIModel],
         openCode: [InstalledAIModel],
         cursor: [InstalledAIModel],
@@ -79,6 +83,12 @@ struct AIModelOption: Identifiable {
             AIModelOption(
                 selection: .claude(model: model.id, effort: nil), title: model.name,
                 sourceTitle: "Claude", menuIcon: .asset(AIBrand.claude.assetName))
+        }
+        let antigravity = antigravity.map { model in
+            AIModelOption(
+                selection: .antigravity(model: model.id, effort: nil), title: model.name,
+                sourceTitle: "Antigravity",
+                menuIcon: icon(AIBrand.resolve(model: model.id) ?? .gemini))
         }
         let grok = grok.map { model in
             AIModelOption(
@@ -104,13 +114,14 @@ struct AIModelOption: Identifiable {
                     menuIcon: icon(AIBrand.resolve(provider: connection.provider, model: model)))
             }
         }
-        return onDevice + codex + claude + grok + openCode + cursor + api
+        return onDevice + codex + claude + antigravity + grok + openCode + cursor + api
     }
 
     private static func groupedCatalog(
         appleIntelligence: Bool,
         codex: [ChatGPTSubscription.Model],
         claude: [InstalledAIModel],
+        antigravity: [InstalledAIModel],
         grok: [InstalledAIModel],
         openCode: [InstalledAIModel],
         cursor: [InstalledAIModel],
@@ -118,8 +129,9 @@ struct AIModelOption: Identifiable {
     ) -> [AIModelOptionGroup] {
         var groups: [AIModelOptionGroup] = []
         for option in catalog(
-            appleIntelligence: appleIntelligence, codex: codex, claude: claude, grok: grok,
-            openCode: openCode, cursor: cursor, connections: connections)
+            appleIntelligence: appleIntelligence, codex: codex, claude: claude,
+            antigravity: antigravity, grok: grok, openCode: openCode, cursor: cursor,
+            connections: connections)
         {
             if groups.last?.id == option.selection.source {
                 groups[groups.count - 1].options.append(option)
@@ -146,7 +158,7 @@ struct AIModelOption: Identifiable {
             return selection
         case .codex:
             effort = subscription.models.first { $0.id == model }?.resolvedEffort(nil)
-        case .claude, .grok, .openCode, .cursor:
+        case .claude, .antigravity, .grok, .openCode, .cursor:
             effort = installedAI.models(for: selection.source)
                 .first { $0.id == model }?.resolvedEffort(nil)
         case .api(let connection):
@@ -168,7 +180,7 @@ struct AIModelOption: Identifiable {
             return []
         case .codex:
             return subscription.models.first { $0.id == model }?.efforts ?? []
-        case .claude, .grok, .openCode, .cursor:
+        case .claude, .antigravity, .grok, .openCode, .cursor:
             return installedAI.models(for: selection.source).first { $0.id == model }?.efforts ?? []
         case .api(let connection):
             return settings.connection(id: connection)?.reasoningOptions(for: model)?

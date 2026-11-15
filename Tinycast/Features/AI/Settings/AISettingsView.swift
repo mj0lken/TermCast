@@ -148,8 +148,8 @@ struct AISettingsView: View {
                 SettingsRowTitle(.aiChat, "Tool call rounds")
                 Text(
                     """
-                    A reply stops after this many; Unlimited runs until Stop. API connections, Codex \
-                    and Claude.
+                    A reply stops after this many; Unlimited runs until Stop. API connections, Codex, \
+                    Claude, Antigravity and OpenCode.
                     """)
             }
         } header: {

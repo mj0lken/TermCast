@@ -91,7 +91,7 @@ struct AttachmentChip: View {
 }
 
 /// Decoded once per attachment: `ForEach` keys on its id, so a per-keystroke re-render reuses it.
-private struct ComposerThumbnail: View {
+struct ComposerThumbnail: View {
     @Environment(\.metrics) private var metrics
     let data: Data?
     let id: UUID

@@ -3,6 +3,10 @@ import Foundation
 struct InstalledAIStreamFrame: Equatable, Sendable {
     var events: [AIStreamEvent] = []
     var sessionID: String?
+    var sessionStarted = false
+    var availableModels: Set<String> = []
+    var contextWindow: Int?
+    var serverReply: Data?
     var error: String?
     var completed = false
     /// A tool call the CLI is holding open; the runner answers it and the turn carries on.
@@ -16,15 +20,17 @@ enum InstalledAIStreamDecoder {
     static func decode(
         _ data: Data, kind: InstalledAIKind, servers: [AIToolServer] = []
     ) -> InstalledAIStreamFrame {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let type = object["type"] as? String
-        else { return InstalledAIStreamFrame() }
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return InstalledAIStreamFrame()
+        }
+        if kind == .antigravity { return antigravity(object) }
+        guard let type = object["type"] as? String else { return InstalledAIStreamFrame() }
         switch kind {
         case .openCode: return openCode(object, type: type)
         case .claude: return claude(object, type: type, servers: servers)
         case .cursor: return cursor(object, type: type)
         case .grok: return grok(object, type: type)
-        case .codex: return InstalledAIStreamFrame()
+        case .antigravity, .codex: return InstalledAIStreamFrame()
         }
     }
 
@@ -206,6 +212,92 @@ enum InstalledAIStreamDecoder {
             if !trimmed.isEmpty { return trimmed }
         }
         return String(localized: "Grok could not finish the response.")
+    }
+
+    private static func antigravity(_ object: [String: Any]) -> InstalledAIStreamFrame {
+        var frame = InstalledAIStreamFrame()
+        if let method = object["method"] as? String {
+            if object["id"] != nil {
+                frame.serverReply = InstalledAIKind.antigravityServerReply(object)
+                return frame
+            }
+            guard method == "session/update", let params = object["params"] as? [String: Any] else {
+                return frame
+            }
+            if let sessionID = params["sessionId"] as? String, !sessionID.isEmpty {
+                frame.sessionID = sessionID
+            }
+            guard let update = params["update"] as? [String: Any] else { return frame }
+            switch update["sessionUpdate"] as? String {
+            case "agent_thought_chunk":
+                if let content = update["content"] as? [String: Any],
+                    let text = content["text"] as? String, !text.isEmpty
+                {
+                    frame.events = [.thinking, .reasoning(text)]
+                }
+            case "agent_message_chunk":
+                if let content = update["content"] as? [String: Any],
+                    let text = content["text"] as? String, !text.isEmpty
+                {
+                    frame.events = [.text(text)]
+                }
+            case "usage_update":
+                if let size = integer(update["size"]), size > 0 {
+                    frame.contextWindow = size
+                }
+            default:
+                break
+            }
+            return frame
+        }
+        guard let id = integer(object["id"]) else { return frame }
+        if let error = object["error"] as? [String: Any] {
+            let reason = (error["message"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            frame.error =
+                reason.flatMap { $0.isEmpty ? nil : $0 }
+                ?? String(localized: "Antigravity could not finish the response.")
+            return frame
+        }
+        guard let result = object["result"] as? [String: Any] else { return frame }
+        switch id {
+        case InstalledAIKind.antigravitySessionRequestID:
+            if let sessionID = result["sessionId"] as? String, !sessionID.isEmpty {
+                frame.sessionID = sessionID
+                frame.sessionStarted = true
+            }
+            if let models = (result["models"] as? [String: Any])?["availableModels"]
+                as? [[String: Any]]
+            {
+                frame.availableModels = Set(
+                    models.compactMap { entry in
+                        let modelID =
+                            (entry["modelId"] as? String ?? entry["id"] as? String ?? "")
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        return modelID.isEmpty ? nil : modelID
+                    })
+            }
+        case InstalledAIKind.antigravityPromptRequestID:
+            if let usage = result["usage"] as? [String: Any] {
+                frame.events.append(.usage(antigravityUsage(usage)))
+            }
+            frame.completed = true
+        default:
+            break
+        }
+        return frame
+    }
+
+    private static func antigravityUsage(_ usage: [String: Any]) -> AIUsage {
+        let cached =
+            [usage["cachedReadTokens"], usage["cachedWriteTokens"]]
+            .compactMap(integer).reduce(0, +)
+        let thinking = integer(usage["thoughtTokens"]) ?? 0
+        return AIUsage(
+            inputTokens: integer(usage["inputTokens"]),
+            outputTokens: integer(usage["outputTokens"]),
+            cachedInputTokens: cached > 0 ? cached : nil,
+            reasoningTokens: thinking > 0 ? thinking : nil)
     }
 
     private static func cursor(

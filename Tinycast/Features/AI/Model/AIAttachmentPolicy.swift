@@ -15,16 +15,23 @@ enum AIAttachmentPolicy {
     private static let unsafeInName = CharacterSet.controlCharacters.union(.newlines)
 
     /// Extensions, not `UTType`: installed apps declare types, so conformance differs per Mac.
-    private static let imageExtensions: Set<String> = [
+    static let imageExtensions: Set<String> = [
         "png", "jpg", "jpeg", "gif", "webp", "heic", "tiff", "bmp"
     ]
 
-    private static let textExtensions: Set<String> = [
+    static let textExtensions: Set<String> = [
         "txt", "md", "markdown", "csv", "tsv", "json", "jsonl", "yaml", "yml", "toml", "ini",
         "xml", "html", "css", "js", "jsx", "ts", "tsx", "swift", "m", "mm", "h", "c", "cc",
         "cpp", "hpp", "rs", "go", "rb", "py", "php", "java", "kt", "sh", "zsh", "bash", "sql",
         "log", "conf", "plist", "patch", "diff"
     ]
+
+    static func allowedExtensions(images: Bool, documents: Bool) -> [String] {
+        var allowed = Array(textExtensions)
+        if images { allowed.append(contentsOf: imageExtensions) }
+        if documents { allowed.append("pdf") }
+        return allowed.sorted()
+    }
 
     /// Nil for anything Tinycast will not attach, which the composer refuses by name.
     static func kind(forFileName name: String) -> Kind? {

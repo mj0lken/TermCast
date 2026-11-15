@@ -53,6 +53,30 @@ struct AIScreen: PaletteScreen {
                     coordinator.regenerate()
                 })
         }
+        items.append(
+            PopoverMenuItem(
+                title: String(localized: "Attach Files…"), systemImage: "paperclip",
+                startsSection: true, shortcut: "⇧⌘A"
+            ) {
+                coordinator.chooseFiles()
+            })
+        if chatCoordinator.capabilities(for: chat).images {
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Capture Screenshot"),
+                    systemImage: "camera.viewfinder", shortcut: "⇧⌘S"
+                ) {
+                    coordinator.captureScreenshot()
+                })
+        }
+        if !chat.pendingAttachments.isEmpty {
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Remove Attachments"), systemImage: "xmark.circle"
+                ) {
+                    coordinator.clearAttachments()
+                })
+        }
         if chat.lastAssistantText != nil {
             items.append(
                 PopoverMenuItem(
@@ -61,15 +85,6 @@ struct AIScreen: PaletteScreen {
                     shortcut: "⇧⌘C"
                 ) {
                     coordinator.copyLastResponse()
-                })
-        }
-        if !chat.pendingAttachments.isEmpty {
-            items.append(
-                PopoverMenuItem(
-                    title: String(localized: "Remove Attachments"), systemImage: "paperclip",
-                    startsSection: chat.lastAssistantText == nil
-                ) {
-                    coordinator.clearAttachments()
                 })
         }
         items.append(
@@ -103,6 +118,8 @@ struct AIScreen: PaletteScreen {
     /// Raycast's chords where it has one; ⌘Y is History, as in Safari, and ⌘. is Stop.
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool {
         switch shortcut {
+        case .attachFiles: coordinator.chooseFiles()
+        case .captureScreenshot: coordinator.captureScreenshot()
         case .continueInChat: coordinator.continueInChat()
         case .newItem: coordinator.startNewChat()
         case .restart where canRegenerate: coordinator.regenerate()
@@ -154,16 +171,20 @@ struct AIScreen: PaletteScreen {
                 availability: { chatCoordinator.availability(for: chat) },
                 onConfigure: chatCoordinator.showSettings,
                 onAppear: chatCoordinator.prepareForChat,
+                onDropFiles: coordinator.attach,
                 onChoose: { coordinator.send($0) }))
     }
 }
 
 private struct AIChatView: View {
+    @Environment(\.metrics) private var metrics
+    @State private var isDropTargeted = false
     let chat: AIChatState
     let settings: AISettingsStore
     let availability: () -> String?
     let onConfigure: () -> Void
     let onAppear: () -> Void
+    let onDropFiles: ([URL]) -> Void
     let onChoose: (String) -> Void
 
     var body: some View {
@@ -184,6 +205,26 @@ private struct AIChatView: View {
                     onChoose: chat.isStreaming || !settings.choicesEnabled ? nil : onChoose
                 )
                 .environment(\.chatExpandsReasoning, settings.expandsReasoning)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dropDestination(for: URL.self) { files, _ in
+            onDropFiles(files)
+            return true
+        } isTargeted: {
+            isDropTargeted = $0
+        }
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
+                    .strokeBorder(
+                        Theme.Colors.dropTarget,
+                        style: StrokeStyle(
+                            lineWidth: Theme.Size.dropHintStroke,
+                            dash: [Theme.Size.dropHintDash])
+                    )
+                    .padding(metrics.spacing.md)
+                    .allowsHitTesting(false)
             }
         }
         .onAppear(perform: onAppear)
@@ -235,17 +276,23 @@ private struct AttachmentsPill: View {
     }
 }
 
-/// The newest file's kind as a glyph; its picture waits in the menu, where a row has the room.
 private struct AttachmentGlyph: View {
     @Environment(\.metrics) private var metrics
     let attachment: ChatAttachment
 
     var body: some View {
-        Image(systemName: attachment.glyph)
-            .font(metrics.typography.chip)
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(Theme.Colors.textSecondary)
-            .frame(width: metrics.size.chatAttachmentThumb, height: metrics.size.chatAttachmentThumb)
+        switch attachment.kind {
+        case .image:
+            ComposerThumbnail(data: attachment.preview, id: attachment.id)
+        case .pdf, .text:
+            Image(systemName: attachment.glyph)
+                .font(metrics.typography.chip)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(
+                    width: metrics.size.chatAttachmentThumb,
+                    height: metrics.size.chatAttachmentThumb)
+        }
     }
 }
 
@@ -261,6 +308,34 @@ extension ChatAttachment {
     var menuIcon: PopoverMenuIcon {
         guard case .image = kind, let preview else { return .symbol(glyph) }
         return .thumbnail(id: id, data: preview)
+    }
+}
+
+struct AIAddButton: View {
+    let isOpen: Bool
+    @Binding var frame: CGRect
+    let action: () -> Void
+    @Environment(\.metrics) private var metrics
+
+    var body: some View {
+        BarButton(chrome: .rounded, isSelected: isOpen, isCompact: true, action: action) {
+            Image(systemName: "plus")
+                .font(
+                    .system(
+                        size: metrics.scaled(Theme.Typography.menuSymbolSize),
+                        weight: Theme.Typography.menuSymbolWeight)
+                )
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(width: metrics.size.chatAttachmentGlyph, height: metrics.size.chatAttachmentGlyph)
+        }
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .global)
+        } action: {
+            frame = $0
+        }
+        .tooltip(isOpen ? nil : String(localized: "Add context  ⇧⌘A"), edge: .bottom)
+        .accessibilityLabel("Add Context")
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 

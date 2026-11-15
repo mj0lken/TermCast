@@ -15,6 +15,7 @@ struct PasteboardTests {
         everyFileFlavourIsRead()
         multipleFilesReadNewestLast()
         linksAndTextAreNotFiles()
+        browserImageCopyReadsAsImageWhileProseStaysText()
         volatileAndMissingFilesFallThrough()
         aContainerCopyBesidePixelsFallsThrough()
         theBatchIsCapped()
@@ -118,6 +119,46 @@ struct PasteboardTests {
         expect(ClipboardManager.fileURLs(on: plain) == nil, "and neither is prose")
 
         expect(ClipboardManager.fileURLs(on: board()) == nil, "an empty pasteboard reads as nil")
+    }
+
+    static func browserImageCopyReadsAsImageWhileProseStaysText() {
+        let pixels = Data("png-bytes".utf8)
+
+        let browserImage = board()
+        browserImage.declareTypes([.png, .URL, .string], owner: nil)
+        browserImage.setData(pixels, forType: .png)
+        browserImage.setString("https://example.com/photo.png", forType: .URL)
+        browserImage.setString("https://example.com/photo.png", forType: .string)
+        expect(
+            PasteboardFiles.pastedImageData(on: browserImage) == pixels,
+            "a browser Copy Image carrying pixels and its source URL reads as the image")
+
+        let screenshot = board()
+        screenshot.declareTypes([.png], owner: nil)
+        screenshot.setData(pixels, forType: .png)
+        expect(
+            PasteboardFiles.pastedImageData(on: screenshot) == pixels,
+            "a bare screenshot reads as the image")
+
+        let richSelection = board()
+        richSelection.declareTypes([.string, .tiff], owner: nil)
+        richSelection.setString("copied prose", forType: .string)
+        richSelection.setData(pixels, forType: .tiff)
+        expect(
+            PasteboardFiles.pastedImageData(on: richSelection) == nil,
+            "copied prose carrying a TIFF snapshot stays text")
+
+        withScratch { dir in
+            let file = dir.appendingPathComponent("diagram.png")
+            try? pixels.write(to: file)
+            let finderBoard = board()
+            finderBoard.declareTypes([.fileURL, .png], owner: nil)
+            finderBoard.setData(file.dataRepresentation, forType: .fileURL)
+            finderBoard.setData(pixels, forType: .png)
+            expect(
+                PasteboardFiles.pastedImageData(on: finderBoard) == nil,
+                "a copied file yields to file URL attachment reading")
+        }
     }
 
     /// An app that stages a temp file beside better inline content must keep the inline content.

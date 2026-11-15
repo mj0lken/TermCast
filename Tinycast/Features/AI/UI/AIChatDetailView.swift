@@ -341,20 +341,44 @@ private struct AIAddMenu: View {
 
     var body: some View {
         @Bindable var settings = settings
+        let can = coordinator.capabilities(for: chat)
+        let servers = coordinator.mcpServers.filter { chat.toolScope.allows($0.slug) }
         Menu {
             Button("Attach Files…", systemImage: "paperclip") { coordinator.chooseFiles(for: chat) }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
                 .help(attachHelp)
+            if can.images {
+                Button("Capture Screenshot", systemImage: "camera.viewfinder") {
+                    coordinator.captureScreenshot(for: chat)
+                }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                if coordinator.hasClipboardImage {
+                    Button("Paste from Clipboard", systemImage: "photo.on.rectangle") {
+                        coordinator.pasteClipboardImage(into: chat)
+                    }
+                }
+            }
             Divider()
             if offersSearch {
                 Toggle("Web Search", systemImage: "globe", isOn: $settings.webSearchEnabled)
+            }
+            if can.tools, chat.toolScope.isEnabled, !servers.isEmpty {
+                Menu("Mentions", systemImage: "at") {
+                    ForEach(servers) { server in
+                        let label = server.name.isEmpty ? server.slug : server.name
+                        Button("@\(server.slug) · \(label)") {
+                            chat.draft = coordinator.addressDraft(chat.draft, to: server.slug)
+                        }
+                    }
+                }
             }
             AIToolsMenu(chat: chat, coordinator: coordinator)
         } label: {
             ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus") }
         }
         .composerMenu()
-        .help("Attach files, search the web, choose tools")
-        .accessibilityLabel("Add")
+        .help("Add context  ⇧⌘A")
+        .accessibilityLabel("Add Context")
     }
 
     /// One entry for every kind; what this chat's model can read is what the help says.

@@ -20,8 +20,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   every streaming reply and drops both transcripts, but touches neither the saved conversations in
   `ai-chats.sqlite3` nor a Keychain key. `aiEnabled` is excluded from settings backups like every
   other AI key, so an import can never arm a feature it cannot configure.
-- **Installed model discovery is per-provider.** Settings → AI → Providers keeps Codex, Claude, Grok,
-  OpenCode and Cursor visible with an individual toggle for each, all off by default. Turning one off cancels
+- **Installed model discovery is per-provider.** Settings → AI → Providers keeps Codex, Claude, Antigravity,
+  Grok, OpenCode and Cursor visible with an individual toggle for each, all off by default. Turning one off cancels
   its check, clears its catalog and releases its process; Apple Intelligence is the default route when
   available, and saved API connections stay available.
 - **A route that is off is off everywhere.** The on-device model and every API connection have the
@@ -76,7 +76,7 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   and Claude routes as a bearer header, so a hosted server is signed into once for every route.
   See [MCP](mcp.md).
 - **The chat model is the routing decision.** It names the on-device model, a model exposed by the
-  installed Codex, Claude, Grok, OpenCode or Cursor command, or one saved API connection and model. Installed
+  installed Codex, Claude, Antigravity, Grok, OpenCode or Cursor command, or one saved API connection and model. Installed
   routes also carry their reasoning effort when the selected model supports one. A removed route
   falls forward to the on-device model when this Mac
   has one, then to another usable API model, then to no selection. Discovering an installed command
@@ -155,8 +155,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   them, and neither surface draws chips. A fence a model writes anyway is still lifted out of the
   prose.
 - **Token usage belongs to the reply that reported it.** `AIUsage` carries input, output, cached
-  prompt and thinking tokens, and the model's window and cost where a route says them — Claude's CLI
-  reports all of it, the Anthropic API its cache, OpenAI-shaped routes their reasoning tokens and
+  prompt and thinking tokens, and the model's window and cost where a route says them — Claude's and
+  Antigravity's CLIs report the window and token breakdown, the Anthropic API its cache, OpenAI-shaped routes their reasoning tokens and
   OpenRouter its cost. `ChatMessage.usage` holds it and `message_details` keeps it, so a reopened chat
   still knows its last turn.
 - **The on-device route is configured by having a Mac.** `.appleIntelligence` takes no key, opens no
@@ -173,9 +173,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   reader *removed*; a Mac with Apple Intelligence switched off keeps its stored selection and is told
   why, because silently moving someone from a free, private, local model onto a billed endpoint is
   the one redirection this feature must never perform.
-- **Installed commands reuse their own login.** Tinycast launches the user's `codex`, `claude`, `grok` or
-  `opencode` executable without asking for or storing another key. Codex inherits the user's normal
-  home and credential-store setting; Claude, Grok, OpenCode and Cursor inherit their normal configuration. Tinycast
+- **Installed commands reuse their own login.** Tinycast launches the user's `codex`, `claude`, `agy`,
+  `grok`, `opencode` or `agent` executable without asking for or storing another key. Codex inherits the user's normal
+  home and credential-store setting; Claude, Antigravity, Grok, OpenCode and Cursor inherit their normal configuration. Tinycast
   never reads those credential files, browser cookies or undocumented web endpoints. A Codex route
   with no account is ready only when `account/read` explicitly says `requiresOpenaiAuth: false`.
 - **Codex runs Tinycast's MCP servers and nothing else.** The app-server still launches with every
@@ -221,7 +221,7 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   CLI routes' MCP launch encodings. Request
   bodies are `AIRequestBody`'s, in `Model/`, precisely so a wrong shape fails a harness rather than a
   conversation.
-- **Grok and Cursor are text transports, not agents, and so is Claude with no server to
+- **Antigravity, Grok and Cursor are text transports, not agents, and so is Claude with no server to
   run.** Claude runs one turn with no tools, browser integration, slash commands or persisted
   session — but never `--bare`, which reads neither
   OAuth nor the keychain and so refuses the very sign-in this route reuses. Given servers by
@@ -231,6 +231,11 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   the round cap instead of the constant 1, or is left out on Unlimited, and
   `--permission-mode default` with an ask rule per server keeps the reader's own allow rules and
   default mode from answering before Tinycast does.
+  Antigravity runs `--agent tinycast --disable-slash-commands --sandbox` in Tinycast's `0700` workspace
+  with `--settings` trusting only that workspace and disallowing non-workspace access, while
+  `.agents/agents/tinycast.md` sets `excludeDefaultComponents: true`, `inheritCustomizations: false`
+  and `inheritMcp: false`, disables `ask_question` and `finish`, and attaches `.agents/hooks.json`
+  with a `PreToolUse` `*` deny hook so no tool can run.
   Grok runs with `--deny *`,
   `dontAsk` permissions and a workspace sandbox, and never `--always-approve`, so a user's always-approve
   config cannot arm tools for this route. OpenCode 2 runs `--standalone`, so its private server
@@ -242,15 +247,15 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   Cursor runs `agent -p --mode ask` with `--trust` against
   Tinycast's private workspace and never `--force` / `--yolo` / `--approve-mcps`; ask mode blocks edits.
   Each deletes the session or chat it created once the child exits, and Tinycast never reaches into the
-  user's own config to do it. **Only Claude keeps the user's MCP servers out of the process**, through
-  `--strict-mcp-config` — whether the config it names is empty or Tinycast's own — and even that
-  yields to an installed managed MCP policy, which makes the CLI reject both flags and leaves MCP
-  on that route the organization's decision; the Providers row says so.
+  user's own config to do it. **Claude and Antigravity keep the user's MCP servers out of the turn** —
+  Claude through `--strict-mcp-config`, which yields only to an installed managed MCP policy (where
+  the CLI rejects both flags and the Providers row says so), and Antigravity through `inheritMcp: false`
+  on its isolated `tinycast` agent.
   Grok, OpenCode and Cursor load the global config either way,
   because their configs merge with no opt-out; what refuses the call is `--deny *` for Grok,
   the `tinycast` agent's deny-all rule for OpenCode and withheld MCP approval for Cursor. Cursor's is the only one resting
-  on an approval prompt rather than an explicit deny, which is why its Providers row says so and the
-  others do not. Grok and Cursor are never handed a server. OpenCode's exact allow rules name only
+  on an approval prompt rather than an approval-free deny, which is why its Providers row says so and the
+  others do not. Antigravity, Grok and Cursor are never handed a server. OpenCode's exact allow rules name only
   the turn's randomly named, authenticated bridge, never the user's servers. None of these routes
   offer web search, and only Claude and
   OpenCode take images: every Claude turn is one `--input-format stream-json` user message, the newest
@@ -342,9 +347,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
 
 ## Connections and routing
 
-`AIModelSelection` has seven cases: `.appleIntelligence`, `.codex`, `.claude`, `.grok`, `.openCode`,
+`AIModelSelection` has eight cases: `.appleIntelligence`, `.codex`, `.claude`, `.antigravity`, `.grok`, `.openCode`,
 `.cursor` and `.api`.
-The first needs no connection at all. The next five name a model from an installed command and carry
+The first needs no connection at all. The next six name a model from an installed command and carry
 no credential. `.api` points at one `AIConnection`; `AIProviderKind` exposes four named presets plus a
 custom OpenAI-compatible route. Decoding still accepts the old `.chatGPT` spelling and writes it back
 as `.codex`, so an existing selection survives the rename.
@@ -354,6 +359,7 @@ as `.codex`, so an existing selection survives the rename.
 | Apple Intelligence | Foundation Models, on device | none |
 | Codex | installed `codex app-server` | user's Codex account |
 | Claude | installed `claude -p` | user's Claude login |
+| Antigravity | installed `agy -p` | user's Antigravity CLI login |
 | Grok | installed `grok --prompt-file` | user's Grok login |
 | OpenCode | installed `opencode run --standalone` (OpenCode 2) | providers already configured in OpenCode |
 | Cursor | installed `agent -p --mode ask` | user's Cursor login |
@@ -397,7 +403,8 @@ stream-json `-p` run that then gets no prompt, so no model is called — with it
 another), names each by the version its alias points at today ("Claude Opus 5.5"), and takes each
 one's `supportedEffortLevels`. The version is in `description` before a " · " on an older CLI and in
 `displayName` on a newer one, which describes a model without it; the name is read from whichever
-has it. The same answer carries the account, which `claudeAccount` reads for the Overview page. A model the CLI starts offering appears without a Tinycast release. Cursor lists models
+has it. The same answer carries the account, which `claudeAccount` reads for the Overview page. A model the CLI starts offering appears without a Tinycast release. Antigravity checks credentials, reads its account tier (`_meta.antigravity.tier.name`) and reads
+its active model catalog from an ACP `session/new` handshake (`agy acp --include-default-customizations=false --sandbox`), collapsing effort-suffixed variants onto their base `configOptions` entries and deleting the empty probe conversation afterwards. Cursor lists models
 from `agent --list-models` after `agent status --format json` confirms a login.
 
 Turning thinking off is a reasoning effort, not a second control: `reasoningOptions(for:)` answers with
@@ -476,18 +483,20 @@ third way in. Settings → AI holds the recorder and a checkbox for the command'
 search, beside `AI Chat`'s; either shortcut keeps working while its command is hidden, and does
 nothing at all while the feature is off. The palette search field becomes the single-line composer.
 The footer pill and Return are one action, `activate`: Send, or Stop while a response streams — an
-empty composer sends nothing, so the pill never needs a disabled state. The header's trailing model
-switcher opens by click or ⌘P, uses the same in-window menu control as Clipboard's type filter and
-changes the chat route for the next message. For installed routes and OpenRouter models whose catalog
-reports the capability, it also shows the supported reasoning efforts and changes the chat effort for
-the next message. Other API routes keep their provider default because their model catalogs expose no
+empty composer sends nothing, so the pill never needs a disabled state. The header's `+` (`Add Context`) button sits immediately ahead of the trailing model switcher and
+offers Attach Files… (`⇧⌘A`), Capture Screenshot (`⇧⌘S`), Paste from Clipboard when the pasteboard
+holds an image, Web Search, Use Tools and `@server` Mentions. The trailing model switcher opens by
+click or ⌘P, uses the same in-window menu control as Clipboard's type filter and changes the chat
+route for the next message. For installed routes and OpenRouter models whose catalog reports the
+capability, it also shows the supported reasoning efforts and changes the chat effort for the next
+message. Other API routes keep their provider default because their model catalogs expose no
 portable effort contract. Neither change interrupts a response already streaming; stopping one is
-the pill's job, so the header never has to fit a third control beside the switcher.
+the pill's job.
 
 The second footer control is the palette's normal Actions (`⌘K`) menu. It owns Continue in AI Chat
 (`⌘J`; Open AI Chat while the chat is empty), New Chat (`⌘N`), Chat History (`⌘Y`) and AI Settings
-(`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`) and
-Remove Attachments when those apply. The chords are Raycast's where it has one, and `AIScreen.perform`
+(`⌥⌘,`), plus Attach Files… (`⇧⌘A`), Capture Screenshot (`⇧⌘S`), Stop Response (`⌘.`), Regenerate
+Response (`⌘R`), Copy Last Response (`⇧⌘C`) and Remove Attachments when those apply. The chords are Raycast's where it has one, and `AIScreen.perform`
 maps each `PaletteShortcut` to its action. AI Settings takes ⌥⌘, because ⌘, stays the app's own
 Settings on every screen. Continuing closes the palette and carries the half-typed line into the
 window's composer with the conversation. Chat History is the palette's own browser over the same
@@ -793,7 +802,7 @@ window, and every chat action either surface sends — is the nineteenth feature
 
 ## Installed commands
 
-`ExecutableLocator` finds `codex`, `claude`, `grok`, `opencode` and `agent` by asking the account's
+`ExecutableLocator` finds `codex`, `claude`, `agy`, `grok`, `opencode` and `agent` by asking the account's
 login shell, so a stale copy in another prefix never shadows the one Terminal runs. zsh, bash and fish
 are asked in their own syntax, any other shell through zsh, and the answer comes back behind a marker,
 so an rc or logout file that prints cannot hide it. Only when the shell names no absolute executable does
@@ -813,9 +822,10 @@ deletes afterwards, Claude's title request, and Codex's app-server and its `mcp 
 so an edit takes the next one, and `AISettingsStore.launchRevisions` lets `AppCore` check again only
 the tool that was edited — Codex by stopping its server, which restarts on demand. The
 commands are never installed by Tinycast; Settings links to their own install docs and offers a sign-in
-command to copy. `InstalledAIManager` probes Claude, Grok, OpenCode and Cursor off-main, in parallel.
+command to copy. `InstalledAIManager` probes Claude, Antigravity, Grok, OpenCode and Cursor off-main, in parallel.
 Claude's auth status gates an `initialize` control request, and `InstalledAIModel.claudeCatalog` builds
-its model list from the answer. OpenCode's successful model list is both its auth check and catalog.
+its model list from the answer. Antigravity's ACP `session/new` validates its login without calling a model and
+returns its catalog and subscription tier, then deletes the probe conversation. OpenCode's successful model list is both its auth check and catalog.
 Grok's `models` output is the catalog, but a signed-out CLI still exits 0 and prints that catalog under
 "You are not authenticated." — that banner is the auth check, not the exit status. Cursor's
 `status --format json` gates `--list-models`.
@@ -866,13 +876,14 @@ reasoning effort belongs to `turn/start`; neither is written to the user's Codex
 developer instructions say whether the model may reach the web so the two cannot disagree. Images go
 out as `image` input parts with data URLs, and as `input_image` when prior turns are injected.
 
-`InstalledCLITurnRunner` handles Claude, Grok, OpenCode and Cursor behind the same provider protocol. It
+`InstalledCLITurnRunner` handles Claude, Antigravity, Grok, OpenCode and Cursor behind the same provider protocol. It
 frames Tinycast's instructions and bounded conversation history as stdin (or a private `--prompt-file` for
 Grok, whose CLI requires a path), consumes newline-delimited JSON, and never puts prompt text on the
 process command line. Claude uses stream JSON, `--effort` and no session persistence, and takes every
 turn as one framed `stream-json` user line. With servers armed it keeps stdin open for the consent
 channel and closes it on the CLI's own result frame; writes are chained rather than concurrent,
 because two racing the same pipe would interleave a line.
+Antigravity runs `agy acp --include-default-customizations=false --sandbox` in a per-turn `0700` workspace directory whose `.agents/hooks.json` denies every non-bridge tool, opens an ACP session (`session/new` with `disableBuiltInTools: true`), selects the model and effort variant via `session/set_model`, sends base64 image blocks and prompt text over `session/prompt`, closes stdin on the prompt's result frame, and deletes `conversations/<id>.db`, `brain/<id>`, `annotations/<id>.pbtxt`, `presence/<id>.lock` and `mcp/tinycast_bridge` under `~/.gemini/antigravity-cli` once the process exits.
 Grok uses `streaming-messages-json` and `--effort`, with `--deny *` so tools cannot run even when the
 user's Grok config is always-approve; it captures the session id, then calls `grok sessions delete`.
 An error result omits `result` and carries the cause in `errors`; that text is the failure, not
@@ -888,12 +899,14 @@ Every other turn finishes on its own completion frame; the cleanups run detached
 housekeeping never holds the composer shut.
 Cancellation terminates the child process; only one installed-CLI turn can own a runner at a time.
 
-For OpenCode chat tools, `AIChatCoordinator` supplies an `AIToolSession` rather than a second
+For Antigravity and OpenCode chat tools, `AIChatCoordinator` supplies an `AIToolSession` rather than a second
 `AIToolLoopProvider`. `OpenCodeMCPBridge` binds an ephemeral IPv4 loopback port for that turn and
-requires a random bearer credential carried only in `OPENCODE_CONFIG_CONTENT`. It rejects browser
+requires a random bearer credential carried only in `OPENCODE_CONFIG_CONTENT` or Antigravity's
+private `session/new` `mcpServers` stdin frame. It rejects browser
 origins and offers only initialize, ping, tool listing and tool calls. Short indexed aliases keep
-OpenCode's prefixed tool names under provider limits while retaining the original tool routing and
-transcript labels. Calls run serially through Tinycast so permission dialogs cannot compete. The
+prefixed tool names under provider limits while retaining the original tool routing and
+transcript labels; Antigravity registers those bridge tools as eager native tools (`mcp_tinycast_bridge_*`) in its ACP session
+and blocks every non-bridge tool in `.agents/hooks.json` `PreToolUse`. Calls run serially through Tinycast so permission dialogs cannot compete. The
 reader's round setting caps calls, and the normal tool-result size budgets still apply. Completion,
 failure and cancellation stop the listener and its pending calls. Rewrites and title requests get no
 tool session and retain the deny-all configuration.
@@ -912,6 +925,7 @@ transport code at all.
 | Apple Intelligence | never — it reaches nothing | never — the model is text-only | never | never |
 | Codex | thread-scoped `web_search` config | `image` input part | never — the app-server takes no document part | Tinycast's servers, added as launch overrides; the reader's own are disabled by name |
 | Claude command | never | base64 `image` block in its stream-json user message | never | Tinycast's servers, through `--strict-mcp-config` and a private config file — an empty one when there are none, and neither flag under a managed MCP policy |
+| Antigravity command | never | base64 `image` block in its ACP `session/prompt` request | never | selected Tinycast tools through a per-turn authenticated loopback bridge; all other tools denied |
 | Grok command | never | never | never | the global config still loads — `--deny *` refuses the call |
 | OpenCode command | never | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never | selected Tinycast tools through a per-turn authenticated loopback bridge; all other tools denied |
 | Cursor command | never | never | never | the global config still loads — ask mode and withheld approval refuse the call |
@@ -953,14 +967,17 @@ is why documents are *not* assumed the way images are. An attachment is never dr
 out: answering a question about a document the model never received is the one outcome this must
 not produce.
 
-In Quick AI attachments arrive by ⌘V; the window also takes a drop and the paperclip. They come in
-three kinds: an **image**, a **PDF** sent as a native document block,
-and a **text-ish file** whose contents are inlined as fenced, named text.
-`PaletteWindowController`'s command-shortcut hook gives chat the chord first; a pasteboard holding
-file URLs or a bare image (a screenshot) stages them, while anything else carrying text falls
-through to the field editor as a normal paste. **Only `isFileURL` URLs are read** — without that
-filter a copied `https://…/a.png` reaches `Data(contentsOf:)`, turning a keystroke into a network
-request. Every file is **sized before it is read**, so a huge CSV can never be slurped into memory.
+In both Quick AI and the AI Chat window, attachments arrive through `+` (`Add Context`), `⇧⌘A`
+(Attach Files…), `⇧⌘S` (Capture Screenshot — interactive `/usr/sbin/screencapture -i -x` into a
+private temporary file), drag-and-drop, or `⌘V`. They come in three kinds: an **image**, a **PDF**
+sent as a native document block, and a **text-ish file** whose contents are inlined as fenced,
+named text. `PaletteWindowController`'s command-shortcut hook gives chat the chord first;
+`PasteboardFiles.pastedImageData(on:)` stages a bare screenshot as well as a browser "Copy Image"
+pasteboard carrying image pixels alongside its source URL, while copied prose carrying a rich-text
+`.tiff` snapshot falls through to the field editor as a normal text paste. **Only `isFileURL` URLs
+are read** — without that filter a copied `https://…/a.png` reaches `Data(contentsOf:)`, turning a
+keystroke into a network request. Every file is **sized before it is read**, so a huge CSV can
+never be slurped into memory.
 
 **A text file is inlined by `ChatSession.boundedContext`, never into `ChatMessage.text`.** That
 seam is load-bearing: `ChatSession.title` summarises the first user message, so folding a CSV into
@@ -986,8 +1003,8 @@ images' lifetime exactly: whatever consumes or clears them — a send, a new cha
 or leaving the conversation for another in the window — disowns one still in flight and says so,
 rather than letting it surface on a later message. The counter that decides this sits on
 `AIChatState` beside the staged images, so a route that drops them cannot forget to move it.
-**Staged attachments share one pill beside the typed text**: the newest one's kind as a glyph — a
-photo, a PDF, a text file — and `+N` for the rest, because the strip's width is taken out of the
+**Staged attachments share one pill beside the typed text**: the newest one's thumbnail when it is an
+image — or a PDF / text-file glyph — and `+N` for the rest, because the strip's width is taken out of the
 search field and a named pill per file left too little room to read what you are typing. The names
 are a hover away, one per line, and clicking the pill opens a header menu listing every file, an
 image by its own thumbnail, with its ✕, so a mispaste is taken back without clearing the rest — ⌘K → Remove Attachments
@@ -1010,7 +1027,7 @@ A text file is already in the message's text and needs no table. The schema is
 `ON DELETE CASCADE` leaves `prune` unchanged.
 
 The switcher's glyph comes from the selection. Codex uses OpenAI's mark; Claude and Grok use their own
-marks; OpenCode resolves a brand from the model id or falls back to a sparkle; Cursor uses an SF Symbol;
+marks; Antigravity resolves a brand from the model id (Gemini, Claude or OpenAI) and falls back to Gemini's mark; OpenCode resolves a brand from the model id or falls back to a sparkle; Cursor uses its own mark;
 an API model resolves through its connection. It never depends on `modelOptions`, which for
 Codex is empty until the app-server has answered `model/list`; opening the chat on a Codex model warms that list so the title is the
 display name from the first frame. Tab hands Quick AI on to the clipboard, and Escape on an empty

@@ -207,8 +207,9 @@ final class AISettingsStore {
     ) {
         let selectedModel: String
         switch (kind, defaultModel) {
-        case (.claude, .claude(let model, _)), (.grok, .grok(let model, _)),
-            (.openCode, .openCode(let model, _)), (.cursor, .cursor(let model, _)):
+        case (.claude, .claude(let model, _)), (.antigravity, .antigravity(let model, _)),
+            (.grok, .grok(let model, _)), (.openCode, .openCode(let model, _)),
+            (.cursor, .cursor(let model, _)):
             selectedModel = model
         default:
             return
@@ -227,6 +228,9 @@ final class AISettingsStore {
         switch kind {
         case .claude:
             defaultModel = .claude(
+                model: replacement.id, effort: replacement.resolvedEffort(nil))
+        case .antigravity:
+            defaultModel = .antigravity(
                 model: replacement.id, effort: replacement.resolvedEffort(nil))
         case .grok:
             defaultModel = .grok(

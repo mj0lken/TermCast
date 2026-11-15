@@ -45,6 +45,7 @@ struct RootPaletteView: View {
     /// The pending scroll request; modes are exclusive, so one piece of state serves all.
     @State private var scroll = ScrollIntent(kind: .top)
     @State private var compactSelection = CompactBarSelection()
+    @State private var aiAddButtonFrame: CGRect = .zero
 
     /// Compact vs. full; the source of truth is on `AppCore`, so the two can't disagree.
     private var isCollapsed: Bool { core.paletteCoordinator.paletteIsCollapsed }
@@ -296,6 +297,12 @@ struct RootPaletteView: View {
             return headerMenu(
                 AIModelMenu.attachments(
                     coordinator: core.aiChatCoordinator, chat: quickAI),
+                width: metrics.size.menuWidth)
+        case .aiAdd:
+            return headerMenu(
+                AIModelMenu.addContext(
+                    coordinator: core.aiChatCoordinator, quickAI: core.quickAICoordinator,
+                    chat: quickAI),
                 width: metrics.size.menuWidth)
         case .argumentOptions:
             guard let field = argumentOptionsField,
@@ -908,6 +915,9 @@ struct RootPaletteView: View {
             }
             if !isCollapsed, vm.mode == .ai {
                 headerGutter(width: metrics.spacing.md)
+                AIAddButton(
+                    isOpen: openMenu == .aiAdd, frame: $aiAddButtonFrame, action: toggleAIAdd)
+                headerGutter(width: metrics.spacing.xs)
                 AIModelButton(
                     title: core.aiChatCoordinator.selectedModelTitle(for: quickAI),
                     icon: core.aiChatCoordinator.selectedModelIcon(for: quickAI),
@@ -1368,6 +1378,14 @@ struct RootPaletteView: View {
         open(.aiAttachments, highlighting: 0)
     }
 
+    private func toggleAIAdd() {
+        if openMenu == .aiAdd {
+            closeMenus()
+            return
+        }
+        open(.aiAdd, highlighting: 0)
+    }
+
     private func toggleAIReasoning() {
         if openMenu == .aiReasoning {
             closeMenus()
@@ -1563,6 +1581,7 @@ struct RootPaletteView: View {
         case .actions: .bottomTrailing
         case .argumentOptions: .belowHeaderTrailing
         case .inputOptions(let corner): corner
+        case .aiAdd: .belowControl(aiAddButtonFrame, trailing: false)
         case .clipboardFilter, .fileSearchFilter, .emojiCategory, .dictionaryScope, .aiModel,
             .aiReasoning,
             .aiAttachments, .extensionAccessory:
@@ -1819,6 +1838,7 @@ private enum OpenMenu: Equatable {
     case aiModel
     case aiReasoning
     case aiAttachments
+    case aiAdd
 }
 
 /// Reads visibility in its own body, so a summon never re-renders the palette's.

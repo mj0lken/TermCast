@@ -50,6 +50,10 @@ enum PaletteShortcut: Equatable {
     case showInFinder
     /// ⌥⌘,, the screen's own settings; ⌘, alone stays the app's.
     case settings
+    /// ⇧⌘A, staging files in Quick AI.
+    case attachFiles
+    /// ⇧⌘S, capturing a screenshot into Quick AI.
+    case captureScreenshot
     /// ⌘J, Quick AI handing its conversation to the AI Chat window.
     case continueInChat
     /// ⌘., which AppKit binds to `cancelOperation:`, so it arrives as a token instead of a key.
@@ -84,6 +88,8 @@ enum PaletteShortcut: Equatable {
         if command, !shift, !option, !control, matches("e") { return .edit }
         if command, !shift, matches("d") { return .duplicate }
         if command, option, matches(",") { return .settings }
+        if command, shift, matches("a") { return .attachFiles }
+        if command, shift, matches("s") { return .captureScreenshot }
         if command, matches("j") { return .continueInChat }
         return nil
     }
@@ -95,8 +101,8 @@ enum PaletteShortcut: Equatable {
             .showDetails, .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .minimizeWindow,
             .hideApp, .restart, .edit, .duplicate, .showInFinder:
             true
-        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .continueInChat, .newItem,
-            .settings, .copyCalculation:
+        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .attachFiles,
+            .captureScreenshot, .continueInChat, .newItem, .settings, .copyCalculation:
             false
         }
     }
@@ -105,7 +111,8 @@ enum PaletteShortcut: Equatable {
         switch self {
         case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyText, .copyCalculation,
             .quickLook, .openInApp, .showDetails, .toggleFavorite, .hideFromSearch, .minimizeWindow,
-            .newItem, .settings, .edit, .duplicate, .showInFinder:
+            .newItem, .settings, .edit, .duplicate, .showInFinder, .attachFiles,
+            .captureScreenshot:
             true
         case .commandDelete, .pasteFile, .quit, .forceQuit, .hideApp, .restart, .pin, .favoriteSlot,
             .continueInChat:

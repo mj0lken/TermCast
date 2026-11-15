@@ -3,12 +3,15 @@ import Foundation
 enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case codex
     case claude
+    case antigravity
     case grok
     case openCode
     case cursor
 
-    /// Claude, Grok, OpenCode and Cursor — Codex uses its app-server instead.
-    static let managedCLIKinds: [InstalledAIKind] = [.claude, .grok, .openCode, .cursor]
+    /// Every installed CLI except Codex, which talks through its app-server instead.
+    static let managedCLIKinds: [InstalledAIKind] = [
+        .claude, .antigravity, .grok, .openCode, .cursor
+    ]
 
     var id: String { rawValue }
 
@@ -19,6 +22,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .codex: return "Codex"
         case .claude: return "Claude"
+        case .antigravity: return "Antigravity"
         case .grok: return "Grok"
         case .openCode: return "OpenCode"
         case .cursor: return "Cursor"
@@ -29,6 +33,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .codex: return "codex"
         case .claude: return "claude"
+        case .antigravity: return "agy"
         case .grok: return "grok"
         case .openCode: return "opencode"
         case .cursor: return "agent"
@@ -39,6 +44,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .codex: return URL(string: "https://developers.openai.com/codex/cli")!
         case .claude: return URL(string: "https://code.claude.com/docs/en/setup")!
+        case .antigravity: return URL(string: "https://antigravity.google/docs/cli/reference")!
         case .grok: return URL(string: "https://x.ai/cli")!
         case .openCode: return URL(string: "https://opencode.ai/v2/docs")!
         case .cursor: return URL(string: "https://cursor.com/docs/cli/overview")!
@@ -50,7 +56,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .claude: return [".claude/local/claude"]
         case .grok: return [".grok/bin/grok"]
-        case .codex, .openCode, .cursor: return []
+        case .codex, .antigravity, .openCode, .cursor: return []
         }
     }
 
@@ -58,6 +64,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .codex: return .codex
         case .claude: return .claude
+        case .antigravity: return .antigravity
         case .grok: return .grok
         case .openCode: return .openCode
         case .cursor: return .cursor
@@ -71,7 +78,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .claude:
             return hasManagedMCPPolicy
                 ? String(localized: "Claude’s MCP configuration is managed by your organization.") : nil
-        case .codex, .grok, .openCode: return nil
+        case .codex, .antigravity, .grok, .openCode: return nil
         }
     }
 
@@ -79,6 +86,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .codex: return "codex login"
         case .claude: return "claude auth login"
+        case .antigravity: return "agy acp --login"
         case .grok: return "grok login"
         case .openCode: return "opencode auth login"
         case .cursor: return "agent login"
@@ -92,6 +100,7 @@ extension AIModelSource {
         switch self {
         case .codex: return .codex
         case .claude: return .claude
+        case .antigravity: return .antigravity
         case .grok: return .grok
         case .openCode: return .openCode
         case .cursor: return .cursor
@@ -288,6 +297,179 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         return models
     }
 
+    enum AntigravityProbeOutcome: Equatable, Sendable {
+        case ready(models: [InstalledAIModel], account: InstalledAIAccount?, sessionID: String?)
+        case signInRequired
+        case failed(String)
+    }
+
+    static let antigravitySessionRequestID = 2
+
+    static func antigravityInitializeRequest() -> [String: Any] {
+        [
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": [
+                "protocolVersion": 1,
+                "clientCapabilities": [
+                    "fs": ["readTextFile": false, "writeTextFile": false],
+                    "terminal": false
+                ]
+            ]
+        ]
+    }
+
+    /// `session/new` validates credentials and lists active models without calling a model.
+    static func antigravityProbeRequest(workspacePath: String) -> String? {
+        let session: [String: Any] = [
+            "jsonrpc": "2.0", "id": antigravitySessionRequestID, "method": "session/new",
+            "params": ["cwd": workspacePath, "mcpServers": [] as [Any]]
+        ]
+        guard
+            let first = try? JSONSerialization.data(
+                withJSONObject: antigravityInitializeRequest()),
+            let second = try? JSONSerialization.data(withJSONObject: session),
+            let firstLine = String(bytes: first, encoding: .utf8),
+            let secondLine = String(bytes: second, encoding: .utf8)
+        else { return nil }
+        return firstLine + "\n" + secondLine + "\n"
+    }
+
+    static func antigravityProbeAnswered(_ output: String) -> Bool {
+        output.split(separator: "\n", omittingEmptySubsequences: false).dropLast().contains { line in
+            guard let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any]
+            else { return false }
+            return (object["id"] as? NSNumber)?.intValue == antigravitySessionRequestID
+        }
+    }
+
+    static func antigravityProbe(_ output: String) -> AntigravityProbeOutcome {
+        for line in output.split(whereSeparator: \.isNewline) {
+            guard let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
+                (object["id"] as? NSNumber)?.intValue == antigravitySessionRequestID
+            else { continue }
+            if let result = object["result"] as? [String: Any] {
+                let sessionID = (result["sessionId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                let catalog = antigravityCatalog(in: result)
+                guard !catalog.isEmpty else {
+                    return .failed(String(localized: "Antigravity returned no models."))
+                }
+                return .ready(
+                    models: catalog, account: antigravityAccount(in: result), sessionID: sessionID)
+            }
+            if let error = object["error"] as? [String: Any] {
+                let code = (error["code"] as? NSNumber)?.intValue
+                let message = (error["message"] as? String ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if antigravityNeedsSignIn(code: code, message: message) { return .signInRequired }
+                let summary =
+                    message.components(separatedBy: .newlines)
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .first { !$0.isEmpty }
+                return .failed(
+                    summary ?? String(localized: "Antigravity could not verify its sign-in."))
+            }
+        }
+        if antigravityNeedsSignIn(code: nil, message: output) { return .signInRequired }
+        return .failed(
+            String(
+                localized: """
+                    Antigravity did not finish its check. Update Antigravity CLI, then Check Again.
+                    """))
+    }
+
+    /// Collapses effort-suffixed ACP variants (`*-low`, `*-high`) onto their base row.
+    private static func antigravityCatalog(in result: [String: Any]) -> [InstalledAIModel] {
+        guard let container = result["models"] as? [String: Any],
+            let available = container["availableModels"] as? [[String: Any]]
+        else { return [] }
+        let options = antigravityModelOptions(in: result)
+        var availableIDs: [String] = []
+        var availableNames: [String: String] = [:]
+        for entry in available {
+            let id = (entry["modelId"] as? String ?? entry["id"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !id.isEmpty, availableNames[id] == nil else { continue }
+            let name = (entry["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            availableIDs.append(id)
+            availableNames[id] = name.isEmpty ? id : name
+        }
+        guard !options.isEmpty else {
+            return availableIDs.map {
+                InstalledAIModel(
+                    id: $0, name: availableNames[$0] ?? $0, acceptsImages: true,
+                    supportsTools: true)
+            }
+        }
+        let knownEfforts = ["low", "medium", "high", "xhigh", "max"]
+        var models: [InstalledAIModel] = []
+        var consumed = Set<String>()
+        for (baseID, baseName) in options {
+            let offered = knownEfforts.filter { effort in
+                availableNames[baseID + "-" + effort] != nil
+            }
+            if !offered.isEmpty {
+                for effort in offered { consumed.insert(baseID + "-" + effort) }
+                models.append(
+                    InstalledAIModel(
+                        id: baseID, name: baseName,
+                        efforts: offered.sorted(by: effortOrder).map {
+                            ChatGPTSubscription.Effort(id: $0, detail: nil)
+                        },
+                        acceptsImages: true, supportsTools: true))
+            } else if availableNames[baseID] != nil {
+                consumed.insert(baseID)
+                models.append(
+                    InstalledAIModel(
+                        id: baseID, name: baseName, acceptsImages: true, supportsTools: true))
+            }
+        }
+        for id in availableIDs where !consumed.contains(id) {
+            models.append(
+                InstalledAIModel(
+                    id: id, name: availableNames[id] ?? id, acceptsImages: true,
+                    supportsTools: true))
+        }
+        return models
+    }
+
+    private static func antigravityModelOptions(in result: [String: Any]) -> [(String, String)] {
+        guard let configs = result["configOptions"] as? [[String: Any]] else { return [] }
+        for config in configs where config["id"] as? String == "model" {
+            let entries = config["options"] as? [[String: Any]] ?? []
+            var seen = Set<String>()
+            return entries.compactMap { entry in
+                let id = (entry["value"] as? String ?? "").trimmingCharacters(
+                    in: .whitespacesAndNewlines)
+                guard !id.isEmpty, seen.insert(id).inserted else { return nil }
+                let name = (entry["name"] as? String ?? "").trimmingCharacters(
+                    in: .whitespacesAndNewlines)
+                return (id, name.isEmpty ? id : name)
+            }
+        }
+        return []
+    }
+
+    private static func antigravityAccount(in result: [String: Any]) -> InstalledAIAccount? {
+        guard let meta = result["_meta"] as? [String: Any],
+            let info = meta["antigravity"] as? [String: Any],
+            let tier = info["tier"] as? [String: Any],
+            let name = (tier["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !name.isEmpty
+        else { return nil }
+        return InstalledAIAccount(email: nil, plan: name)
+    }
+
+    private static func antigravityNeedsSignIn(code: Int?, message: String) -> Bool {
+        if code == 401 { return true }
+        let lower = message.lowercased()
+        let markers = [
+            "please sign in", "sign in to", "authentication required", "not authenticated",
+            "unauthenticated", "login required", "not logged in", "api key is missing",
+            "invalid_grant"
+        ]
+        return markers.contains { lower.contains($0) }
+    }
+
     private static func effortOrder(_ lhs: String, _ rhs: String) -> Bool {
         let order = ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
         let left = order.firstIndex(of: lhs) ?? order.endIndex
@@ -301,13 +483,19 @@ struct InstalledAIAccount: Equatable, Sendable {
     let email: String?
     let plan: String?
 
-    /// The CLI says "max" in one answer and "Claude Max" in another; the row adds the tool's name.
+    /// The CLI says "max" in one answer and "Claude Max" in another; a branded tier stands alone.
     var planTitle: String? {
         guard var title = plan?.trimmingCharacters(in: .whitespaces), !title.isEmpty else {
             return nil
         }
         if title.lowercased().hasPrefix("claude ") { title = String(title.dropFirst(7)) }
         return title.prefix(1).uppercased() + title.dropFirst()
+    }
+
+    func formattedPlan(for kind: InstalledAIKind) -> String? {
+        guard let plan = planTitle else { return nil }
+        if kind == .antigravity { return plan }
+        return "\(kind.title) \(plan)"
     }
 }
 

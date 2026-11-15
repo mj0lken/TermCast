@@ -17,12 +17,12 @@ nonisolated enum ChatAttachmentReader {
 
     private static let maxImageEdge: CGFloat = 1_568
 
-    static func image(_ data: Data) -> Outcome {
+    static func image(_ data: Data, named name: String? = nil) -> Outcome {
         guard let png = boundedPNG(data) else { return .failed(.size) }
         return .staged(
             Staged(
                 payload: .image(AIImage(data: png, mimeType: "image/png")),
-                name: String(localized: "Image"),
+                name: name ?? String(localized: "Image"),
                 preview: preview(png)))
     }
 

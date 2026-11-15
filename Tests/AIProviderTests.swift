@@ -414,15 +414,18 @@ struct AIProviderTests {
             !AIModelCapabilities.chatGPT.tools,
             "and the hosted ChatGPT route declines tools by design")
         expect(
-            AIModelCapabilities.codex.tools && AIModelCapabilities.claudeCommand.tools,
-            "the two CLI routes are offered servers, which their own client runs")
+            AIModelCapabilities.codex.tools && AIModelCapabilities.claudeCommand.tools
+                && AIModelCapabilities.antigravityCommand.tools
+                && AIModelCapabilities.antigravityCommand.images,
+            "Codex, Claude and Antigravity all offer MCP tools and images in chat")
         expect(!AIModelCapabilities.none.tools, "an unconfigured route offers nothing either")
         expect(
             AIModelSelection.codex(model: "gpt", effort: nil).runsItsOwnTools
                 && AIModelSelection.claude(model: "sonnet", effort: nil).runsItsOwnTools,
             "and they are the routes Tinycast never wraps in its own loop")
         expect(
-            !AIModelSelection.grok(model: "grok", effort: nil).runsItsOwnTools
+            !AIModelSelection.antigravity(model: "gemini-4-carbon", effort: nil).runsItsOwnTools
+                && !AIModelSelection.grok(model: "grok", effort: nil).runsItsOwnTools
                 && !AIModelSelection.cursor(model: "auto", effort: nil).runsItsOwnTools
                 && !AIModelSelection.openCode(model: "m", effort: nil).runsItsOwnTools
                 && !AIModelSelection.appleIntelligence.runsItsOwnTools
@@ -1881,6 +1884,18 @@ struct AIProviderTests {
                 == .codex(model: "gpt-5", effort: "high"),
             "the old ChatGPT selection migrates to the installed Codex route")
 
+        let antigravitySelection = AIModelSelection.antigravity(
+            model: "gemini-4-carbon", effort: "high")
+        let encodedAntigravity = try? JSONEncoder().encode(antigravitySelection)
+        expect(
+            encodedAntigravity.flatMap {
+                try? JSONDecoder().decode(AIModelSelection.self, from: $0)
+            } == antigravitySelection
+                && antigravitySelection.source == .antigravity
+                && antigravitySelection.source.storageKey == "antigravity"
+                && antigravitySelection.source.installedKind == .antigravity,
+            "the installed Antigravity selection round-trips with its route identity")
+
         let suite = "AIProviderTests.onDevice"
         let defaults = isolatedDefaults(suite)
         defer { discardSuite(suite, defaults) }
@@ -2083,6 +2098,59 @@ struct AIProviderTests {
                 kind.managedEnvironment.keys.allSatisfy(kind.isManagedVariable)
             },
             "every variable a tool is launched with is one the reader cannot replace")
+
+        let agySessionReq =
+            InstalledAIKind.antigravitySessionRequest(
+                workspacePath: "/private/tmp/w", instructions: "Be safe.",
+                mcpEndpoint: .init(url: "http://127.0.0.1:9999/mcp", bearer: "tok-1")
+            ) ?? Data()
+        let agySessionLines =
+            (String(bytes: agySessionReq, encoding: .utf8) ?? "")
+            .split(whereSeparator: \.isNewline)
+            .compactMap {
+                try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any]
+            }
+        let sessionParams = agySessionLines.last?["params"] as? [String: Any] ?? [:]
+        let sessionMeta =
+            (sessionParams["_meta"] as? [String: Any])?["antigravity"] as? [String: Any] ?? [:]
+        let sessionServers = sessionParams["mcpServers"] as? [[String: Any]] ?? []
+        expect(
+            agySessionLines.count == 2
+                && (sessionParams["cwd"] as? String) == "/private/tmp/w"
+                && (sessionMeta["disableBuiltInTools"] as? Bool) == true
+                && ((sessionMeta["systemPrompt"] as? [String: Any])?["append"] as? String)
+                    == "Be safe."
+                && (sessionServers.first?["name"] as? String)
+                    == OpenCodeMCPLaunch.antigravityServer,
+            "Antigravity ACP session request disables built-in tools and scopes the bridge")
+        let agyPromptReq =
+            InstalledAIKind.antigravityPromptRequest(
+                sessionID: "ses_1", model: "gemini-4-carbon", effort: "high",
+                availableModels: ["gemini-4-carbon-high"], prompt: "Describe it",
+                images: [AIImage(data: Data([0x89, 0x50]), mimeType: "image/png")]
+            ) ?? Data()
+        let agyPromptLines =
+            (String(bytes: agyPromptReq, encoding: .utf8) ?? "")
+            .split(whereSeparator: \.isNewline)
+            .compactMap {
+                try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any]
+            }
+        let modelParams = agyPromptLines.first?["params"] as? [String: Any] ?? [:]
+        let promptBlocks =
+            (agyPromptLines.last?["params"] as? [String: Any])?["prompt"] as? [[String: Any]] ?? []
+        expect(
+            (modelParams["modelId"] as? String) == "gemini-4-carbon-high"
+                && promptBlocks.map { $0["type"] as? String } == ["image", "text"]
+                && (promptBlocks.first?["mimeType"] as? String) == "image/png"
+                && (promptBlocks.first?["data"] as? String) == Data([0x89, 0x50]).base64EncodedString(),
+            "Antigravity ACP prompt selects the effort variant and embeds base64 images")
+        let hooks =
+            (try? JSONSerialization.jsonObject(
+                with: Data(InstalledAIKind.antigravityNoToolsHooks.utf8))) as? [String: Any]
+            ?? [:]
+        expect(
+            (hooks["tinycast-no-tools"] as? [String: Any])?["PreToolUse"] != nil,
+            "Antigravity workspace hooks attach a PreToolUse deny guard")
     }
 
     static func switchedOffRoutesLeaveTheDefault() {
@@ -2184,6 +2252,21 @@ struct AIProviderTests {
             "an installed catalog replaces a model alias that disappeared")
         store.reconcile(installed: .claude, models: [], isUnavailable: true)
         expect(store.defaultModel == nil, "signing out clears an unusable Claude default")
+
+        store.select(.antigravity(model: "removed-preview", effort: nil))
+        store.reconcile(
+            installed: .antigravity,
+            models: [
+                InstalledAIModel(
+                    id: "gemini-4-carbon", name: "Gemini 4 Carbon",
+                    efforts: [.init(id: "low", detail: nil), .init(id: "high", detail: nil)])
+            ],
+            isUnavailable: false)
+        expect(
+            store.defaultModel == .antigravity(model: "gemini-4-carbon", effort: "high"),
+            "Antigravity catalog reconciliation replaces a retired model and resolves effort")
+        store.reconcile(installed: .antigravity, models: [], isUnavailable: true)
+        expect(store.defaultModel == nil, "signing out clears an unusable Antigravity default")
     }
 
     static func installedCLIStreamsDecode() {
@@ -2317,6 +2400,130 @@ struct AIProviderTests {
             InstalledAIStreamDecoder.decode(grokBare, kind: .grok).error
                 == "Grok could not finish the response.",
             "a Grok error with no cause still names Grok")
+
+        let agyInit = Data(
+            (#"{"jsonrpc":"2.0","id":2,"result":{"sessionId":"conv_agy","#
+                + #""models":{"availableModels":[{"modelId":"gemini-4-carbon-high"}]}}}"#).utf8)
+        let agyInitFrame = InstalledAIStreamDecoder.decode(agyInit, kind: .antigravity)
+        expect(
+            agyInitFrame.sessionID == "conv_agy"
+                && agyInitFrame.sessionStarted
+                && agyInitFrame.availableModels == ["gemini-4-carbon-high"],
+            "Antigravity ACP session/new records the session id and available models")
+        let agyUserStep = Data(
+            (#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"conv_agy","#
+                + #""update":{"sessionUpdate":"user_message_chunk","#
+                + #""content":{"type":"text","text":"Hello"}}}}"#).utf8)
+        expect(
+            InstalledAIStreamDecoder.decode(agyUserStep, kind: .antigravity).events.isEmpty,
+            "Antigravity user message updates do not emit response text")
+        let agyThoughtStep = Data(
+            (#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"conv_agy","#
+                + #""update":{"sessionUpdate":"agent_thought_chunk","#
+                + #""content":{"type":"text","text":"Plan"}}}}"#).utf8)
+        let agyTextStep = Data(
+            (#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"conv_agy","#
+                + #""update":{"sessionUpdate":"agent_message_chunk","#
+                + #""content":{"type":"text","text":"Hi there"}}}}"#).utf8)
+        expect(
+            InstalledAIStreamDecoder.decode(agyThoughtStep, kind: .antigravity).events
+                == [.thinking, .reasoning("Plan")]
+                && InstalledAIStreamDecoder.decode(agyTextStep, kind: .antigravity).events
+                    == [.text("Hi there")],
+            "Antigravity ACP updates decode thinking and text chunks")
+        let agyWindowStep = Data(
+            (#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"conv_agy","#
+                + #""update":{"sessionUpdate":"usage_update","used":1051,"size":1048576}}}"#).utf8)
+        expect(
+            InstalledAIStreamDecoder.decode(agyWindowStep, kind: .antigravity).contextWindow
+                == 1_048_576,
+            "Antigravity ACP usage_update captures the model's context window")
+        let agyPermissionAsk = Data(
+            (#"{"jsonrpc":"2.0","id":9,"method":"session/request_permission","#
+                + #""params":{"options":[{"optionId":"deny_1","kind":"reject_once"}]}}"#).utf8)
+        let agyPermissionReply =
+            InstalledAIStreamDecoder.decode(agyPermissionAsk, kind: .antigravity).serverReply
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+        expect(
+            (((agyPermissionReply["result"] as? [String: Any])?["outcome"] as? [String: Any])?[
+                "optionId"] as? String) == "deny_1",
+            "unexpected Antigravity permission prompts are rejected immediately")
+        let agyFinish = Data(
+            #"""
+            {"jsonrpc":"2.0","id":4,"result":{"stopReason":"end_turn",
+            "usage":{"inputTokens":600,"outputTokens":409,
+            "thoughtTokens":402,"cachedReadTokens":40,"cachedWriteTokens":2,"totalTokens":1051}}}
+            """#.utf8)
+        let agyFrame = InstalledAIStreamDecoder.decode(agyFinish, kind: .antigravity)
+        let expectedAgyUsage = AIUsage(
+            inputTokens: 600, outputTokens: 409, cachedInputTokens: 42, reasoningTokens: 402)
+        expect(
+            agyFrame.events == [.usage(expectedAgyUsage)]
+                && expectedAgyUsage.contextTokens == 1051
+                && agyFrame.completed,
+            "Antigravity ACP prompt usage matches contextTokens without double-counting")
+        let agyError = Data(
+            #"{"jsonrpc":"2.0","id":4,"error":{"code":-32000,"message":"Quota exceeded"}}"#
+                .utf8)
+        expect(
+            InstalledAIStreamDecoder.decode(agyError, kind: .antigravity).error == "Quota exceeded",
+            "Antigravity ACP error surfaces the CLI's failure message")
+
+        let agyACPReady =
+            #"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1}}"# + "\n"
+            + #"{"jsonrpc":"2.0","id":2,"result":{"sessionId":"ses_probe","models":{"availableModels":["#
+            + #"{"modelId":"gemini-4-carbon-low","name":"Gemini 4 Carbon (Low)"},"#
+            + #"{"modelId":"gemini-4-carbon-high","name":"Gemini 4 Carbon (High)"},"#
+            + #"{"modelId":"gemini-pro-orchestrator","name":"Orchestrator"},"#
+            + #"{"modelId":"gpt-oss-120b-medium","name":"GPT-OSS 120B (Medium)"}]},"#
+            + #""configOptions":[{"id":"model","options":["#
+            + #"{"value":"gemini-4-carbon","name":"Gemini 4 Carbon"},"#
+            + #"{"value":"gemini-pro-orchestrator","name":"Orchestrator"},"#
+            + #"{"value":"gpt-oss-120b-medium","name":"GPT-OSS 120B (Medium)"}]}],"#
+            + #""_meta":{"antigravity":{"tier":{"name":"Google AI Ultra"}}}}}"#
+            + "\n"
+        expect(
+            InstalledAIModel.antigravityProbeAnswered(agyACPReady)
+                && InstalledAIModel.antigravityProbe(agyACPReady)
+                    == .ready(
+                        models: [
+                            InstalledAIModel(
+                                id: "gemini-4-carbon", name: "Gemini 4 Carbon",
+                                efforts: [
+                                    .init(id: "low", detail: nil),
+                                    .init(id: "high", detail: nil)
+                                ],
+                                acceptsImages: true, supportsTools: true),
+                            InstalledAIModel(
+                                id: "gemini-pro-orchestrator", name: "Orchestrator",
+                                acceptsImages: true, supportsTools: true),
+                            InstalledAIModel(
+                                id: "gpt-oss-120b-medium", name: "GPT-OSS 120B (Medium)",
+                                acceptsImages: true, supportsTools: true)
+                        ],
+                        account: InstalledAIAccount(email: nil, plan: "Google AI Ultra"),
+                        sessionID: "ses_probe"),
+            "Antigravity ACP probe collapses effort variants, preserves fixed IDs, and reads tier")
+        expect(
+            InstalledAIAccount(email: nil, plan: "Google AI Ultra")
+                .formattedPlan(for: .antigravity) == "Google AI Ultra"
+                && InstalledAIAccount(email: nil, plan: "max")
+                    .formattedPlan(for: .claude) == "Claude Max",
+            "Antigravity tier renders verbatim while Claude prefixes unbranded plan names")
+        let agyACPSignedOut = #"""
+            {"jsonrpc":"2.0","id":2,"error":{"code":401,"message":"Please sign in with agy acp --login."}}
+            """#
+        expect(
+            InstalledAIModel.antigravityProbe(agyACPSignedOut) == .signInRequired,
+            "missing Antigravity credentials report sign-in required")
+        let agyACPOutdated =
+            #"{"jsonrpc":"2.0","id":2,"error":{"code":-32603,"#
+            + #""message":"This version of Antigravity CLI is no longer supported.\n"#
+            + #"Update Antigravity CLI."}}"#
+        expect(
+            InstalledAIModel.antigravityProbe(agyACPOutdated)
+                == .failed("This version of Antigravity CLI is no longer supported."),
+            "an outdated Antigravity CLI surfaces the error rather than asking to sign in")
     }
 
     /// A secret on argv is in `ps`, and a key Codex does not know is a server that never starts.
