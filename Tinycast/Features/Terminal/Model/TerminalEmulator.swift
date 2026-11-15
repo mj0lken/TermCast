@@ -1,10 +1,40 @@
+import Darwin
 import Foundation
 
-enum TerminalColorSpec: Equatable, Sendable {
+enum TerminalColorSpec: Equatable, Hashable, Sendable {
     case defaultForeground
     case defaultBackground
     case ansi(UInt8)
     case rgb(UInt8, UInt8, UInt8)
+
+    fileprivate var packed: UInt32 {
+        switch self {
+        case .defaultForeground:
+            return 0
+        case .defaultBackground:
+            return 1 << 24
+        case .ansi(let index):
+            return (2 << 24) | UInt32(index)
+        case .rgb(let r, let g, let b):
+            return (3 << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b)
+        }
+    }
+
+    fileprivate init(packed: UInt32) {
+        switch packed >> 24 {
+        case 0:
+            self = .defaultForeground
+        case 1:
+            self = .defaultBackground
+        case 2:
+            self = .ansi(UInt8(truncatingIfNeeded: packed))
+        default:
+            self = .rgb(
+                UInt8(truncatingIfNeeded: packed >> 16),
+                UInt8(truncatingIfNeeded: packed >> 8),
+                UInt8(truncatingIfNeeded: packed))
+        }
+    }
 }
 
 struct TerminalCellStyle: OptionSet, Hashable, Sendable {
@@ -19,15 +49,79 @@ struct TerminalCellStyle: OptionSet, Hashable, Sendable {
     static let invisible = TerminalCellStyle(rawValue: 1 << 6)
 }
 
-struct TerminalCell: Equatable, Sendable {
-    var character: Character
-    var foreground: TerminalColorSpec
-    var background: TerminalColorSpec
+/// 16-byte value cell; multi-scalar grapheme clusters resolve via an overflow flag.
+struct TerminalCell: Equatable, Hashable, Sendable {
+    fileprivate static let graphemeTag: UInt32 = 0x8000_0000
+
+    fileprivate var rawScalar: UInt32
+    fileprivate var rawForeground: UInt32
+    fileprivate var rawBackground: UInt32
     var style: TerminalCellStyle
     var width: UInt8
+    private var reserved: UInt16 = 0
+
+    init(
+        scalar: UnicodeScalar,
+        foreground: TerminalColorSpec,
+        background: TerminalColorSpec,
+        style: TerminalCellStyle,
+        width: UInt8
+    ) {
+        self.rawScalar = scalar.value
+        self.rawForeground = foreground.packed
+        self.rawBackground = background.packed
+        self.style = style
+        self.width = width
+    }
+
+    fileprivate init(
+        graphemeClusterWithForeground foreground: TerminalColorSpec,
+        background: TerminalColorSpec,
+        style: TerminalCellStyle,
+        width: UInt8
+    ) {
+        self.rawScalar = Self.graphemeTag
+        self.rawForeground = foreground.packed
+        self.rawBackground = background.packed
+        self.style = style
+        self.width = width
+    }
+
+    var foreground: TerminalColorSpec {
+        get { TerminalColorSpec(packed: rawForeground) }
+        set { rawForeground = newValue.packed }
+    }
+
+    var background: TerminalColorSpec {
+        get { TerminalColorSpec(packed: rawBackground) }
+        set { rawBackground = newValue.packed }
+    }
+
+    var hasGraphemeCluster: Bool {
+        (rawScalar & Self.graphemeTag) != 0
+    }
+
+    var isSpace: Bool {
+        rawScalar == 0x20
+    }
+
+    var asciiByte: UInt8? {
+        rawScalar < 0x80 ? UInt8(truncatingIfNeeded: rawScalar) : nil
+    }
+
+    var scalar: UnicodeScalar {
+        guard !hasGraphemeCluster, let decoded = UnicodeScalar(rawScalar) else {
+            return "\u{FFFD}"
+        }
+        return decoded
+    }
+
+    var character: Character {
+        Character(scalar)
+    }
 
     static let blank = TerminalCell(
-        character: " ",
+        scalar: " ",
         foreground: .defaultForeground,
         background: .defaultBackground,
         style: [],
@@ -35,7 +129,7 @@ struct TerminalCell: Equatable, Sendable {
 
     static func blank(background: TerminalColorSpec) -> TerminalCell {
         TerminalCell(
-            character: " ",
+            scalar: " ",
             foreground: .defaultForeground,
             background: background,
             style: [],
@@ -45,11 +139,359 @@ struct TerminalCell: Equatable, Sendable {
 
 struct TerminalGridLine: Equatable, Sendable {
     var cells: [TerminalCell]
+    var graphemes: [Int: Character]?
     var isWrapped: Bool
 
-    init(cols: Int, background: TerminalColorSpec = .defaultBackground, isWrapped: Bool = false) {
+    init(
+        cols: Int,
+        background: TerminalColorSpec = .defaultBackground,
+        isWrapped: Bool = false
+    ) {
         self.cells = Array(repeating: .blank(background: background), count: max(cols, 1))
+        self.graphemes = nil
         self.isWrapped = isWrapped
+    }
+
+    init(
+        cells: [TerminalCell],
+        graphemes: [Int: Character]? = nil,
+        isWrapped: Bool = false
+    ) {
+        self.cells = cells
+        self.graphemes = graphemes
+        self.isWrapped = isWrapped
+    }
+
+    func character(at col: Int) -> Character {
+        let cell = cells[col]
+        if cell.hasGraphemeCluster, let cluster = graphemes?[col] {
+            return cluster
+        }
+        return cell.character
+    }
+
+    mutating func setScalar(
+        _ scalar: UnicodeScalar,
+        at col: Int,
+        foreground: TerminalColorSpec,
+        background: TerminalColorSpec,
+        style: TerminalCellStyle,
+        width: UInt8
+    ) {
+        if cells[col].hasGraphemeCluster {
+            graphemes?.removeValue(forKey: col)
+            if graphemes?.isEmpty == true { graphemes = nil }
+        }
+        cells[col] = TerminalCell(
+            scalar: scalar,
+            foreground: foreground,
+            background: background,
+            style: style,
+            width: width)
+    }
+
+    mutating func setCharacter(_ character: Character, at col: Int) {
+        let existing = cells[col]
+        var scalars = character.unicodeScalars.makeIterator()
+        if let first = scalars.next(), scalars.next() == nil {
+            if existing.hasGraphemeCluster {
+                graphemes?.removeValue(forKey: col)
+                if graphemes?.isEmpty == true { graphemes = nil }
+            }
+            cells[col] = TerminalCell(
+                scalar: first,
+                foreground: existing.foreground,
+                background: existing.background,
+                style: existing.style,
+                width: existing.width)
+            return
+        }
+        if graphemes == nil { graphemes = [:] }
+        graphemes?[col] = character
+        cells[col] = TerminalCell(
+            graphemeClusterWithForeground: existing.foreground,
+            background: existing.background,
+            style: existing.style,
+            width: existing.width)
+    }
+
+    mutating func clearCell(at col: Int, background: TerminalColorSpec = .defaultBackground) {
+        if cells[col].hasGraphemeCluster {
+            graphemes?.removeValue(forKey: col)
+            if graphemes?.isEmpty == true { graphemes = nil }
+        }
+        cells[col] = .blank(background: background)
+    }
+}
+
+/// Stores scrollback in 128 KB+ VM slabs so macOS unmaps freed physical pages on close.
+struct TerminalScrollbackBuffer: Sendable {
+    static let targetChunkBytes = 131_072
+    static let minimumLinesPerChunk = 64
+
+    private final class CellSlab: @unchecked Sendable {
+        let capacityCells: Int
+        let byteSize: Int
+        let pointer: UnsafeMutablePointer<TerminalCell>
+        private(set) var count = 0
+
+        init(capacityCells: Int) {
+            let safeCapacity = max(capacityCells, 1)
+            let rawBytes = safeCapacity * MemoryLayout<TerminalCell>.stride
+            let pageSize = max(Int(getpagesize()), 16_384)
+            let alignedBytes = ((rawBytes + pageSize - 1) / pageSize) * pageSize
+            var address: vm_address_t = 0
+            let kr = vm_allocate(mach_task_self_, &address, vm_size_t(alignedBytes), VM_FLAGS_ANYWHERE)
+            precondition(kr == KERN_SUCCESS, "vm_allocate failed for scrollback slab")
+            self.capacityCells = alignedBytes / MemoryLayout<TerminalCell>.stride
+            self.byteSize = alignedBytes
+            self.pointer = UnsafeMutablePointer<TerminalCell>(bitPattern: UInt(address))!
+        }
+
+        private init(copying other: CellSlab) {
+            var address: vm_address_t = 0
+            let kr = vm_allocate(
+                mach_task_self_, &address, vm_size_t(other.byteSize), VM_FLAGS_ANYWHERE)
+            precondition(kr == KERN_SUCCESS, "vm_allocate failed for scrollback slab clone")
+            self.capacityCells = other.capacityCells
+            self.byteSize = other.byteSize
+            self.pointer = UnsafeMutablePointer<TerminalCell>(bitPattern: UInt(address))!
+            if other.count > 0 {
+                self.pointer.initialize(from: other.pointer, count: other.count)
+                self.count = other.count
+            }
+        }
+
+        deinit {
+            if count > 0 {
+                pointer.deinitialize(count: count)
+            }
+            vm_deallocate(
+                mach_task_self_,
+                vm_address_t(UInt(bitPattern: pointer)),
+                vm_size_t(byteSize))
+        }
+
+        func clone() -> CellSlab {
+            CellSlab(copying: self)
+        }
+
+        func appendSlice(_ cells: [TerminalCell], cols: Int) {
+            let copyCount = min(cells.count, cols)
+            if copyCount > 0 {
+                cells.withUnsafeBufferPointer { src in
+                    if let base = src.baseAddress {
+                        (pointer + count).initialize(from: base, count: copyCount)
+                    }
+                }
+            }
+            if copyCount < cols {
+                (pointer + count + copyCount).initialize(
+                    repeating: .blank, count: cols - copyCount)
+            }
+            count += cols
+        }
+
+        func removeLast(_ n: Int) {
+            let clamped = min(max(0, n), count)
+            guard clamped > 0 else { return }
+            count -= clamped
+            (pointer + count).deinitialize(count: clamped)
+        }
+
+        func buffer(start: Int, count sliceCount: Int) -> UnsafeBufferPointer<TerminalCell> {
+            UnsafeBufferPointer(start: pointer + start, count: sliceCount)
+        }
+    }
+
+    private struct Chunk: Sendable {
+        let cols: Int
+        let capacityLines: Int
+        private var slab: CellSlab
+        var wrappedFlags: [Bool]
+        var graphemes: [Int: [Int: Character]] = [:]
+        var headLine = 0
+        var lineCount = 0
+
+        init(cols: Int) {
+            let safeCols = max(cols, 1)
+            let targetCells = max(
+                Self.minimumCells(forCols: safeCols),
+                TerminalScrollbackBuffer.targetChunkBytes / MemoryLayout<TerminalCell>.stride)
+            let requestedLines = max(
+                TerminalScrollbackBuffer.minimumLinesPerChunk, targetCells / safeCols)
+            let allocatedSlab = CellSlab(capacityCells: requestedLines * safeCols)
+            self.cols = safeCols
+            self.capacityLines = allocatedSlab.capacityCells / safeCols
+            self.slab = allocatedSlab
+            self.wrappedFlags = []
+            self.wrappedFlags.reserveCapacity(self.capacityLines)
+        }
+
+        private static func minimumCells(forCols cols: Int) -> Int {
+            TerminalScrollbackBuffer.minimumLinesPerChunk * cols
+        }
+
+        var canAppend: Bool {
+            headLine + lineCount < capacityLines
+        }
+
+        private mutating func ensureUniqueSlab() {
+            if !isKnownUniquelyReferenced(&slab) {
+                slab = slab.clone()
+            }
+        }
+
+        mutating func append(_ line: TerminalGridLine) {
+            ensureUniqueSlab()
+            let physicalRow = headLine + lineCount
+            slab.appendSlice(line.cells, cols: cols)
+            wrappedFlags.append(line.isWrapped)
+            if let clusters = line.graphemes, !clusters.isEmpty {
+                let filtered = clusters.filter { $0.key < cols }
+                if !filtered.isEmpty {
+                    graphemes[physicalRow] = filtered
+                }
+            }
+            lineCount += 1
+        }
+
+        func line(at offset: Int) -> TerminalGridLine {
+            let physicalRow = headLine + offset
+            let start = physicalRow * cols
+            let slice = Array(slab.buffer(start: start, count: cols))
+            return TerminalGridLine(
+                cells: slice,
+                graphemes: graphemes[physicalRow],
+                isWrapped: wrappedFlags[physicalRow])
+        }
+
+        func withLine<R>(
+            at offset: Int,
+            _ body: (UnsafeBufferPointer<TerminalCell>, [Int: Character]?, Bool) -> R
+        ) -> R {
+            let physicalRow = headLine + offset
+            let start = physicalRow * cols
+            return body(
+                slab.buffer(start: start, count: cols),
+                graphemes[physicalRow],
+                wrappedFlags[physicalRow])
+        }
+
+        mutating func dropFirst(_ n: Int) {
+            for row in headLine..<(headLine + n) {
+                graphemes.removeValue(forKey: row)
+            }
+            headLine += n
+            lineCount -= n
+        }
+
+        mutating func popLast() -> TerminalGridLine? {
+            guard lineCount > 0 else { return nil }
+            ensureUniqueSlab()
+            let result = line(at: lineCount - 1)
+            let physicalRow = headLine + lineCount - 1
+            slab.removeLast(cols)
+            wrappedFlags.removeLast()
+            graphemes.removeValue(forKey: physicalRow)
+            lineCount -= 1
+            return result
+        }
+    }
+
+    private var chunks: [Chunk] = []
+    private(set) var count = 0
+
+    var isEmpty: Bool { count == 0 }
+
+    mutating func append(_ line: TerminalGridLine) {
+        let lineCols = max(line.cells.count, 1)
+        if let lastIdx = chunks.indices.last,
+            chunks[lastIdx].cols == lineCols,
+            chunks[lastIdx].canAppend
+        {
+            chunks[lastIdx].append(line)
+        } else {
+            var chunk = Chunk(cols: lineCols)
+            chunk.append(line)
+            chunks.append(chunk)
+        }
+        count += 1
+    }
+
+    mutating func append<S: Sequence>(contentsOf lines: S) where S.Element == TerminalGridLine {
+        for line in lines {
+            append(line)
+        }
+    }
+
+    subscript(index: Int) -> TerminalGridLine {
+        var remaining = index
+        for chunk in chunks {
+            if remaining < chunk.lineCount {
+                return chunk.line(at: remaining)
+            }
+            remaining -= chunk.lineCount
+        }
+        preconditionFailure("Scrollback index out of bounds")
+    }
+
+    func withLine<R>(
+        at index: Int,
+        _ body: (UnsafeBufferPointer<TerminalCell>, [Int: Character]?, Bool) -> R
+    ) -> R? {
+        guard index >= 0, index < count else { return nil }
+        var remaining = index
+        for chunk in chunks {
+            if remaining < chunk.lineCount {
+                return chunk.withLine(at: remaining, body)
+            }
+            remaining -= chunk.lineCount
+        }
+        return nil
+    }
+
+    mutating func removeFirst(_ k: Int) {
+        var toDrop = min(max(0, k), count)
+        guard toDrop > 0 else { return }
+        count -= toDrop
+        while toDrop > 0, !chunks.isEmpty {
+            if toDrop >= chunks[0].lineCount {
+                toDrop -= chunks[0].lineCount
+                chunks.removeFirst()
+            } else {
+                chunks[0].dropFirst(toDrop)
+                toDrop = 0
+            }
+        }
+    }
+
+    mutating func popLast(_ k: Int) -> [TerminalGridLine] {
+        let toPop = min(max(0, k), count)
+        guard toPop > 0 else { return [] }
+        var popped: [TerminalGridLine] = []
+        popped.reserveCapacity(toPop)
+        for _ in 0..<toPop {
+            while let lastIdx = chunks.indices.last {
+                if let line = chunks[lastIdx].popLast() {
+                    popped.append(line)
+                    count -= 1
+                    if chunks[lastIdx].lineCount == 0 {
+                        chunks.removeLast()
+                    }
+                    break
+                } else {
+                    chunks.removeLast()
+                }
+            }
+        }
+        popped.reverse()
+        return popped
+    }
+
+    mutating func removeAll() {
+        chunks.removeAll(keepingCapacity: false)
+        count = 0
     }
 }
 
@@ -102,7 +544,7 @@ final class TerminalEmulator {
 
     private(set) var cols: Int
     private(set) var rows: Int
-    private(set) var scrollback: [TerminalGridLine] = []
+    private(set) var scrollback = TerminalScrollbackBuffer()
     private(set) var grid: [TerminalGridLine]
 
     private(set) var cursorRow: Int = 0
@@ -128,7 +570,8 @@ final class TerminalEmulator {
     private var g0LineDrawing = false
     private var g1LineDrawing = false
     private var useG1 = false
-    private var lastGraphicCharacter: Character?
+    private var lastGraphicScalar: UnicodeScalar?
+    private var awaitingZWJContinuation = false
 
     private var savedPrimaryCursor = CursorSnapshot()
     private var savedAltCursor = CursorSnapshot()
@@ -168,6 +611,20 @@ final class TerminalEmulator {
         return grid[globalIndex - scrollback.count]
     }
 
+    func withLine<R>(
+        at globalIndex: Int,
+        _ body: (UnsafeBufferPointer<TerminalCell>, [Int: Character]?, Bool) -> R
+    ) -> R? {
+        guard globalIndex >= 0, globalIndex < totalLines else { return nil }
+        if globalIndex < scrollback.count {
+            return scrollback.withLine(at: globalIndex, body)
+        }
+        let row = grid[globalIndex - scrollback.count]
+        return row.cells.withUnsafeBufferPointer { buf in
+            body(buf, row.graphemes, row.isWrapped)
+        }
+    }
+
     func takePendingResponses() -> [[UInt8]] {
         guard !pendingResponses.isEmpty else { return [] }
         let items = pendingResponses
@@ -204,7 +661,7 @@ final class TerminalEmulator {
                 savedPrimaryState.col = min(savedPrimaryState.col, targetCols - 1)
                 savedPrimaryState.pendingWrap = false
             }
-            var altScrollback: [TerminalGridLine] = []
+            var altScrollback = TerminalScrollbackBuffer()
             grid = Self.resizedGrid(
                 grid, oldRows: rows, newCols: targetCols, newRows: targetRows,
                 cursorRow: &cursorRow, intoScrollback: &altScrollback)
@@ -230,17 +687,10 @@ final class TerminalEmulator {
         newCols: Int,
         newRows: Int,
         cursorRow: inout Int,
-        intoScrollback scrollback: inout [TerminalGridLine]
+        intoScrollback scrollback: inout TerminalScrollbackBuffer
     ) -> [TerminalGridLine] {
         var adjusted: [TerminalGridLine] = current.map { line in
-            var copy = line
-            if copy.cells.count < newCols {
-                copy.cells.append(
-                    contentsOf: Array(repeating: .blank, count: newCols - copy.cells.count))
-            } else if copy.cells.count > newCols {
-                copy.cells.removeLast(copy.cells.count - newCols)
-            }
-            return copy
+            Self.resizedLine(line, newCols: newCols)
         }
 
         if newRows < oldRows {
@@ -262,21 +712,12 @@ final class TerminalEmulator {
             }
         } else if newRows > oldRows {
             let needed = newRows - oldRows
-            let pullCount = min(needed, scrollback.count)
-            if pullCount > 0 {
-                let pulled = scrollback.suffix(pullCount).map { line -> TerminalGridLine in
-                    var copy = line
-                    if copy.cells.count < newCols {
-                        copy.cells.append(
-                            contentsOf: Array(repeating: .blank, count: newCols - copy.cells.count))
-                    } else if copy.cells.count > newCols {
-                        copy.cells.removeLast(copy.cells.count - newCols)
-                    }
-                    return copy
-                }
-                scrollback.removeLast(pullCount)
+            let pulled = scrollback.popLast(needed).map { line in
+                Self.resizedLine(line, newCols: newCols)
+            }
+            if !pulled.isEmpty {
                 adjusted.insert(contentsOf: pulled, at: 0)
-                cursorRow += pullCount
+                cursorRow += pulled.count
             }
             while adjusted.count < newRows {
                 adjusted.append(TerminalGridLine(cols: newCols))
@@ -285,10 +726,26 @@ final class TerminalEmulator {
         return adjusted
     }
 
+    private static func resizedLine(_ line: TerminalGridLine, newCols: Int) -> TerminalGridLine {
+        var copy = line
+        if copy.cells.count < newCols {
+            copy.cells.append(
+                contentsOf: Array(repeating: .blank, count: newCols - copy.cells.count))
+        } else if copy.cells.count > newCols {
+            copy.cells.removeLast(copy.cells.count - newCols)
+            if var clusters = copy.graphemes {
+                clusters = clusters.filter { $0.key < newCols }
+                copy.graphemes = clusters.isEmpty ? nil : clusters
+            }
+        }
+        return copy
+    }
+
     private static func isBlankLine(_ line: TerminalGridLine) -> Bool {
         !line.isWrapped
+            && line.graphemes == nil
             && line.cells.allSatisfy {
-                $0.character == " " && $0.background == .defaultBackground && $0.style.isEmpty
+                $0.isSpace && $0.background == .defaultBackground && $0.style.isEmpty
             }
     }
 
@@ -372,6 +829,7 @@ final class TerminalEmulator {
         }
 
         if byte == 0x1B {
+            awaitingZWJContinuation = false
             parseState = .escape
             csiPrefix = 0
             csiIntermediate = 0
@@ -380,6 +838,7 @@ final class TerminalEmulator {
         }
 
         if byte < 0x20 || byte == 0x7F {
+            awaitingZWJContinuation = false
             handleControlByte(byte)
             return
         }
@@ -706,10 +1165,11 @@ final class TerminalEmulator {
         case 0x54:
             scrollRegionDown(lines: max(p0, 1))
         case 0x62:
-            if let ch = lastGraphicCharacter {
+            if let scalar = lastGraphicScalar {
                 let count = min(max(p0, 1), cols * rows)
+                let width = Self.displayWidth(of: scalar)
                 for _ in 0..<count {
-                    putCharacter(ch, width: Self.displayWidth(of: ch))
+                    putScalar(scalar, width: width)
                 }
             }
         case 0x63:
@@ -884,7 +1344,6 @@ final class TerminalEmulator {
 
     private func eraseInDisplay(mode: Int) {
         pendingWrap = false
-        let blankCell = TerminalCell.blank(background: background)
         switch mode {
         case 0:
             eraseInLine(mode: 0)
@@ -900,7 +1359,7 @@ final class TerminalEmulator {
                 }
             }
             for c in 0...min(cursorCol, cols - 1) {
-                grid[cursorRow].cells[c] = blankCell
+                grid[cursorRow].clearCell(at: c, background: background)
             }
         case 2:
             if !isAlternateScreen {
@@ -929,19 +1388,18 @@ final class TerminalEmulator {
 
     private func eraseInLine(mode: Int) {
         pendingWrap = false
-        let blankCell = TerminalCell.blank(background: background)
         switch mode {
         case 0:
             clearWideCellOverlap(row: cursorRow, col: cursorCol)
             for c in cursorCol..<cols {
-                grid[cursorRow].cells[c] = blankCell
+                grid[cursorRow].clearCell(at: c, background: background)
             }
             grid[cursorRow].isWrapped = false
         case 1:
             let end = min(cursorCol, cols - 1)
             clearWideCellOverlap(row: cursorRow, col: end)
             for c in 0...end {
-                grid[cursorRow].cells[c] = blankCell
+                grid[cursorRow].clearCell(at: c, background: background)
             }
         case 2:
             grid[cursorRow] = TerminalGridLine(cols: cols, background: background)
@@ -978,6 +1436,17 @@ final class TerminalEmulator {
         grid[cursorRow].cells.removeSubrange(cursorCol..<(cursorCol + n))
         grid[cursorRow].cells.append(
             contentsOf: Array(repeating: .blank(background: background), count: n))
+        if let clusters = grid[cursorRow].graphemes {
+            var shifted: [Int: Character] = [:]
+            for (col, ch) in clusters {
+                if col < cursorCol {
+                    shifted[col] = ch
+                } else if col >= cursorCol + n {
+                    shifted[col - n] = ch
+                }
+            }
+            grid[cursorRow].graphemes = shifted.isEmpty ? nil : shifted
+        }
     }
 
     private func insertBlankCharacters(count: Int) {
@@ -988,6 +1457,17 @@ final class TerminalEmulator {
         let blanks = Array(repeating: TerminalCell.blank(background: background), count: n)
         grid[cursorRow].cells.insert(contentsOf: blanks, at: cursorCol)
         grid[cursorRow].cells.removeLast(n)
+        if let clusters = grid[cursorRow].graphemes {
+            var shifted: [Int: Character] = [:]
+            for (col, ch) in clusters {
+                if col < cursorCol {
+                    shifted[col] = ch
+                } else if col + n < cols {
+                    shifted[col + n] = ch
+                }
+            }
+            grid[cursorRow].graphemes = shifted.isEmpty ? nil : shifted
+        }
     }
 
     private func eraseCharacters(count: Int) {
@@ -996,9 +1476,8 @@ final class TerminalEmulator {
         guard cursorCol < end else { return }
         clearWideCellOverlap(row: cursorRow, col: cursorCol)
         clearWideCellOverlap(row: cursorRow, col: end - 1)
-        let blankCell = TerminalCell.blank(background: background)
         for c in cursorCol..<end {
-            grid[cursorRow].cells[c] = blankCell
+            grid[cursorRow].clearCell(at: c, background: background)
         }
     }
 
@@ -1067,7 +1546,12 @@ final class TerminalEmulator {
             appendCombiningScalar(scalar)
             return
         }
-        let mapped: Character
+        if awaitingZWJContinuation {
+            awaitingZWJContinuation = false
+            appendCombiningScalar(scalar)
+            return
+        }
+        let mapped: UnicodeScalar
         let lineDrawingActive = useG1 ? g1LineDrawing : g0LineDrawing
         if lineDrawingActive,
             scalar.value >= 0x60, scalar.value <= 0x7E,
@@ -1075,12 +1559,12 @@ final class TerminalEmulator {
         {
             mapped = box
         } else {
-            mapped = Character(scalar)
+            mapped = scalar
         }
-        let width = Self.displayWidth(of: scalar)
+        let width = Self.displayWidth(of: mapped)
         guard width > 0 else { return }
-        lastGraphicCharacter = mapped
-        putCharacter(mapped, width: width)
+        lastGraphicScalar = mapped
+        putScalar(mapped, width: width)
     }
 
     private func appendCombiningScalar(_ scalar: UnicodeScalar) {
@@ -1094,14 +1578,15 @@ final class TerminalEmulator {
         if grid[targetRow].cells[targetCol].width == 0, targetCol > 0 {
             targetCol -= 1
         }
-        var existing = String(grid[targetRow].cells[targetCol].character)
+        var existing = String(grid[targetRow].character(at: targetCol))
         existing.unicodeScalars.append(scalar)
         if let combined = existing.first {
-            grid[targetRow].cells[targetCol].character = combined
+            grid[targetRow].setCharacter(combined, at: targetCol)
+            awaitingZWJContinuation = (scalar.value == 0x200D)
         }
     }
 
-    private func putCharacter(_ ch: Character, width: UInt8) {
+    private func putScalar(_ scalar: UnicodeScalar, width: UInt8) {
         let cellWidth = width == 2 && cols >= 2 ? UInt8(2) : UInt8(1)
         if pendingWrap {
             if autoWrap {
@@ -1113,7 +1598,7 @@ final class TerminalEmulator {
         }
 
         if cellWidth == 2, cursorCol == cols - 1 {
-            grid[cursorRow].cells[cursorCol] = .blank(background: background)
+            grid[cursorRow].clearCell(at: cursorCol, background: background)
             if autoWrap {
                 grid[cursorRow].isWrapped = true
                 cursorCol = 0
@@ -1128,16 +1613,18 @@ final class TerminalEmulator {
             clearWideCellOverlap(row: cursorRow, col: cursorCol + 1)
         }
 
-        grid[cursorRow].cells[cursorCol] = TerminalCell(
-            character: ch,
+        grid[cursorRow].setScalar(
+            scalar,
+            at: cursorCol,
             foreground: foreground,
             background: background,
             style: style,
             width: cellWidth)
 
         if cellWidth == 2, cursorCol + 1 < cols {
-            grid[cursorRow].cells[cursorCol + 1] = TerminalCell(
-                character: "\0",
+            grid[cursorRow].setScalar(
+                "\0",
+                at: cursorCol + 1,
                 foreground: foreground,
                 background: background,
                 style: style,
@@ -1162,9 +1649,9 @@ final class TerminalEmulator {
         guard row >= 0, row < rows, col >= 0, col < cols else { return }
         let cell = grid[row].cells[col]
         if cell.width == 2, col + 1 < cols {
-            grid[row].cells[col + 1] = .blank(background: background)
+            grid[row].clearCell(at: col + 1, background: background)
         } else if cell.width == 0, col > 0 {
-            grid[row].cells[col - 1] = .blank(background: background)
+            grid[row].clearCell(at: col - 1, background: background)
         }
     }
 
@@ -1281,17 +1768,29 @@ final class TerminalEmulator {
         }
         let cursorGlobalLine = scrollback.count + cursorRow
         var endLine = max(start.line, cursorGlobalLine)
-        while endLine + 1 < totalLines, line(at: endLine)?.isWrapped == true {
+        while endLine + 1 < totalLines,
+            withLine(at: endLine, { _, _, isWrapped in isWrapped }) == true
+        {
             endLine += 1
         }
-        guard let finalRow = line(at: endLine), !finalRow.cells.isEmpty else { return "" }
-        var lastNonSpaceCol = -1
-        for col in stride(from: finalRow.cells.count - 1, through: 0, by: -1) {
-            let cell = finalRow.cells[col]
-            if cell.width != 0 && cell.character != " " {
-                lastNonSpaceCol = col
-                break
-            }
+        guard
+            let (cellCount, lastNonSpaceCol) = withLine(
+                at: endLine,
+                { cells, _, _ -> (Int, Int) in
+                    let base = cells.startIndex
+                    var last = -1
+                    for col in stride(from: cells.count - 1, through: 0, by: -1) {
+                        let cell = cells[base + col]
+                        if cell.width != 0 && !cell.isSpace {
+                            last = col
+                            break
+                        }
+                    }
+                    return (cells.count, last)
+                }),
+            cellCount > 0
+        else {
+            return ""
         }
         let cursorEndCol = endLine == cursorGlobalLine ? cursorCol - 1 : -1
         let endCol = max(lastNonSpaceCol, cursorEndCol)
@@ -1301,7 +1800,7 @@ final class TerminalEmulator {
         if endCol < 0 && endLine == start.line {
             return ""
         }
-        let clampedEndCol = min(max(endCol, 0), finalRow.cells.count - 1)
+        let clampedEndCol = min(max(endCol, 0), cellCount - 1)
         let raw = text(
             from: start,
             to: TerminalGridPoint(line: endLine, col: clampedEndCol))
@@ -1334,17 +1833,34 @@ final class TerminalEmulator {
         var lines: [String] = []
         var current = ""
         for idx in start...end {
-            guard var row = line(at: idx) else { continue }
             if idx == end {
+                guard var row = line(at: idx) else { continue }
                 row.isWrapped = false
                 if trimPromptEolMark {
                     Self.stripTrailingPromptEolMark(&row)
                 }
-            }
-            current.append(Self.trimmedLineString(row))
-            if !row.isWrapped {
+                current.append(Self.trimmedLineString(row))
                 lines.append(current)
                 current = ""
+            } else {
+                guard
+                    let (text, isWrapped) = withLine(
+                        at: idx,
+                        { cells, graphemes, isWrapped in
+                            (
+                                Self.trimmedSliceString(
+                                    cells: cells, graphemes: graphemes, isWrapped: isWrapped),
+                                isWrapped
+                            )
+                        })
+                else {
+                    continue
+                }
+                current.append(text)
+                if !isWrapped {
+                    lines.append(current)
+                    current = ""
+                }
             }
         }
         if !current.isEmpty {
@@ -1359,9 +1875,9 @@ final class TerminalEmulator {
     private static func stripTrailingPromptEolMark(_ row: inout TerminalGridLine) {
         for col in stride(from: row.cells.count - 1, through: 0, by: -1) {
             let cell = row.cells[col]
-            if cell.width == 0 || cell.character == " " { continue }
-            if cell.character == "%", cell.style.contains(.inverse) {
-                row.cells[col] = .blank
+            if cell.width == 0 || cell.isSpace { continue }
+            if !cell.hasGraphemeCluster, cell.asciiByte == 0x25, cell.style.contains(.inverse) {
+                row.clearCell(at: col)
             }
             return
         }
@@ -1373,9 +1889,21 @@ final class TerminalEmulator {
         var lines: [String] = []
         var current = ""
         for idx in start..<totalLines {
-            guard let row = line(at: idx) else { continue }
-            current.append(Self.trimmedLineString(row))
-            if !row.isWrapped {
+            guard
+                let (text, isWrapped) = withLine(
+                    at: idx,
+                    { cells, graphemes, isWrapped in
+                        (
+                            Self.trimmedSliceString(
+                                cells: cells, graphemes: graphemes, isWrapped: isWrapped),
+                            isWrapped
+                        )
+                    })
+            else {
+                continue
+            }
+            current.append(text)
+            if !isWrapped {
                 lines.append(current)
                 current = ""
             }
@@ -1399,23 +1927,37 @@ final class TerminalEmulator {
 
         var output = ""
         for lineIdx in startLine...endLine {
-            guard let row = line(at: lineIdx) else { continue }
-            let cStart = lineIdx == startLine ? max(0, low.col) : 0
-            let cEnd = lineIdx == endLine ? min(row.cells.count - 1, high.col) : row.cells.count - 1
-            if cStart <= cEnd {
-                var slice = ""
-                for c in cStart...cEnd {
-                    let cell = row.cells[c]
-                    if cell.width == 0 { continue }
-                    slice.append(cell.character)
-                }
-                if lineIdx < endLine && !row.isWrapped {
-                    slice = slice.replacingOccurrences(
-                        of: "\\s+$", with: "", options: .regularExpression)
-                }
-                output.append(slice)
+            guard
+                let (slice, isWrapped) = withLine(
+                    at: lineIdx,
+                    { cells, graphemes, isWrapped -> (String, Bool) in
+                        let count = cells.count
+                        guard count > 0 else { return ("", isWrapped) }
+                        let base = cells.startIndex
+                        let cStart = lineIdx == startLine ? max(0, low.col) : 0
+                        let cEnd = lineIdx == endLine ? min(count - 1, high.col) : count - 1
+                        guard cStart <= cEnd else { return ("", isWrapped) }
+                        var chunk = ""
+                        for c in cStart...cEnd {
+                            let cell = cells[base + c]
+                            if cell.width == 0 { continue }
+                            if cell.hasGraphemeCluster, let cluster = graphemes?[c] {
+                                chunk.append(cluster)
+                            } else {
+                                chunk.append(cell.character)
+                            }
+                        }
+                        if lineIdx < endLine && !isWrapped {
+                            chunk = chunk.replacingOccurrences(
+                                of: "\\s+$", with: "", options: .regularExpression)
+                        }
+                        return (chunk, isWrapped)
+                    })
+            else {
+                continue
             }
-            if lineIdx < endLine && !row.isWrapped {
+            output.append(slice)
+            if lineIdx < endLine && !isWrapped {
                 output.append("\n")
             }
         }
@@ -1423,17 +1965,40 @@ final class TerminalEmulator {
     }
 
     private static func trimmedLineString(_ row: TerminalGridLine) -> String {
-        var chars: [Character] = []
-        chars.reserveCapacity(row.cells.count)
-        for cell in row.cells where cell.width != 0 {
-            chars.append(cell.character)
+        row.cells.withUnsafeBufferPointer { buf in
+            trimmedSliceString(cells: buf, graphemes: row.graphemes, isWrapped: row.isWrapped)
         }
-        if !row.isWrapped {
-            while chars.last == " " {
-                chars.removeLast()
+    }
+
+    private static func trimmedSliceString(
+        cells: UnsafeBufferPointer<TerminalCell>,
+        graphemes: [Int: Character]?,
+        isWrapped: Bool
+    ) -> String {
+        var endCol = cells.count - 1
+        if !isWrapped {
+            while endCol >= 0 {
+                let cell = cells[endCol]
+                if cell.width == 0 || cell.isSpace {
+                    endCol -= 1
+                } else {
+                    break
+                }
             }
         }
-        return String(chars)
+        guard endCol >= 0 else { return "" }
+        var result = ""
+        result.reserveCapacity(endCol + 1)
+        for col in 0...endCol {
+            let cell = cells[col]
+            if cell.width == 0 { continue }
+            if cell.hasGraphemeCluster, let cluster = graphemes?[col] {
+                result.append(cluster)
+            } else {
+                result.unicodeScalars.append(cell.scalar)
+            }
+        }
+        return result
     }
 
     private static func isCombiningMark(_ scalar: UnicodeScalar) -> Bool {
@@ -1444,13 +2009,8 @@ final class TerminalEmulator {
             || (0x20D0...0x20FF).contains(v)
             || (0xFE00...0xFE0F).contains(v)
             || (0xFE20...0xFE2F).contains(v)
+            || (0x1F3FB...0x1F3FF).contains(v)
             || v == 0x200D
-    }
-
-    private static func displayWidth(of ch: Character) -> UInt8 {
-        guard let first = ch.unicodeScalars.first else { return 1 }
-        if ch.unicodeScalars.contains(where: { $0.value == 0xFE0F }) { return 2 }
-        return displayWidth(of: first)
     }
 
     private static func displayWidth(of scalar: UnicodeScalar) -> UInt8 {
@@ -1475,7 +2035,7 @@ final class TerminalEmulator {
         return 1
     }
 
-    private static let decLineDrawingMap: [UInt8: Character] = [
+    private static let decLineDrawingMap: [UInt8: UnicodeScalar] = [
         0x60: "◆", 0x61: "▒", 0x66: "°", 0x67: "±", 0x6A: "┘", 0x6B: "┐",
         0x6C: "┌", 0x6D: "└", 0x6E: "┼", 0x6F: "⎺", 0x70: "⎻", 0x71: "─",
         0x72: "⎼", 0x73: "⎽", 0x74: "├", 0x75: "┤", 0x76: "┴", 0x77: "┬",

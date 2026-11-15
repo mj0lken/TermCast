@@ -104,7 +104,10 @@ When `terminalEnabled` is on, Termcast operates across three distinct modes:
 ## VT100 / xterm emulation, color themes, and `init.zsh`
 
 - **Grid & alternate screen (`TerminalEmulator` + `InteractiveTerminalView`)**: Pure-Swift VT100 /
-  xterm emulator supporting primary + scrollback (`4,000` lines) and alternate screen (`?1049h`),
+  xterm emulator storing cells as 16-byte packed values (`TerminalCell`, with a sparse per-line
+  grapheme-cluster side table) and scrollback (`4,000` lines) in `128 KB+` flat slabs
+  (`TerminalScrollbackBuffer`) so macOS unmaps freed pages directly when tabs close or scrollback
+  clears. Supports alternate screen (`?1049h`),
   deferred right-margin wrap (`?7h`), DEC line-drawing graphics, cursor save/restore, `DECSTBM`
   scroll regions, `TIOCSWINSZ` dynamic resizing, bracketed paste (`?2004h`), mouse text selection,
   and 16-color / 256-color / 24-bit TrueColor rendering across four curated looks

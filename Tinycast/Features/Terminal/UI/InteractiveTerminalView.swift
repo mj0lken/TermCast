@@ -716,18 +716,27 @@ final class TerminalSurfaceNSView: NSView, @preconcurrency NSTextInputClient, Te
     private func wordBounds(
         at point: TerminalGridPoint, in emulator: TerminalEmulator
     ) -> ClosedRange<Int> {
-        guard let line = emulator.line(at: point.line) else { return point.col...point.col }
-        let cols = line.cells.count
-        let idx = min(max(0, point.col), max(0, cols - 1))
-        func isWordChar(_ ch: Character) -> Bool {
-            ch.isLetter || ch.isNumber || "_-./~:@+".contains(ch)
-        }
-        guard cols > 0, isWordChar(line.cells[idx].character) else { return idx...idx }
-        var start = idx
-        while start > 0 && isWordChar(line.cells[start - 1].character) { start -= 1 }
-        var end = idx
-        while end + 1 < cols && isWordChar(line.cells[end + 1].character) { end += 1 }
-        return start...end
+        emulator.withLine(at: point.line) { cells, graphemes, _ in
+            let cols = cells.count
+            let idx = min(max(0, point.col), max(0, cols - 1))
+            let base = cells.startIndex
+            func charAt(_ col: Int) -> Character {
+                let cell = cells[base + col]
+                if cell.hasGraphemeCluster, let cluster = graphemes?[col] {
+                    return cluster
+                }
+                return cell.character
+            }
+            func isWordChar(_ ch: Character) -> Bool {
+                ch.isLetter || ch.isNumber || "_-./~:@+".contains(ch)
+            }
+            guard cols > 0, isWordChar(charAt(idx)) else { return idx...idx }
+            var start = idx
+            while start > 0 && isWordChar(charAt(start - 1)) { start -= 1 }
+            var end = idx
+            while end + 1 < cols && isWordChar(charAt(end + 1)) { end += 1 }
+            return start...end
+        } ?? (point.col...point.col)
     }
 
     // MARK: - CoreGraphics Grid Rendering
@@ -754,117 +763,130 @@ final class TerminalSurfaceNSView: NSView, @preconcurrency NSTextInputClient, Te
         let hasSelection = selectionAnchor != nil && selectionEnd != nil && selectionAnchor != selectionEnd
         let selLow = hasSelection ? min(selectionAnchor!, selectionEnd!) : nil
         let selHigh = hasSelection ? max(selectionAnchor!, selectionEnd!) : nil
+        var asciiBuffer: [UInt8] = []
 
         for visualRow in 0..<emulator.rows {
             let lineIndex = firstVisibleLine + visualRow
             let y = topInset + CGFloat(visualRow) * cellHeight
             if y + cellHeight < dirtyRect.minY || y > dirtyRect.maxY { continue }
-            guard let rowLine = emulator.line(at: lineIndex) else { continue }
-            let cells = rowLine.cells
-            let colCount = min(cells.count, emulator.cols)
+            emulator.withLine(at: lineIndex) { cells, graphemes, _ in
+                let base = cells.startIndex
+                let colCount = min(cells.count, emulator.cols)
 
-            var col = 0
-            while col < colCount {
-                let cell = cells[col]
-                let bg = resolvedBackground(for: cell, palette: palette, defaultFg: defaultFg)
-                if let bg {
-                    var endCol = col + 1
-                    while endCol < colCount,
-                        resolvedBackground(
-                            for: cells[endCol], palette: palette, defaultFg: defaultFg) == bg
-                    {
-                        endCol += 1
+                var col = 0
+                while col < colCount {
+                    let cell = cells[base + col]
+                    let bg = resolvedBackground(for: cell, palette: palette, defaultFg: defaultFg)
+                    if let bg {
+                        var endCol = col + 1
+                        while endCol < colCount,
+                            resolvedBackground(
+                                for: cells[base + endCol], palette: palette, defaultFg: defaultFg
+                            ) == bg
+                        {
+                            endCol += 1
+                        }
+                        let rect = NSRect(
+                            x: horizontalInset + CGFloat(col) * cellWidth,
+                            y: y,
+                            width: CGFloat(endCol - col) * cellWidth,
+                            height: cellHeight)
+                        ctx.setFillColor(bg.cgColor)
+                        ctx.fill(rect)
+                        col = endCol
+                    } else {
+                        col += 1
                     }
-                    let rect = NSRect(
-                        x: horizontalInset + CGFloat(col) * cellWidth,
-                        y: y,
-                        width: CGFloat(endCol - col) * cellWidth,
-                        height: cellHeight)
-                    ctx.setFillColor(bg.cgColor)
-                    ctx.fill(rect)
-                    col = endCol
-                } else {
-                    col += 1
                 }
-            }
 
-            if let low = selLow, let high = selHigh,
-                lineIndex >= low.line && lineIndex <= high.line
-            {
-                let startC = lineIndex == low.line ? max(0, low.col) : 0
-                let endC = lineIndex == high.line ? min(colCount - 1, high.col) : colCount - 1
-                if startC <= endC {
-                    let selRect = NSRect(
-                        x: horizontalInset + CGFloat(startC) * cellWidth,
-                        y: y,
-                        width: CGFloat(endC - startC + 1) * cellWidth,
-                        height: cellHeight)
-                    ctx.setFillColor(selectionFill.cgColor)
-                    ctx.fill(selRect)
-                }
-            }
-
-            var textCol = 0
-            while textCol < colCount {
-                let cell = cells[textCol]
-                if cell.width == 0
-                    || cell.character == " "
-                    || cell.style.contains(.invisible)
+                if let low = selLow, let high = selHigh,
+                    lineIndex >= low.line && lineIndex <= high.line
                 {
-                    if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
-                        let fg = resolvedForeground(
-                            for: cell, palette: palette, defaultFg: defaultFg, defaultBg: defaultBg)
-                        drawDecorations(
-                            style: cell.style, color: fg, col: textCol, span: 1, y: y, in: ctx)
+                    let startC = lineIndex == low.line ? max(0, low.col) : 0
+                    let endC = lineIndex == high.line ? min(colCount - 1, high.col) : colCount - 1
+                    if startC <= endC {
+                        let selRect = NSRect(
+                            x: horizontalInset + CGFloat(startC) * cellWidth,
+                            y: y,
+                            width: CGFloat(endC - startC + 1) * cellWidth,
+                            height: cellHeight)
+                        ctx.setFillColor(selectionFill.cgColor)
+                        ctx.fill(selRect)
                     }
-                    textCol += 1
-                    continue
                 }
 
-                let fg = resolvedForeground(
-                    for: cell, palette: palette, defaultFg: defaultFg, defaultBg: defaultBg)
-                let font = font(for: cell.style)
+                var textCol = 0
+                while textCol < colCount {
+                    let cell = cells[base + textCol]
+                    if cell.width == 0
+                        || cell.isSpace
+                        || cell.style.contains(.invisible)
+                    {
+                        if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
+                            let fg = resolvedForeground(
+                                for: cell, palette: palette, defaultFg: defaultFg,
+                                defaultBg: defaultBg)
+                            drawDecorations(
+                                style: cell.style, color: fg, col: textCol, span: 1, y: y, in: ctx)
+                        }
+                        textCol += 1
+                        continue
+                    }
 
-                if cell.width == 1, cell.character.isASCII {
-                    var run = String(cell.character)
-                    var span = 1
-                    while textCol + span < colCount {
-                        let next = cells[textCol + span]
-                        guard next.width == 1,
-                            next.character.isASCII,
-                            next.character != " ",
-                            !next.style.contains(.invisible),
-                            next.style == cell.style,
-                            next.foreground == cell.foreground,
-                            next.background == cell.background
-                        else { break }
-                        run.append(next.character)
-                        span += 1
+                    let fg = resolvedForeground(
+                        for: cell, palette: palette, defaultFg: defaultFg, defaultBg: defaultBg)
+                    let font = font(for: cell.style)
+
+                    if cell.width == 1, !cell.hasGraphemeCluster, let ascii = cell.asciiByte {
+                        asciiBuffer.removeAll(keepingCapacity: true)
+                        asciiBuffer.append(ascii)
+                        var span = 1
+                        while textCol + span < colCount {
+                            let next = cells[base + textCol + span]
+                            guard next.width == 1,
+                                !next.hasGraphemeCluster,
+                                let nextASCII = next.asciiByte,
+                                nextASCII != 0x20,
+                                !next.style.contains(.invisible),
+                                next.style == cell.style,
+                                next.foreground == cell.foreground,
+                                next.background == cell.background
+                            else { break }
+                            asciiBuffer.append(nextASCII)
+                            span += 1
+                        }
+                        let run = String(bytes: asciiBuffer, encoding: .utf8) ?? ""
+                        let pt = NSPoint(
+                            x: horizontalInset + CGFloat(textCol) * cellWidth,
+                            y: y)
+                        (run as NSString).draw(
+                            at: pt,
+                            withAttributes: [.font: font, .foregroundColor: fg, .kern: 0])
+                        if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
+                            drawDecorations(
+                                style: cell.style, color: fg, col: textCol, span: span, y: y,
+                                in: ctx)
+                        }
+                        textCol += span
+                    } else {
+                        let rendered: Character =
+                            cell.hasGraphemeCluster
+                            ? (graphemes?[textCol] ?? cell.character)
+                            : cell.character
+                        let pt = NSPoint(
+                            x: horizontalInset + CGFloat(textCol) * cellWidth,
+                            y: y)
+                        (String(rendered) as NSString).draw(
+                            at: pt,
+                            withAttributes: [.font: font, .foregroundColor: fg])
+                        let span = max(1, Int(cell.width))
+                        if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
+                            drawDecorations(
+                                style: cell.style, color: fg, col: textCol, span: span, y: y,
+                                in: ctx)
+                        }
+                        textCol += span
                     }
-                    let pt = NSPoint(
-                        x: horizontalInset + CGFloat(textCol) * cellWidth,
-                        y: y)
-                    (run as NSString).draw(
-                        at: pt,
-                        withAttributes: [.font: font, .foregroundColor: fg, .kern: 0])
-                    if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
-                        drawDecorations(
-                            style: cell.style, color: fg, col: textCol, span: span, y: y, in: ctx)
-                    }
-                    textCol += span
-                } else {
-                    let pt = NSPoint(
-                        x: horizontalInset + CGFloat(textCol) * cellWidth,
-                        y: y)
-                    (String(cell.character) as NSString).draw(
-                        at: pt,
-                        withAttributes: [.font: font, .foregroundColor: fg])
-                    let span = max(1, Int(cell.width))
-                    if cell.style.contains(.underline) || cell.style.contains(.strikethrough) {
-                        drawDecorations(
-                            style: cell.style, color: fg, col: textCol, span: span, y: y, in: ctx)
-                    }
-                    textCol += span
                 }
             }
         }
@@ -929,7 +951,8 @@ final class TerminalSurfaceNSView: NSView, @preconcurrency NSTextInputClient, Te
             return
         }
 
-        let cell = emulator.grid[cRow].cells[cCol]
+        let row = emulator.grid[cRow]
+        let cell = row.cells[cCol]
         let span: CGFloat = cell.width == 2 ? 2.0 : 1.0
         let cursorRect = NSRect(x: x, y: y + 1, width: cellWidth * span, height: cellHeight - 2)
 
@@ -940,8 +963,8 @@ final class TerminalSurfaceNSView: NSView, @preconcurrency NSTextInputClient, Te
             ctx.addPath(path)
             ctx.fillPath()
 
-            if cell.character != " " && cell.width != 0 && !cell.style.contains(.invisible) {
-                (String(cell.character) as NSString).draw(
+            if !cell.isSpace && cell.width != 0 && !cell.style.contains(.invisible) {
+                (String(row.character(at: cCol)) as NSString).draw(
                     at: NSPoint(x: x, y: y),
                     withAttributes: [
                         .font: font(for: cell.style),

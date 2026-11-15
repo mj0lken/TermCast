@@ -752,6 +752,50 @@ struct TerminalTests {
                 .backgroundJobCountChanged(2)
             ])
 
+        // MARK: - Packed Cell Layout, Grapheme Side-Table, and Chunked Scrollback
+
+        check(
+            "TerminalCell packs into 16 bytes with 16-byte stride",
+            MemoryLayout<TerminalCell>.size == 16 && MemoryLayout<TerminalCell>.stride == 16)
+
+        let graphemeEmu = TerminalEmulator(cols: 40, rows: 4)
+        graphemeEmu.feed("cafe\u{0301} 👩‍💻 東京\r\n")
+        check(
+            "combining accents, ZWJ emoji, and wide CJK preserve grapheme clusters on live grid",
+            graphemeEmu.grid[0].character(at: 3) == "e\u{0301}"
+                && graphemeEmu.grid[0].character(at: 5) == "👩‍💻"
+                && graphemeEmu.grid[0].cells[5].width == 2
+                && graphemeEmu.grid[0].cells[6].width == 0
+                && graphemeEmu.plainText(includeScrollback: false) == "cafe\u{0301} 👩‍💻 東京")
+
+        for idx in 1...4_050 {
+            graphemeEmu.feed("row-\(idx)-é\u{0301}\r\n")
+        }
+        check(
+            "chunked scrollback enforces 4000-line cap across slab boundaries and preserves graphemes",
+            graphemeEmu.scrollback.count == TerminalEmulator.maxScrollbackLines
+                && graphemeEmu.line(at: 0).map { line in
+                    (0..<line.cells.count)
+                        .compactMap { line.cells[$0].width == 0 ? nil : String(line.character(at: $0)) }
+                        .joined()
+                        .trimmingCharacters(in: .whitespaces)
+                } == "row-48-é\u{0301}"
+                && graphemeEmu.text(
+                    from: TerminalGridPoint(line: 0, col: 0),
+                    to: TerminalGridPoint(line: 0, col: 15)
+                ).trimmingCharacters(in: .whitespaces) == "row-48-é\u{0301}")
+
+        graphemeEmu.resize(cols: 40, rows: 8)
+        check(
+            "expanding terminal height pulls lines cleanly back out of chunked scrollback",
+            graphemeEmu.scrollback.count < TerminalEmulator.maxScrollbackLines
+                && graphemeEmu.plainText().contains("row-4050-é\u{0301}"))
+
+        graphemeEmu.clearScrollback()
+        check(
+            "clearScrollback drops all chunked scrollback slabs",
+            graphemeEmu.scrollback.isEmpty && graphemeEmu.scrollback.count == 0)
+
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         Foundation.exit(failures == 0 ? 0 : 1)
     }
