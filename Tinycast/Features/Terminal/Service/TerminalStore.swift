@@ -284,9 +284,13 @@ final class TerminalTab: Identifiable {
         promptFallbackTask = nil
         stopBackgroundJobWatcher()
         terminateHandler?()
+        writeBytesHandler = nil
+        resizeHandler = nil
+        interruptHandler = nil
+        terminateHandler = nil
+        hasChildProcessesHandler = nil
         drainTask?.cancel()
         drainTask = nil
-        hasChildProcessesHandler = nil
         isSessionAlive = false
         isRunningCommand = false
         backgroundJobCount = 0
