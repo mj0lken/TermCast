@@ -19,6 +19,26 @@ enum PasteboardFiles {
         urls(on: pasteboard, limit: .max) { _ in true }
     }
 
+    /// A picture on the board, unless plain text is there without a browser's image URL.
+    static func pastedImageData(on pasteboard: NSPasteboard) -> Data? {
+        guard urls(on: pasteboard, limit: 1, matching: { _ in true }).isEmpty,
+            let type = pasteboard.availableType(from: [.png, .tiff]),
+            let data = pasteboard.data(forType: type)
+        else { return nil }
+        guard let text = pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !text.isEmpty
+        else { return data }
+        guard pasteboard.string(forType: .URL) != nil || isWebURL(text) else { return nil }
+        return data
+    }
+
+    private static func isWebURL(_ text: String) -> Bool {
+        guard !text.contains(where: \.isWhitespace), let url = URL(string: text),
+            let scheme = url.scheme?.lowercased()
+        else { return false }
+        return scheme == "http" || scheme == "https" || scheme == "data" || scheme == "blob"
+    }
+
     /// Filters while decoding, so a ten-thousand-file select-all stops decoding at the limit.
     static func urls(
         on pasteboard: NSPasteboard, limit: Int, matching predicate: (URL) -> Bool

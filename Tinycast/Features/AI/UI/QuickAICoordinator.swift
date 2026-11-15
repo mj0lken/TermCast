@@ -62,13 +62,36 @@ final class QuickAICoordinator {
 
     /// A file pasted at the launcher belongs in Quick AI, never in a search for its name.
     func attachPastedFileFromLauncher(files: [URL]) -> Bool {
-        guard settings.aiEnabled, !files.isEmpty else { return false }
+        guard settings.aiEnabled else { return false }
+        guard !files.isEmpty || PasteboardFiles.pastedImageData(on: .general) != nil else {
+            return false
+        }
         show()
         return attachPastedFile(files: files)
     }
 
     func attachPastedFile(files: [URL]) -> Bool {
         chatCoordinator.attachPastedFile(files: files, to: chat)
+    }
+
+    func chooseFiles() {
+        chatCoordinator.chooseFiles(for: chat)
+    }
+
+    func captureScreenshot() {
+        chatCoordinator.captureScreenshot(for: chat)
+    }
+
+    func pasteClipboardImage() {
+        chatCoordinator.pasteClipboardImage(into: chat)
+    }
+
+    func attach(files: [URL]) {
+        chatCoordinator.attach(files: files, to: chat)
+    }
+
+    func mentionServer(_ slug: String) {
+        palette.query = chatCoordinator.addressDraft(palette.query, to: slug)
     }
 
     /// The one place deciding whether summoning resumes; Pop to Root only forgets the screen.

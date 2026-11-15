@@ -37,6 +37,13 @@ enum AIProviderFactory {
             }
             return try installedAI.provider(
                 kind: .claude, model: model, effort: effort, toolServers: toolServers)
+        case .antigravity(let model, let effort):
+            guard settings.enabledInstalledProviders.contains(.antigravity) else {
+                throw AIProviderError.unavailable(
+                    String(localized: "Antigravity is disabled in AI Settings."))
+            }
+            return try installedAI.provider(
+                kind: .antigravity, model: model, effort: effort, toolSession: toolSession)
         case .grok(let model, let effort):
             guard settings.enabledInstalledProviders.contains(.grok) else {
                 throw AIProviderError.unavailable(String(localized: "Grok is disabled in AI Settings."))

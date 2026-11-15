@@ -461,8 +461,8 @@ struct AIProvidersPanel: View {
 
     private func accountRow(_ account: InstalledAIAccount, kind: InstalledAIKind) -> some View {
         LabeledContent {
-            if let plan = account.planTitle {
-                Text(verbatim: "\(kind.title) \(plan)").foregroundStyle(.secondary)
+            if let plan = account.formattedPlan(for: kind) {
+                Text(verbatim: plan).foregroundStyle(.secondary)
             }
         } label: {
             Text("Account")
@@ -742,6 +742,7 @@ struct AIProvidersPanel: View {
         case .appleIntelligence: return AIModelOption.appleIntelligenceIcon
         case .installed(.codex): return .asset(AIBrand.openAI.assetName)
         case .installed(.claude): return .asset(AIBrand.claude.assetName)
+        case .installed(.antigravity): return .asset(AIBrand.gemini.assetName)
         case .installed(.grok): return .asset(AIBrand.grok.assetName)
         case .installed(.openCode): return .asset(AIBrand.openCode.assetName)
         case .installed(.cursor): return AIModelOption.cursorIcon

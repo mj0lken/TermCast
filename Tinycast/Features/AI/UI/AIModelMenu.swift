@@ -47,6 +47,77 @@ enum AIModelMenu {
             })
     }
 
+    /// Quick AI's `+` menu: files, screenshots, clipboard images, web search and MCP servers.
+    static func addContext(
+        coordinator: AIChatCoordinator, quickAI: QuickAICoordinator, chat: AIChatState
+    ) -> PopoverMenuContent {
+        let can = coordinator.capabilities(for: chat)
+        var items: [PopoverMenuItem] = [
+            PopoverMenuItem(
+                title: String(localized: "Attach Files…"), systemImage: "paperclip",
+                shortcut: "⇧⌘A"
+            ) {
+                quickAI.chooseFiles()
+            }
+        ]
+        if can.images {
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Capture Screenshot"),
+                    systemImage: "camera.viewfinder", shortcut: "⇧⌘S"
+                ) {
+                    quickAI.captureScreenshot()
+                })
+            if coordinator.hasClipboardImage {
+                items.append(
+                    PopoverMenuItem(
+                        title: String(localized: "Paste from Clipboard"),
+                        systemImage: "photo.on.rectangle"
+                    ) {
+                        quickAI.pasteClipboardImage()
+                    })
+            }
+        }
+        var separated = false
+        if can.webSearch {
+            let enabled = coordinator.aiSettings.webSearchEnabled
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Web Search"), icon: .symbol("globe"),
+                    startsSection: true, detail: enabled ? "✓" : nil
+                ) {
+                    coordinator.aiSettings.webSearchEnabled.toggle()
+                })
+            separated = true
+        }
+        let servers = coordinator.mcpServers
+        if can.tools, !servers.isEmpty {
+            let scope = chat.toolScope
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Use Tools"), icon: .symbol("wrench.and.screwdriver"),
+                    startsSection: !separated, detail: scope.isEnabled ? "✓" : nil
+                ) {
+                    coordinator.setToolsEnabled(!scope.isEnabled, in: chat)
+                })
+            if scope.isEnabled {
+                let allowed = servers.filter { scope.allows($0.slug) }
+                for (index, server) in allowed.enumerated() {
+                    let label = server.name.isEmpty ? server.slug : server.name
+                    items.append(
+                        PopoverMenuItem(
+                            title: "@\(server.slug)", icon: .symbol("at"),
+                            sectionTitle: index == 0 ? String(localized: "Mentions") : nil,
+                            detail: label == server.slug ? nil : label
+                        ) {
+                            quickAI.mentionServer(server.slug)
+                        })
+                }
+            }
+        }
+        return PopoverMenuContent(header: String(localized: "Add Context"), items: items)
+    }
+
     /// One row per staged file, its ✕ beside the name: picking one takes that file back alone.
     static func attachments(coordinator: AIChatCoordinator, chat: AIChatState) -> PopoverMenuContent {
         var items = chat.pendingAttachments.map { attachment in

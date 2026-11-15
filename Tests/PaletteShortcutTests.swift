@@ -99,6 +99,10 @@ struct PaletteShortcutTests {
         expect(resolve("d", command: true, shift: true), nil, "⇧⌘D is not the duplicate chord")
         expect(resolve(",", command: true, option: true), .settings, "⌥⌘, opens the screen's settings")
         expect(resolve(",", command: true), nil, "⌘, stays the app's own Settings")
+        expect(resolve("a", command: true, shift: true), .attachFiles, "⇧⌘A attaches files")
+        expect(resolve("a", command: true), nil, "⌘A stays Select All in the field")
+        expect(resolve("s", command: true, shift: true), .captureScreenshot, "⇧⌘S captures a screenshot")
+        expect(resolve("s", command: true), nil, "⌘S stays with the field")
 
         expect(resolve("k", command: true), nil, "⌘K belongs to the Actions menu")
         expect(resolve("p", command: true), nil, "⌘P belongs to the header filter")
@@ -110,8 +114,8 @@ struct PaletteShortcutTests {
             .hideApp, .restart, .edit, .duplicate, .showInFinder
         ]
         let anywhere: [PaletteShortcut] = [
-            .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot(0), .continueInChat, .newItem,
-            .settings, .copyCalculation
+            .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot(0), .attachFiles,
+            .captureScreenshot, .continueInChat, .newItem, .settings, .copyCalculation
         ]
         for shortcut in expanded {
             expect(shortcut.requiresExpanded, "\(shortcut) is skipped in the compact bar")
@@ -123,7 +127,8 @@ struct PaletteShortcutTests {
         let closing: [PaletteShortcut] = [
             .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyText, .copyCalculation,
             .quickLook, .openInApp, .showDetails, .toggleFavorite, .hideFromSearch, .minimizeWindow,
-            .newItem, .settings, .edit, .duplicate, .showInFinder
+            .newItem, .settings, .edit, .duplicate, .showInFinder, .attachFiles,
+            .captureScreenshot
         ]
         let leaving: [PaletteShortcut] = [
             .commandDelete, .pasteFile, .quit, .forceQuit, .hideApp, .restart, .pin, .favoriteSlot(0),

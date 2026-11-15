@@ -3,6 +3,7 @@ import Network
 
 @MainActor
 final class OpenCodeMCPBridge {
+    private let kind: InstalledAIKind
     private let session: AIToolSession
     private let event: (AIStreamEvent) -> Void
     private let failure: (String) -> Void
@@ -17,9 +18,10 @@ final class OpenCodeMCPBridge {
     private var waiting: [CheckedContinuation<Void, Error>] = []
 
     init(
-        session: AIToolSession, event: @escaping (AIStreamEvent) -> Void,
-        failure: @escaping (String) -> Void
+        kind: InstalledAIKind = .openCode, session: AIToolSession,
+        event: @escaping (AIStreamEvent) -> Void, failure: @escaping (String) -> Void
     ) {
+        self.kind = kind
         self.session = session
         self.event = event
         self.failure = failure
@@ -28,6 +30,12 @@ final class OpenCodeMCPBridge {
     isolated deinit { task?.cancel() }
 
     func start() async throws -> String {
+        let endpoint = try await startEndpoint()
+        return try OpenCodeMCPLaunch.configuration(
+            server: server, url: endpoint.url, bearer: endpoint.bearer, tools: session.tools)
+    }
+
+    func startEndpoint() async throws -> OpenCodeMCPLaunch.Endpoint {
         let listener = try NetworkListener(
             using: .parameters { TCP() }
                 .localEndpoint(.hostPort(host: .ipv4(.loopback), port: .any)))
@@ -62,9 +70,8 @@ final class OpenCodeMCPBridge {
         }
         try Task.checkCancellation()
         guard !stopped else { throw CancellationError() }
-        return try OpenCodeMCPLaunch.configuration(
-            server: server, url: "http://127.0.0.1:\(port)/mcp", bearer: bearer,
-            tools: session.tools)
+        return OpenCodeMCPLaunch.Endpoint(
+            url: "http://127.0.0.1:\(port)/mcp", bearer: bearer)
     }
 
     func stop() {
@@ -233,7 +240,7 @@ final class OpenCodeMCPBridge {
             throw CancellationError()
         }
         guard spent < AIToolLoopProvider.maxTurnResultBytes else {
-            failure(String(localized: "\(InstalledAIKind.openCode.title) returned an oversized response."))
+            failure(String(localized: "\(kind.title) returned an oversized response."))
             stop()
             throw CancellationError()
         }

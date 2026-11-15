@@ -134,7 +134,7 @@ struct AIUsage: Equatable, Sendable {
     var cachedInputTokens: Int?
     /// The part of `outputTokens` the model spent thinking.
     var reasoningTokens: Int?
-    /// The model's whole window, where a route reports it; only Claude's CLI does.
+    /// The model's whole window, where a route reports it; Claude and Antigravity CLIs do.
     var contextWindow: Int?
     var costUSD: Double?
 

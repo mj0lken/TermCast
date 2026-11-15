@@ -2,6 +2,12 @@ import Foundation
 import UniformTypeIdentifiers
 
 struct InstalledCLIProvider: AIProvider {
+    fileprivate static let safetyInstructions = """
+        You are generating text inside Tinycast. Do not invoke tools, read files, inspect the \
+        environment, access external resources, or modify anything. Use only the conversation and \
+        instructions in this request.
+        """
+
     private let runner: InstalledCLITurnRunner
 
     @MainActor
@@ -18,16 +24,106 @@ struct InstalledCLIProvider: AIProvider {
     func stream(_ request: AIRequest) -> AIProviderStream {
         runner.stream(request)
     }
+
+    /// Writes `.agents/hooks.json` so built-in and global MCP tools stay denied in `agy acp`.
+    nonisolated static func prepareAntigravityWorkspace(
+        in workspace: URL, allowsMCP: Bool = false
+    ) throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(at: workspace, withIntermediateDirectories: true)
+        try fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: workspace.path)
+        let dotAgents = workspace.appending(path: ".agents", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: dotAgents, withIntermediateDirectories: true)
+        try fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dotAgents.path)
+        let hooks =
+            allowsMCP
+            ? OpenCodeMCPLaunch.antigravityBridgeHooks
+            : InstalledAIKind.antigravityNoToolsHooks
+        try writeRestricted(Data(hooks.utf8), to: dotAgents.appending(path: "hooks.json"))
+    }
+
+    /// `agy` writes conversation databases, brain directories and MCP schemas under its data root.
+    nonisolated static func deleteAntigravityConversation(
+        _ sessionID: String, root: URL = antigravityDataRoot()
+    ) {
+        let trimmed = sessionID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != ".", trimmed != "..",
+            !trimmed.contains("/"), !trimmed.contains("\\")
+        else { return }
+        let fm = FileManager.default
+        let conversations = root.appending(path: "conversations", directoryHint: .isDirectory)
+        for suffix in [".db", ".db-wal", ".db-shm"] {
+            try? fm.removeItem(at: conversations.appending(path: trimmed + suffix))
+        }
+        try? fm.removeItem(
+            at: root.appending(path: "brain", directoryHint: .isDirectory)
+                .appending(path: trimmed, directoryHint: .isDirectory))
+        try? fm.removeItem(
+            at: root.appending(path: "annotations", directoryHint: .isDirectory)
+                .appending(path: trimmed + ".pbtxt"))
+        try? fm.removeItem(
+            at: root.appending(path: "presence", directoryHint: .isDirectory)
+                .appending(path: trimmed + ".lock"))
+        try? fm.removeItem(
+            at: root.appending(path: "mcp", directoryHint: .isDirectory)
+                .appending(path: OpenCodeMCPLaunch.antigravityServer, directoryHint: .isDirectory))
+    }
+
+    nonisolated static func antigravityDataRoot(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL {
+        if let override = environment["TC_ANTIGRAVITY_DATA_DIR"], !override.isEmpty {
+            return URL(fileURLWithPath: override, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.appending(
+            path: ".gemini/antigravity-cli", directoryHint: .isDirectory)
+    }
+
+    nonisolated static func deleteCLISession(
+        arguments: [String], executable: URL, workspace: URL, environment: [String: String]
+    ) {
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = arguments
+        process.currentDirectoryURL = workspace
+        process.environment = environment
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try? process.runObservingExit().wait()
+    }
+
+    nonisolated static func canonicalPath(of url: URL) -> String {
+        guard let pointer = realpath(url.path, nil) else {
+            return url.resolvingSymlinksInPath().path
+        }
+        defer { free(pointer) }
+        return String(cString: pointer)
+    }
+
+    nonisolated private static func writeRestricted(_ data: Data, to url: URL) throws {
+        let tempURL = url.deletingLastPathComponent()
+            .appending(path: ".tinycast-\(UUID().uuidString)")
+        let descriptor = open(tempURL.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        guard descriptor >= 0 else { throw CocoaError(.fileWriteUnknown) }
+        do {
+            let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            try file.write(contentsOf: data)
+            try file.close()
+            guard rename(tempURL.path, url.path) == 0 else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw error
+        }
+    }
 }
 
 @MainActor
 private final class InstalledCLITurnRunner {
-    private static let safetyInstructions = """
-        You are generating text inside Tinycast. Do not invoke tools, read files, inspect the \
-        environment, access external resources, or modify anything. Use only the conversation and \
-        instructions in this request.
-        """
-    private static let toolSafetyInstructions = """
+    private static let safetyInstructions = InstalledCLIProvider.safetyInstructions
+    nonisolated fileprivate static let toolSafetyInstructions = """
         You are generating text inside Tinycast. The only tools you may use are the MCP tools \
         supplied with this request, and you may use them for anything they offer. Do not run \
         commands, read files, inspect the environment, access external resources, or modify \
@@ -61,6 +157,8 @@ private final class InstalledCLITurnRunner {
     private var outputBuffer = Data()
     private var errorBuffer = Data()
     private var turnSessionID: String?
+    private var turnContextWindow: Int?
+    private var pendingAntigravityPrompt: (prompt: String, images: [AIImage])?
     /// Every file is the turn's own and private: its prompt, its MCP secrets, its pictures.
     private var privateFiles: [URL] = []
     private var activeExecutable: URL?
@@ -85,7 +183,8 @@ private final class InstalledCLITurnRunner {
         self.effort = effort
         self.workspace = workspace
         self.toolServers = toolServers
-        self.toolSession = kind == .openCode ? toolSession : nil
+        self.toolSession =
+            (kind == .openCode || kind == .antigravity) ? toolSession : nil
     }
 
     nonisolated func stream(_ request: AIRequest) -> AIProviderStream {
@@ -209,14 +308,14 @@ private final class InstalledCLITurnRunner {
             }
             files += attachments
         }
-
         var bridge: OpenCodeMCPBridge?
         var openCodeConfiguration: String?
+        var antigravityEndpoint: OpenCodeMCPLaunch.Endpoint?
         defer {
             if self.bridge !== bridge { bridge?.stop() }
         }
         if let toolSession, !toolSession.tools.isEmpty {
-            let connection = OpenCodeMCPBridge(session: toolSession) { event in
+            let connection = OpenCodeMCPBridge(kind: kind, session: toolSession) { event in
                 continuation.yield(event)
             } failure: { [weak self] message in
                 guard self?.token === token else { return }
@@ -224,10 +323,37 @@ private final class InstalledCLITurnRunner {
             }
             bridge = connection
             do {
-                openCodeConfiguration = try await connection.start()
+                if kind == .antigravity {
+                    antigravityEndpoint = try await connection.startEndpoint()
+                } else {
+                    openCodeConfiguration = try await connection.start()
+                }
             } catch {
                 Self.remove(files)
                 continuation.finish(throwing: error)
+                return
+            }
+        }
+
+        var turnWorkspace = workspace
+        var antigravityWorkspacePath = workspace.path
+        if kind == .antigravity {
+            let isolated = workspace.appending(
+                path: "tinycast-agy-\(UUID().uuidString)", directoryHint: .isDirectory)
+            turnWorkspace = isolated
+            files.append(isolated)
+            let allowsMCP = antigravityEndpoint != nil
+            do {
+                antigravityWorkspacePath = try await Task.detached {
+                    try InstalledCLIProvider.prepareAntigravityWorkspace(
+                        in: isolated, allowsMCP: allowsMCP)
+                    return InstalledCLIProvider.canonicalPath(of: isolated)
+                }.value
+            } catch {
+                Self.remove(files)
+                continuation.finish(
+                    throwing: AIProviderError.unavailable(
+                        String(localized: "Tinycast could not prepare its private AI workspace.")))
                 return
             }
         }
@@ -237,14 +363,15 @@ private final class InstalledCLITurnRunner {
         let stdout = Pipe()
         let stderr = Pipe()
         process.executableURL = executable
-        process.currentDirectoryURL = workspace
-        process.environment = environment(for: executable)
+        process.currentDirectoryURL = turnWorkspace
+        process.environment = environment(for: executable, in: turnWorkspace)
         if let openCodeConfiguration {
             process.environment?["OPENCODE_CONFIG_CONTENT"] = openCodeConfiguration
         }
         process.standardInput = kind == .grok ? FileHandle.nullDevice : stdin
         process.arguments = arguments(
-            promptFile: grokPrompt, mcpConfig: configURL, attachments: attachments)
+            promptFile: grokPrompt, mcpConfig: configURL, attachments: attachments,
+            antigravityAllowsMCP: antigravityEndpoint != nil)
         process.standardOutput = stdout
         process.standardError = stderr
         stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
@@ -291,6 +418,8 @@ private final class InstalledCLITurnRunner {
         self.bridge = bridge
         activeExecutable = executable
         self.token = token
+        turnContextWindow = nil
+        pendingAntigravityPrompt = nil
         exitStatus = nil
         outputClosed = false
         self.continuation = continuation
@@ -298,6 +427,25 @@ private final class InstalledCLITurnRunner {
         input = stdin.fileHandleForWriting
         // A child that exits before reading must fail the write, not SIGPIPE Tinycast.
         _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        if kind == .antigravity {
+            let instructions =
+                antigravityEndpoint == nil
+                ? Self.safetyInstructions
+                : Self.toolSafetyInstructions
+                    + " Only invoke tools whose names begin with `"
+                    + OpenCodeMCPLaunch.antigravityToolPrefix + "`."
+            guard
+                let line = InstalledAIKind.antigravitySessionRequest(
+                    workspacePath: antigravityWorkspacePath, instructions: instructions,
+                    mcpEndpoint: antigravityEndpoint)
+            else {
+                fail(String(localized: "Tinycast could not frame the request for \(kind.title)."))
+                return
+            }
+            pendingAntigravityPrompt = (prompt: prompt, images: images)
+            write(line, closing: false)
+            return
+        }
         guard kind == .claude else {
             write(Data(prompt.utf8), closing: true)
             return
@@ -368,7 +516,10 @@ private final class InstalledCLITurnRunner {
     /// Nothing to call is one request; an armed turn takes the reader's cap, which may be none.
     private var roundCap: Int? { activeServers.isEmpty ? 1 : toolServers?.rounds }
 
-    private func arguments(promptFile: URL?, mcpConfig: URL?, attachments: [URL]) -> [String] {
+    private func arguments(
+        promptFile: URL?, mcpConfig: URL?, attachments: [URL],
+        antigravityAllowsMCP: Bool = false
+    ) -> [String] {
         switch kind {
         case .claude:
             var result = [
@@ -398,6 +549,12 @@ private final class InstalledCLITurnRunner {
                 result += InstalledAIManager.claudeWithoutMCPArguments
             }
             if let effort { result += ["--effort", effort] }
+            return result
+        case .antigravity:
+            var result = ["acp", "--include-default-customizations=false", "--sandbox"]
+            if antigravityAllowsMCP {
+                result.append("--dangerously-skip-permissions")
+            }
             return result
         case .openCode:
             return [
@@ -447,9 +604,9 @@ private final class InstalledCLITurnRunner {
     }
 
     /// OpenCode takes its directory from `PWD` ahead of the real working directory.
-    private func environment(for executable: URL) -> [String: String] {
+    private func environment(for executable: URL, in directory: URL? = nil) -> [String: String] {
         ExecutableLocator.environment(
-            running: executable, adding: ["PWD": workspace.path],
+            running: executable, adding: ["PWD": (directory ?? workspace).path],
             inherited: launch.inherited(for: kind)
         ).merging(kind.managedEnvironment) { _, managed in managed }
     }
@@ -501,6 +658,27 @@ private final class InstalledCLITurnRunner {
 
     private func apply(_ frame: InstalledAIStreamFrame, token: TurnToken) {
         if let sessionID = frame.sessionID { turnSessionID = sessionID }
+        if let window = frame.contextWindow { turnContextWindow = window }
+        if let reply = frame.serverReply {
+            write(reply, closing: false)
+            return
+        }
+        if frame.sessionStarted, let sessionID = frame.sessionID,
+            let pending = pendingAntigravityPrompt
+        {
+            pendingAntigravityPrompt = nil
+            guard
+                let line = InstalledAIKind.antigravityPromptRequest(
+                    sessionID: sessionID, model: model, effort: effort,
+                    availableModels: frame.availableModels, prompt: pending.prompt,
+                    images: pending.images)
+            else {
+                fail(String(localized: "Tinycast could not frame the request for \(kind.title)."))
+                return
+            }
+            write(line, closing: false)
+            return
+        }
         if let request = frame.controlRequest {
             answer(request, token: token)
             return
@@ -512,7 +690,14 @@ private final class InstalledCLITurnRunner {
             }
             return
         }
-        for event in frame.events { continuation?.yield(event) }
+        for event in frame.events {
+            if case .usage(var usage) = event, usage.contextWindow == nil {
+                usage.contextWindow = turnContextWindow
+                continuation?.yield(.usage(usage))
+            } else {
+                continuation?.yield(event)
+            }
+        }
         if frame.stoppedAtRoundCap {
             fail(
                 roundCap.map { String(localized: "Stopped after \($0) rounds of tool calls.") }
@@ -611,6 +796,8 @@ private final class InstalledCLITurnRunner {
         process?.terminate()
         outputBuffer.removeAll(keepingCapacity: false)
         errorBuffer.removeAll(keepingCapacity: false)
+        turnContextWindow = nil
+        pendingAntigravityPrompt = nil
         removePrivateFiles()
     }
 
@@ -625,16 +812,22 @@ private final class InstalledCLITurnRunner {
         switch kind {
         case .openCode, .grok:
             guard let executable = activeExecutable else { return }
-            let arguments =
+            let arguments: [String] =
                 kind == .grok
                 ? ["sessions", "delete", sessionID]
                 : ["session", "delete", sessionID, "--standalone"]
             let workspace = workspace
             let environment = environment(for: executable)
             Task.detached {
-                Self.deleteCLISession(
+                InstalledCLIProvider.deleteCLISession(
                     arguments: arguments, executable: executable, workspace: workspace,
                     environment: environment)
+            }
+        case .antigravity:
+            let root = InstalledCLIProvider.antigravityDataRoot(
+                environment: launch.inherited(for: .antigravity))
+            Task.detached {
+                InstalledCLIProvider.deleteAntigravityConversation(sessionID, root: root)
             }
         case .cursor:
             let root = Self.cursorChatsRoot()
@@ -642,20 +835,6 @@ private final class InstalledCLITurnRunner {
         case .claude, .codex:
             break
         }
-    }
-
-    nonisolated private static func deleteCLISession(
-        arguments: [String], executable: URL, workspace: URL, environment: [String: String]
-    ) {
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = arguments
-        process.currentDirectoryURL = workspace
-        process.environment = environment
-        process.standardInput = FileHandle.nullDevice
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try? process.runObservingExit().wait()
     }
 
     /// The CLI has no delete-chat; chats live under `~/.cursor/chats/<workspace>/<id>`.
@@ -692,6 +871,8 @@ private final class InstalledCLITurnRunner {
         outputBuffer.removeAll(keepingCapacity: false)
         errorBuffer.removeAll(keepingCapacity: false)
         turnSessionID = nil
+        turnContextWindow = nil
+        pendingAntigravityPrompt = nil
         exitStatus = nil
         outputClosed = false
         removePrivateFiles()

@@ -16,6 +16,7 @@ extension InstalledAIKind {
             switch self {
             case .codex: "559A2B35-A0EE-45DF-8E97-A87052450350"
             case .claude: "06C43DBE-F304-4E64-BBC5-F4A2AB00264B"
+            case .antigravity: "2B9A5E4D-81C3-4F27-9D14-6E8B3A70C512"
             case .grok: "83C70D38-66BE-4D64-8F1F-BC54FBF83E6B"
             case .openCode: "AF4DC1E6-7D9C-4C65-B278-CDB141C89DD3"
             case .cursor: "76B444D9-4617-45C8-A3E1-71A977C49D8D"

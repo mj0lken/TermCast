@@ -198,6 +198,10 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
             showActions()
         case ([.command], "n"):
             coordinator.newChat()
+        case ([.command, .shift], "a"):
+            coordinator.chooseFiles(for: chat)
+        case ([.command, .shift], "s"):
+            coordinator.captureScreenshot(for: chat)
         case ([.command], "r") where AIChatActionsMenu.canRegenerate(chat):
             coordinator.regenerate(in: chat)
         case ([.command, .shift], "c") where chat.lastAssistantText != nil:
@@ -249,6 +253,31 @@ enum AIChatActionsMenu {
                 })
         }
         menu.addItem(.separator())
+        menu.addItem(
+            ClosureMenuItem(
+                String(localized: "Attach Files…"), symbol: "paperclip", key: "a",
+                modifiers: [.command, .shift]
+            ) {
+                coordinator.chooseFiles(for: chat)
+            })
+        if coordinator.capabilities(for: chat).images {
+            menu.addItem(
+                ClosureMenuItem(
+                    String(localized: "Capture Screenshot"), symbol: "camera.viewfinder", key: "s",
+                    modifiers: [.command, .shift]
+                ) {
+                    coordinator.captureScreenshot(for: chat)
+                })
+        }
+        if !chat.pendingAttachments.isEmpty {
+            menu.addItem(
+                ClosureMenuItem(String(localized: "Remove Attachments"), symbol: "xmark.circle") {
+                    coordinator.clearAttachments(in: chat)
+                })
+        }
+        if chat.lastAssistantText != nil || saved {
+            menu.addItem(.separator())
+        }
         if chat.lastAssistantText != nil {
             menu.addItem(
                 ClosureMenuItem(
@@ -266,12 +295,6 @@ enum AIChatActionsMenu {
             menu.addItem(
                 ClosureMenuItem(String(localized: "Copy Deeplink"), symbol: "link") {
                     coordinator.copyDeepLink(toChat: chat.session.id)
-                })
-        }
-        if !chat.pendingAttachments.isEmpty {
-            menu.addItem(
-                ClosureMenuItem(String(localized: "Remove Attachments"), symbol: "paperclip") {
-                    coordinator.clearAttachments(in: chat)
                 })
         }
         if saved {

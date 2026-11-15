@@ -623,6 +623,15 @@ struct AIChatTests {
         expect(
             AIAttachmentPolicy.mimeType(forFileName: "a.csv") == "text/plain",
             "an inlined file is text, whatever its extension")
+        expect(
+            AIAttachmentPolicy.allowedExtensions(images: false, documents: false).contains("md")
+                && !AIAttachmentPolicy.allowedExtensions(images: false, documents: false).contains("png")
+                && !AIAttachmentPolicy.allowedExtensions(images: false, documents: false).contains("pdf"),
+            "a text-only model offers text extensions alone")
+        expect(
+            AIAttachmentPolicy.allowedExtensions(images: true, documents: true).contains("png")
+                && AIAttachmentPolicy.allowedExtensions(images: true, documents: true).contains("pdf"),
+            "a multimodal model offers images and PDFs too")
     }
 
     static func historyRoundTripsAndRepairsInterruptedReplies() {

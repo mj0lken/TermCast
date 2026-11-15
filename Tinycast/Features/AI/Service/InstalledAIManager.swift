@@ -58,7 +58,8 @@ final class InstalledAIManager {
             let name = file.lastPathComponent
             guard
                 (name.hasPrefix("tinycast-mcp-") && name.hasSuffix(".json"))
-                    || (name.hasPrefix("tinycast-prompt-") && name.hasSuffix(".txt")),
+                    || (name.hasPrefix("tinycast-prompt-") && name.hasSuffix(".txt"))
+                    || name.hasPrefix("tinycast-agy-"),
                 let modified = try? file.resourceValues(forKeys: [.contentModificationDateKey])
                     .contentModificationDate,
                 modified < launch
@@ -256,6 +257,53 @@ final class InstalledAIManager {
                     version: version, executable: executable, models: models,
                     account: InstalledAIModel.claudeAccount(catalog.output))
             )
+        case .antigravity:
+            guard (try? InstalledCLIProvider.prepareAntigravityWorkspace(in: workspace)) != nil,
+                let request = InstalledAIModel.antigravityProbeRequest(
+                    workspacePath: InstalledCLIProvider.canonicalPath(of: workspace))
+            else {
+                return (
+                    kind,
+                    InstalledAIStatus(
+                        phase: .failed(
+                            String(
+                                localized: "Tinycast could not prepare its private AI workspace.")),
+                        version: version, executable: executable)
+                )
+            }
+            let output = await InstalledAIProbe.request(
+                executable: executable,
+                arguments: ["acp", "--include-default-customizations=false", "--sandbox"],
+                workspace: workspace, environment: environment,
+                input: Data(request.utf8), until: InstalledAIModel.antigravityProbeAnswered,
+                timeout: .seconds(30))
+            switch InstalledAIModel.antigravityProbe(output) {
+            case .ready(let models, let account, let sessionID):
+                if let sessionID {
+                    let root = InstalledCLIProvider.antigravityDataRoot(environment: environment)
+                    Task.detached {
+                        InstalledCLIProvider.deleteAntigravityConversation(sessionID, root: root)
+                    }
+                }
+                return (
+                    kind,
+                    InstalledAIStatus(
+                        phase: .ready, version: version, executable: executable, models: models,
+                        account: account)
+                )
+            case .signInRequired:
+                return (
+                    kind,
+                    InstalledAIStatus(
+                        phase: .signInRequired, version: version, executable: executable)
+                )
+            case .failed(let message):
+                return (
+                    kind,
+                    InstalledAIStatus(
+                        phase: .failed(message), version: version, executable: executable)
+                )
+            }
         case .openCode:
             guard let version, let major = Int(version.prefix(while: \.isNumber)), major >= 2 else {
                 return (

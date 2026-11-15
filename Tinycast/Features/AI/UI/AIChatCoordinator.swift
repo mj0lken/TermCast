@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Chat actions for both surfaces, plus the AI Chat window's own; views route every mutation here.
 @MainActor
@@ -385,8 +386,11 @@ final class AIChatCoordinator {
         ) { [mcp = core.mcpCoordinator] call in
             await mcp.invoke(call, in: chatID)
         }
-        if case .openCode? = model(for: chat) {
+        switch model(for: chat) {
+        case .openCode?, .antigravity?:
             return try provider(for: chat, toolSession: session)
+        default:
+            break
         }
         return AIToolLoopProvider(
             base: try provider(for: chat), tools: session.tools, maxRounds: session.maxCalls,
@@ -460,6 +464,7 @@ final class AIChatCoordinator {
             return AIModelCapabilities(
                 images: entry?.acceptsImages == true, documents: false, webSearch: false,
                 tools: entry?.supportsTools == true)
+        case .antigravity?: return .antigravityCommand
         case .grok?, .cursor?:
             return .none
         case .api(let connection, let model, _)?:
@@ -499,12 +504,7 @@ final class AIChatCoordinator {
 
     /// ⌘V stages a file, read off-main; false hands the chord back to the field editor.
     func attachPastedFile(files: [URL], to chat: AIChatState) -> Bool {
-        let pasteboard = NSPasteboard.general
-        // A copied text selection often carries a TIFF too; only a board with no string is a picture.
-        let pasted =
-            files.isEmpty && pasteboard.string(forType: .string) == nil
-            ? pasteboard.availableType(from: [.png, .tiff]).flatMap { pasteboard.data(forType: $0) }
-            : nil
+        let pasted = files.isEmpty ? PasteboardFiles.pastedImageData(on: .general) : nil
         guard !files.isEmpty || pasted != nil else { return false }
         if let refusal = unattachable(files, in: chat) {
             core.showMessage(refusal.message, tone: .neutral)
@@ -516,6 +516,33 @@ final class AIChatCoordinator {
         }
         stage(files: files, pasted: pasted, into: chat)
         return true
+    }
+
+    var hasClipboardImage: Bool {
+        let files = PasteboardFiles.urls(on: .general, limit: 1) {
+            AIAttachmentPolicy.kind(forFileName: $0.lastPathComponent) == .image
+        }
+        if !files.isEmpty { return true }
+        return NSPasteboard.general.availableType(from: [.png, .tiff]) != nil
+    }
+
+    func pasteClipboardImage(into chat: AIChatState) {
+        guard capabilities(for: chat).images else {
+            core.showMessage(ChatAttachmentRefusal.imagesUnsupported.message, tone: .neutral)
+            return
+        }
+        let files = PasteboardFiles.urls(on: .general, limit: .max) {
+            AIAttachmentPolicy.kind(forFileName: $0.lastPathComponent) == .image
+        }
+        if !files.isEmpty {
+            attach(files: files, to: chat)
+            return
+        }
+        let pasteboard = NSPasteboard.general
+        guard let type = pasteboard.availableType(from: [.png, .tiff]),
+            let data = pasteboard.data(forType: type)
+        else { return }
+        stage(files: [], pasted: data, into: chat)
     }
 
     /// A drop or the paperclip: the same refusals as a paste, since the route is what decides.
@@ -531,16 +558,72 @@ final class AIChatCoordinator {
 
     /// An accessory app must activate first, or the panel opens behind the frontmost app.
     func chooseFiles(for chat: AIChatState) {
+        let reopenPalette = paletteCoordinator.isShowing(.ai)
+        let can = capabilities(for: chat)
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = AIAttachmentPolicy.allowedExtensions(
+            images: can.images, documents: can.documents
+        ).compactMap { UTType(filenameExtension: $0) }
         panel.prompt = String(localized: "Attach")
         panel.message = String(
             localized: "Choose images, PDFs or text files to send with your next message.")
         NSApp.activate(ignoringOtherApps: true)
-        guard panel.runModal() == .OK else { return }
+        let response = panel.runModal()
+        restoreSurface(reopeningPalette: reopenPalette)
+        guard response == .OK else { return }
         attach(files: panel.urls, to: chat)
+    }
+
+    /// Hides Tinycast's surface during the crosshair drag, then deletes the scratch PNG once read.
+    func captureScreenshot(for chat: AIChatState) {
+        guard capabilities(for: chat).images else {
+            core.showMessage(ChatAttachmentRefusal.imagesUnsupported.message, tone: .neutral)
+            return
+        }
+        let reopenPalette = paletteCoordinator.isShowing(.ai)
+        if reopenPalette {
+            paletteCoordinator.hidePalette(restoreFocus: false)
+        }
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tinycast-screenshot-\(UUID().uuidString).png")
+        let screenshotName = String(localized: "Screenshot")
+        let generation = chat.stagingGeneration
+        Task { [weak self, weak chat] in
+            let outcome = await Task.detached(priority: .userInitiated) {
+                () -> ChatAttachmentReader.Outcome? in
+                defer { try? FileManager.default.removeItem(at: temp) }
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+                process.arguments = ["-i", "-x", temp.path]
+                guard let exit = try? process.runObservingExit() else { return nil }
+                exit.wait()
+                guard process.terminationStatus == 0,
+                    let data = try? Data(contentsOf: temp), !data.isEmpty
+                else { return nil }
+                return ChatAttachmentReader.image(data, named: screenshotName)
+            }.value
+            guard let self, let chat else { return }
+            restoreSurface(reopeningPalette: reopenPalette)
+            guard let outcome else { return }
+            applyAttachmentOutcomes([outcome], generation: generation, into: chat)
+        }
+    }
+
+    private func restoreSurface(reopeningPalette: Bool) {
+        if reopeningPalette {
+            paletteCoordinator.showPalette(mode: .ai)
+        } else {
+            _ = focusExisting()
+        }
+    }
+
+    func addressDraft(_ draft: String, to slug: String) -> String {
+        let parsed = MCPComposerAddress.parse(draft, slugs: core.mcpCoordinator.slugs)
+        let body = parsed.slug == nil ? draft.drop { $0 == " " }.description : parsed.rest
+        return body.isEmpty ? "@\(slug) " : "@\(slug) \(body)"
     }
 
     func clearAttachments(in chat: AIChatState) {
@@ -577,25 +660,31 @@ final class AIChatCoordinator {
                 return pasted.map { [ChatAttachmentReader.image($0)] } ?? []
             }.value
             guard let self, let chat else { return }
-            guard generation == chat.stagingGeneration else {
-                core.showMessage(
-                    String(localized: "That file was still loading and did not make it into the chat."),
-                    tone: .neutral)
+            applyAttachmentOutcomes(read, generation: generation, into: chat)
+        }
+    }
+
+    private func applyAttachmentOutcomes(
+        _ outcomes: [ChatAttachmentReader.Outcome], generation: Int, into chat: AIChatState
+    ) {
+        guard generation == chat.stagingGeneration else {
+            core.showMessage(
+                String(localized: "That file was still loading and did not make it into the chat."),
+                tone: .neutral)
+            return
+        }
+        // Stops at the first refusal so a mixed paste says which file it could not take.
+        for outcome in outcomes {
+            switch outcome {
+            case .failed(let refusal):
+                core.showMessage(refusal.message, tone: .neutral)
                 return
-            }
-            // Stops at the first refusal so a mixed paste says which file it could not take.
-            for outcome in read {
-                switch outcome {
-                case .failed(let refusal):
+            case .staged(let item):
+                let attachment = ChatAttachment(
+                    payload: item.payload, name: item.name, preview: item.preview)
+                if let refusal = chat.attach(attachment) {
                     core.showMessage(refusal.message, tone: .neutral)
                     return
-                case .staged(let item):
-                    let attachment = ChatAttachment(
-                        payload: item.payload, name: item.name, preview: item.preview)
-                    if let refusal = chat.attach(attachment) {
-                        core.showMessage(refusal.message, tone: .neutral)
-                        return
-                    }
                 }
             }
         }
@@ -611,7 +700,7 @@ final class AIChatCoordinator {
         core.aiSettings.enabledInstalledProviders.contains { kind in
             switch kind {
             case .codex: core.chatGPTSubscription.phase == .starting
-            case .claude, .grok, .openCode, .cursor:
+            case .claude, .antigravity, .grok, .openCode, .cursor:
                 core.installedAI.status(for: kind).phase == .checking
             }
         }
@@ -636,7 +725,7 @@ final class AIChatCoordinator {
             return true
         case .api(let connection, let model, _):
             return core.aiSettings.connection(id: connection)?.models.contains(model) == true
-        case .codex, .claude, .grok, .openCode, .cursor:
+        case .codex, .claude, .antigravity, .grok, .openCode, .cursor:
             return selection.source.installedKind.map {
                 core.aiSettings.enabledInstalledProviders.contains($0)
             } ?? false
@@ -686,6 +775,8 @@ final class AIChatCoordinator {
         case .appleIntelligence?: return AIModelOption.appleIntelligenceIcon
         case .codex?: return .asset(AIBrand.openAI.assetName)
         case .claude?: return .asset(AIBrand.claude.assetName)
+        case .antigravity(let model, _)?:
+            return AIModelOption.icon(AIBrand.resolve(model: model) ?? .gemini)
         case .grok?: return .asset(AIBrand.grok.assetName)
         case .cursor?: return AIModelOption.cursorIcon
         case .openCode(let model, _)?: return AIModelOption.icon(AIBrand.resolve(model: model))

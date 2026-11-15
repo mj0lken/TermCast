@@ -283,16 +283,21 @@ enum SettingsSearchCatalog {
 
     private static let ai: [SettingsSearchEntry] = [
         .init(
-            pane: .ai, keywords: ["chat", "quick ai", "llm", "model", "openai", "anthropic"]),
+            pane: .ai,
+            keywords: [
+                "chat", "quick ai", "llm", "model", "openai", "anthropic", "gemini", "antigravity"
+            ]),
         .init(.aiAI, "Enable AI", keywords: ["chat", "llm"]),
         .init(
             .aiProviders, "Providers",
             keywords: [
-                "sign in", "connect", "codex", "claude", "grok", "xai", "opencode", "cursor", "agent",
-                "api key", "connection", "base url", "openai", "anthropic", "ollama", "models",
-                "hide models"
+                "sign in", "connect", "codex", "claude", "antigravity", "agy", "gemini", "grok",
+                "xai", "opencode", "cursor", "agent", "api key", "connection", "base url",
+                "openai", "anthropic", "google", "ollama", "models", "hide models"
             ]),
-        .init(.aiDefault, "Default model", keywords: ["llm", "gpt", "claude", "grok"]),
+        .init(
+            .aiDefault, "Default model",
+            keywords: ["llm", "gpt", "claude", "antigravity", "gemini", "grok"]),
         .init(.aiDefault, "Reasoning effort", keywords: ["thinking", "effort", "deepseek"]),
         .init(.aiChat, "Web search", keywords: ["browse", "internet"]),
         .init(.aiChat, "Suggested replies", keywords: ["choices", "chips", "follow-up", "buttons"]),
