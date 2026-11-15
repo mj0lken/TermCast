@@ -33,6 +33,13 @@ print_status() {
         fi
     done
     echo
+    echo "Local Keychain (used automatically by publish-release.sh with Developer ID):"
+    if security find-generic-password -s "com.mj0lken.termcast.update-signing-key" -a "UPDATE_SIGNING_KEY" >/dev/null 2>&1; then
+        echo "  ✓ UPDATE_SIGNING_KEY (macOS Keychain)"
+    else
+        echo "  ○ UPDATE_SIGNING_KEY (not stored in local macOS Keychain)"
+    fi
+    echo
     echo "Optional repository secrets & variables:"
     if has_line "$ENV_SECRETS" "HOMEBREW_TAP_TOKEN" || has_line "$REPO_SECRETS" "HOMEBREW_TAP_TOKEN"; then
         echo "  ✓ HOMEBREW_TAP_TOKEN"
@@ -51,6 +58,18 @@ fi
 
 print_status
 echo
+
+if ! security find-generic-password -s "com.mj0lken.termcast.update-signing-key" -a "UPDATE_SIGNING_KEY" >/dev/null 2>&1; then
+    read -r -s -p "Base64 Ed25519 UPDATE_SIGNING_KEY for local macOS Keychain (Enter to skip): " LOCAL_UPD_KEY
+    echo
+    if [ -n "$LOCAL_UPD_KEY" ]; then
+        security add-generic-password -U -s "com.mj0lken.termcast.update-signing-key" -a "UPDATE_SIGNING_KEY" -w "$LOCAL_UPD_KEY"
+        if ! has_line "$ENV_SECRETS" "UPDATE_SIGNING_KEY"; then
+            printf '%s' "$LOCAL_UPD_KEY" | gh secret set UPDATE_SIGNING_KEY --env "$ENV_NAME" --repo "$REPO"
+        fi
+        unset LOCAL_UPD_KEY
+    fi
+fi
 
 if ! has_line "$ENV_SECRETS" "DEVELOPER_ID_P12_BASE64"; then
     read -r -p "Path to exported Developer ID .p12 file (Enter to skip): " P12_PATH
