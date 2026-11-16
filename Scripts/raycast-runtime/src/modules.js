@@ -16,7 +16,7 @@ const fileModules = new Map();
 
 function notFound(key) {
   throw new Error(
-    `Cannot find module '${key}'. Tinycast provides React, @raycast/api and a subset of Node builtins — see docs/extensions.md.`,
+    `Cannot find module '${key}'. Termcast provides React, @raycast/api and a subset of Node builtins — see docs/extensions.md.`,
   );
 }
 

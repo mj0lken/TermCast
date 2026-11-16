@@ -1,9 +1,7 @@
 name: Sync Upstream
 
-# Polls abue-ammar/tinycast:main and auto-merges clean updates into main (or leaves a PR open on conflicts/failures).
+# Manual fallback workflow; recurring upstream syncs are gated by the local Antigravity AI automation.
 on:
-  schedule:
-    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -85,10 +83,19 @@ jobs:
 
           COUNT="$(git rev-list --count HEAD..upstream/main)"
           SHA="$(git rev-parse --short upstream/main)"
+          MERGE_BASE="$(git merge-base HEAD upstream/main)"
           {
             echo "count=$COUNT"
             echo "sha=$SHA"
           } >> "$GITHUB_OUTPUT"
+
+          # Record files modified on both sides of the merge-base (excluding auto-merged catalogs/pbxproj/README/removed paths)
+          # so CI can block uncompiled auto-merge when upstream edits a file Termcast also customized.
+          comm -12 \
+            <(git diff --name-only "$MERGE_BASE" HEAD | sort) \
+            <(git diff --name-only "$MERGE_BASE" upstream/main | sort) |
+            grep -Ev '^(README\.md|Tinycast\.xcodeproj/project\.pbxproj|Tinycast/Resources/(Localizable|InfoPlist)\.xcstrings|Tinycast/Features/Support/|Tests/SupportTests\.swift$|docs/features/support\.md$)' \
+            > "$RUNNER_TEMP/overlapping-files.txt" || true
 
           git log --no-merges --pretty=format:'- `abue-ammar/tinycast@%h` %s' HEAD..upstream/main | head -n 60 > "$RUNNER_TEMP/commits.md"
           if [ "$COUNT" -gt 60 ]; then
@@ -98,6 +105,7 @@ jobs:
           git checkout -B "$SYNC_BRANCH" HEAD
 
           if ! git merge --no-commit --no-ff upstream/main; then
+            git rm -rf --ignore-unmatch Tinycast/Features/Support Tests/SupportTests.swift docs/features/support.md >/dev/null 2>&1 || true
             node Scripts/rebrand-strings.js --resolve-conflicts
             UNMERGED="$(git diff --name-only --diff-filter=U)"
             if echo "$UNMERGED" | grep -qx "Tinycast.xcodeproj/project.pbxproj" &&
@@ -114,6 +122,7 @@ jobs:
             fi
           fi
 
+          git rm -rf --ignore-unmatch Tinycast/Features/Support Tests/SupportTests.swift docs/features/support.md >/dev/null 2>&1 || true
           node Scripts/rebrand-strings.js
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate
@@ -144,13 +153,20 @@ jobs:
             ! grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/
           }
 
+          check_runtime_fixtures() {
+            node Scripts/raycast-runtime/modules-fixtures.mjs &&
+              node Scripts/raycast-runtime/oauth-fixtures.mjs
+          }
+
           command -v swiftlint >/dev/null || brew install swiftlint
 
           record "Pure \`Model/\` layer check" check_model_purity
           record "SwiftLint (\`swiftlint lint --quiet\`)" swiftlint lint --quiet
           record "Settings search catalog (\`check-settings-search.js\`)" node Scripts/check-settings-search.js
           record "Localizations (\`check-localizations.js\`)" node Scripts/check-localizations.js
+          record "Termcast fork invariants & harness paths (\`check-fork-invariants.js\`)" node Scripts/check-fork-invariants.js
           record "Migrations (\`check-migrations.sh\`)" ./Scripts/check-migrations.sh
+          record "Raycast runtime fixtures (\`modules-fixtures.mjs\` & \`oauth-fixtures.mjs\`)" check_runtime_fixtures
 
           XCODE_PATH="$(find -E /Applications -maxdepth 1 -type d -regex '.*/Xcode_27(\.[0-9]+)*\.app' | sort -V | tail -n1 || true)"
           if [ -z "$XCODE_PATH" ] && [ -d /Applications/Xcode.app ]; then
@@ -165,10 +181,20 @@ jobs:
             record "Debug build (\`xcodebuild -configuration Debug\`)" \
               xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
                 -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-                CODE_SIGN_IDENTITY="-" \
+                CODE_SIGNING_ALLOWED=NO \
                 build
+            record "Test harness suite (\`./Scripts/run-tests.sh\`)" ./Scripts/run-tests.sh
           else
-            echo "- [x] Xcode 27+ build skipped on runner SDK ${SDK_MAJOR} *(Tinycast uses Swift 6.4+ / Xcode 27 memberwise init synthesis)*" >> "$STATUS_FILE"
+            if [ -s "$RUNNER_TEMP/overlapping-files.txt" ]; then
+              OVERLAP_LIST="$(sed 's/^/  - `/' "$RUNNER_TEMP/overlapping-files.txt" | sed 's/$/`/')"
+              {
+                echo "- [ ] Upstream modified Termcast-customized file(s) while runner SDK is ${SDK_MAJOR} (< 27) — holding PR open for local Xcode 27 build & test verification:"
+                echo "$OVERLAP_LIST"
+              } >> "$STATUS_FILE"
+              FAILED=1
+            else
+              echo "- [x] No overlap with Termcast-customized source files *(Xcode 27+ build skipped on runner SDK ${SDK_MAJOR})*" >> "$STATUS_FILE"
+            fi
           fi
 
           if [ "$FAILED" -eq 0 ]; then

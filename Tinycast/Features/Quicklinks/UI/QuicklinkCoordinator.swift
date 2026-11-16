@@ -440,7 +440,7 @@ final class QuicklinkCoordinator {
                 symbol: Quicklink.sfSymbol, tone: .neutral)
             return
         }
-        guard let url = BackupActions.chooseSaveLocation(named: "Tinycast-Quicklinks") else {
+        guard let url = BackupActions.chooseSaveLocation(named: "Termcast-Quicklinks") else {
             return
         }
         do {

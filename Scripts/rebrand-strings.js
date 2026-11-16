@@ -27,15 +27,48 @@ function readStage(stage, relPath) {
   }
 }
 
+const PRESERVE_TINYCAST_KEYS = new Set([
+  "A Tinycast fork",
+]);
+
+// Keys deliberately removed in Termcast (Support feature and legacy .tinycast-only labels).
+// Stripping them here prevents upstream catalog merges from resurrecting stale strings.
+const REMOVED_TINYCAST_KEYS = new Set([
+  "A .tinycast file exported from Tinycast.",
+  "About once a month. Turn this off and %@ won't ask again.",
+  "Built with love.",
+  "Email",
+  "Free and open source. Your support sustains its development.",
+  "Join the Tinycast community",
+  "Remind me occasionally",
+  "Secure checkout on Polar.",
+  "Support",
+  "Support %@",
+  "Support %@…",
+  "Support Tinycast",
+  "Support…",
+  "The ticked items, as one .tinycast file.",
+  "Tinycast",
+]);
+
 function mergeConflictedCatalog(relPath) {
   const base = readStage(1, relPath) ?? { strings: {} };
   const ours = readStage(2, relPath);
   const theirs = readStage(3, relPath);
   if (!ours || !theirs) return false;
 
+  const baseStrings = base.strings ?? {};
+  const oursStrings = ours.strings ?? {};
   const mergedStrings = { ...theirs.strings };
-  for (const [key, entry] of Object.entries(ours.strings ?? {})) {
-    if (!(key in (base.strings ?? {})) && !(key in mergedStrings)) {
+
+  for (const key of Object.keys(mergedStrings)) {
+    if ((key in baseStrings && !(key in oursStrings)) || REMOVED_TINYCAST_KEYS.has(key)) {
+      delete mergedStrings[key];
+    }
+  }
+  for (const [key, entry] of Object.entries(oursStrings)) {
+    if (REMOVED_TINYCAST_KEYS.has(key)) continue;
+    if (!(key in baseStrings) || !(key in mergedStrings) || PRESERVE_TINYCAST_KEYS.has(key)) {
       mergedStrings[key] = entry;
     }
   }
@@ -105,11 +138,6 @@ if (resolveConflicts) {
   }
 }
 
-const PRESERVE_TINYCAST_KEYS = new Set([
-  "Tinycast",
-  "Join the Tinycast community",
-]);
-
 let updatedEntries = 0;
 for (const relPath of CATALOGS) {
   const fullPath = path.join(ROOT, relPath);
@@ -118,6 +146,10 @@ for (const relPath of CATALOGS) {
   const catalog = JSON.parse(raw);
 
   for (const [key, entry] of Object.entries(catalog.strings ?? {})) {
+    if (REMOVED_TINYCAST_KEYS.has(key)) {
+      delete catalog.strings[key];
+      continue;
+    }
     if (!entry || typeof entry !== "object") continue;
     if (PRESERVE_TINYCAST_KEYS.has(key)) continue;
     if (/Tinycast(?![A-Za-z])|tinycast:\/\//.test(key)) {

@@ -53,7 +53,6 @@ final class AppCore {
     let calendarStore = CalendarStore()
     let meetingClock = MeetingClock()
     let updateChecker = UpdateCheckStore()
-    let supportReminders: SupportReminderStore
     let emojiIndex = EmojiIndex()
     let frequentEmoji = FrequentEmojiStore()
     let pinnedEmoji = PinnedEmojiStore()
@@ -225,8 +224,6 @@ final class AppCore {
         paletteCoordinator: paletteCoordinator)
     @ObservationIgnored private(set) lazy var updateCoordinator = UpdateCoordinator(
         store: updateChecker, core: self)
-    @ObservationIgnored private(set) lazy var supportCoordinator = SupportCoordinator(
-        store: supportReminders, core: self)
     @ObservationIgnored private(set) lazy var quickActionCoordinator = QuickActionCoordinator(
         settings: settings, store: quickActionSettings, customActions: customQuickActions,
         injector: textInjector, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
@@ -271,7 +268,6 @@ final class AppCore {
         self.launcherRanking = launcherRanking
         self.settings = settings
         self.chatHistory = chatHistory
-        supportReminders = SupportReminderStore(settings: settings)
         aiChats = AIChatSurfacesState(history: chatHistory)
         appIndex = AppIndex(ranking: launcherRanking, aliases: aliases)
         let clipboardManager = ClipboardManager(store: clipboardStore, settings: settings)
@@ -365,8 +361,6 @@ final class AppCore {
             currencyRates.start()
             updateChecker.onUpdateAvailable = { [weak self] in self?.updateCoordinator.offer($0) }
             updateCoordinator.applyAutomaticChecking()
-            supportReminders.onDue = { [weak self] in self?.supportCoordinator.presentIfDue() }
-            supportReminders.start()
 
             hyperKey.healthTicker = healthTicker
             dictationKey.healthTicker = healthTicker
@@ -501,7 +495,6 @@ final class AppCore {
         if settingsCoordinator.focusExisting() { return }
         if aiChatCoordinator.focusExisting() { return }
         if onboardingCoordinator.focusExisting() { return }
-        if supportCoordinator.focusExisting() { return }
         if customCommandCoordinator.focusOutputWindow() { return }
         paletteCoordinator.showPalette(mode: .launcher, restoreAnyMode: true)
     }

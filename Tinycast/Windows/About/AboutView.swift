@@ -22,7 +22,6 @@ struct AboutView: View {
     }()
 
     private static let iconSize: CGFloat = 88
-    private static let supportTile: CGFloat = 30
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,7 +34,6 @@ struct AboutView: View {
                 .settingsAnchor(.aboutAbout)
                 termcastLinks
                 tinycastLinks
-                support
             }
             .formStyle(.grouped)
             .settingsScrollTarget(.about)
@@ -104,47 +102,6 @@ struct AboutView: View {
         }
     }
 
-    private var support: some View {
-        Section {
-            HStack(spacing: Theme.Spacing.xl) {
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Theme.Colors.brand.opacity(0.18),
-                                Theme.Colors.brandSecondary.opacity(0.18)
-                            ],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: Self.supportTile, height: Self.supportTile)
-                    .overlay(
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Theme.Colors.brand, Theme.Colors.brandSecondary],
-                                    startPoint: .topLeading, endPoint: .bottomTrailing
-                                )
-                            )
-                    )
-                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    SettingsRowTitle(.aboutTinycast, "Support")
-                        .font(.body.weight(.medium))
-                    Text("Free and open source. Your support sustains its development.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: Theme.Spacing.lg)
-                Button("Support…") { core.supportCoordinator.showSupport() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.Colors.brand)
-            }
-            .padding(.vertical, Theme.Spacing.xs)
-        }
-    }
-
     private var footer: some View {
         Text("© 2026 Abue Ammar · Released under AGPL-3.0")
             .font(.caption2)
@@ -184,17 +141,7 @@ private struct AboutLink: Identifiable {
         AboutLink(
             id: "tinycast-github", glyph: .brand("BrandGitHub"), title: "GitHub",
             detail: "github.com/abue-ammar/tinycast",
-            url: URL(string: "https://github.com/abue-ammar/tinycast")!),
-        AboutLink(
-            id: "tinycast-discord", glyph: .brand("BrandDiscord"), title: "Discord",
-            detail: String(localized: "Join the Tinycast community"),
-            url: URL(string: "https://discord.gg/v2Eeb4QQy3")!),
-        AboutLink(
-            id: "tinycast-x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
-            url: URL(string: "https://x.com/abue_ammar")!),
-        AboutLink(
-            id: "tinycast-email", glyph: .symbol("envelope"), title: String(localized: "Email"),
-            detail: "hello@tinycast.dev", url: URL(string: "mailto:hello@tinycast.dev")!)
+            url: URL(string: "https://github.com/abue-ammar/tinycast")!)
     ]
 }
 

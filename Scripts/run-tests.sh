@@ -799,7 +799,6 @@ run BundleIdentifierMigrationTests Tinycast/Migrations/BundleIdentifierMigration
 run UpdateCheckTests       Tinycast/Features/Updates/Model/*.swift \
                            Tinycast/Features/Updates/Service/UpdateCheckStore.swift \
                            Tinycast/Platform/AppPaths.swift
-run SupportTests           Tinycast/Features/Support/Model/*.swift
 run AIProviderTests        Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \

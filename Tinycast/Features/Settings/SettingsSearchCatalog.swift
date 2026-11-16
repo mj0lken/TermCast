@@ -18,12 +18,14 @@ struct SettingsSearchEntry: Identifiable, Hashable, Sendable {
     /// One setting, which its pane marks with a matching `SettingsRowTitle`.
     init(_ anchor: SettingsAnchor, _ title: LocalizedStringResource, keywords: [String] = []) {
         let localized = title.resolved()
-        self.init(.row(anchor, localized), localized, keywords + [title.key])
+        let english = title.key.replacingOccurrences(of: "Tinycast", with: "Termcast")
+        self.init(.row(anchor, localized), localized, keywords + [english])
     }
 
     /// A whole group, for a result no single row answers — a list, or a section's master switch.
     init(group anchor: SettingsAnchor, _ title: LocalizedStringResource, keywords: [String] = []) {
-        self.init(.section(anchor), title.resolved(), keywords + [title.key])
+        let english = title.key.replacingOccurrences(of: "Tinycast", with: "Termcast")
+        self.init(.section(anchor), title.resolved(), keywords + [english])
     }
 
     init(pane: SettingsTab, keywords: [String] = []) {
@@ -185,7 +187,10 @@ enum SettingsSearchCatalog {
             keywords: ["reset", "history", "order", "privacy"]),
         .init(
             group: .generalDeepLinks, "Deeplinks",
-            keywords: ["link", "url", "tinycast://", "allow", "karabiner", "shortcuts", "automation"])
+            keywords: [
+                "link", "url", "termcast://", "tinycast://", "allow", "karabiner", "shortcuts",
+                "automation"
+            ])
     ]
 
     private static let applications: [SettingsSearchEntry] = [
@@ -743,10 +748,10 @@ enum SettingsSearchCatalog {
             keywords: ["export", "import", "restore", "migrate", "raycast"]),
         .init(
             .backupExport, "Export Backup",
-            keywords: ["save", "tinycast file", "archive"]),
+            keywords: ["save", "termcast file", "tinycast file", "archive"]),
         .init(
             .backupImport, "Backup File",
-            keywords: ["restore", "choose", "tinycast file"]),
+            keywords: ["restore", "choose", "termcast file", "tinycast file"]),
         .init(
             .backupImportFromRaycast, "Raycast Export",
             keywords: ["migrate", "rayconfig", "passphrase"]),
@@ -766,10 +771,7 @@ enum SettingsSearchCatalog {
             group: .aboutTermcast, "Termcast",
             keywords: ["links", "github", "source", "issues", "website"]),
         .init(
-            group: .aboutTinycast, "Tinycast",
-            keywords: ["links", "upstream", "github", "website", "discord", "x", "email"]),
-        .init(
-            .aboutTinycast, "Support",
-            keywords: ["donate", "sponsor", "funding"])
+            group: .aboutTinycast, "A Tinycast fork",
+            keywords: ["links", "upstream", "github", "website", "tinycast"])
     ]
 }

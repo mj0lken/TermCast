@@ -3,7 +3,8 @@ import Foundation
 import System
 
 enum BackupArchive {
-    static let fileExtension = "tinycast"
+    static let fileExtension = "termcast"
+    static let supportedFileExtensions = ["termcast", "tinycast"]
 
     enum ArchiveError: LocalizedError, Equatable {
         case cannotWrite

@@ -25,7 +25,7 @@ enum OpenCodeMCPLaunch {
             "share": "disabled", "snapshots": false,
             "agents": [
                 InstalledAIKind.openCodeAgent: [
-                    "system": "You are generating text inside Tinycast. Use only the supplied MCP tools.",
+                    "system": "You are generating text inside Termcast. Use only the supplied MCP tools.",
                     "permissions": permissions
                 ]
             ],
@@ -52,7 +52,7 @@ enum OpenCodeMCPLaunch {
             + "case \"$name\" in \(antigravityToolPrefix)*) "
             + "printf '{\"decision\":\"allow\"}\\n';; "
             + "*) printf '{\"decision\":\"deny\","
-            + "\"reason\":\"Tools are disabled inside Tinycast.\"}\\n';; esac"
+            + "\"reason\":\"Tools are disabled inside Termcast.\"}\\n';; esac"
         let payload: [String: Any] = [
             "tinycast-mcp": [
                 "PreToolUse": [

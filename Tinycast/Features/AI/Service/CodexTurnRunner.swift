@@ -3,12 +3,12 @@ import Foundation
 @MainActor
 final class CodexTurnRunner {
     private static let safetyInstructions = """
-        You are providing text generation inside Tinycast. Never execute commands, read local files, \
+        You are providing text generation inside Termcast. Never execute commands, read local files, \
         inspect the environment, or modify files.
         """
     /// The shell tool is off by flag, so this must not forbid what an armed MCP tool does.
     private static let toolSafetyInstructions = """
-        You are providing text generation inside Tinycast. You may use the MCP tools supplied with \
+        You are providing text generation inside Termcast. You may use the MCP tools supplied with \
         this request for anything they offer. Never execute commands, read local files, inspect the \
         environment, or modify files except through them.
         """
@@ -404,7 +404,7 @@ final class CodexTurnRunner {
         if request.webSearch { allowedTools.append("web search") }
         let tools =
             allowedTools.isEmpty
-            ? "Never invoke tools or access external resources. Use only the request content supplied by Tinycast."
+            ? "Never invoke tools or access external resources. Use only the request content supplied by Termcast."
             : "The only tools you may use are \(allowedTools.joined(separator: " and "))."
         let search = request.webSearch ? Self.webSearchInstructions : Self.noWebSearchInstructions
         let safety = hasTools ? Self.toolSafetyInstructions : Self.safetyInstructions

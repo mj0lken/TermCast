@@ -232,15 +232,12 @@ struct RootPaletteView: View {
                     title: String(localized: "Changelog"),
                     systemImage: "clock.arrow.trianglehead.2.counterclockwise.rotate.90"
                 ) {
-                    if let url = URL(string: "https://tinycast.dev/changelog/") {
+                    if let url = URL(string: "https://github.com/mj0lken/TermCast/releases") {
                         openURL(url)
                     }
                 },
                 PopoverMenuItem(title: String(localized: "About Tinycast"), systemImage: "info.circle") {
                     core.settingsCoordinator.showAbout()
-                },
-                PopoverMenuItem(title: String(localized: "Support Tinycast"), systemImage: "heart") {
-                    core.supportCoordinator.showSupport()
                 },
                 PopoverMenuItem(
                     title: String(localized: "Settings"), systemImage: "gearshape", shortcut: "⌘,"

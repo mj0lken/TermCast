@@ -62,15 +62,26 @@ struct BackupArchiveTests {
             counts: ["clipboard": 1, "notes": 1])
         try? bundle.writeManifest(manifest)
 
-        let archive = root.appendingPathComponent("out.tinycast")
+        let archive = root.appendingPathComponent("out.\(BackupArchive.fileExtension)")
+        let legacyArchive = root.appendingPathComponent("out.tinycast")
         let opened = root.appendingPathComponent("open")
+        let openedLegacy = root.appendingPathComponent("open-legacy")
         do {
             try BackupArchive.seal(directory: source, into: archive)
             try BackupArchive.open(file: archive, into: opened)
+            try BackupArchive.seal(directory: source, into: legacyArchive)
+            try BackupArchive.open(file: legacyArchive, into: openedLegacy)
         } catch {
             check("seal and open succeed (\(error))", false)
             return
         }
+
+        check("default archive extension is termcast", BackupArchive.fileExtension == "termcast")
+        check(
+            "supported extensions include termcast and tinycast",
+            BackupArchive.supportedFileExtensions == ["termcast", "tinycast"])
+        let reopenedLegacy = BackupBundle(root: openedLegacy)
+        check("a .tinycast archive also opens", (try? reopenedLegacy.readManifest()) == manifest)
 
         let reopened = BackupBundle(root: opened)
         check(

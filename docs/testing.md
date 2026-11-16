@@ -193,7 +193,6 @@ If a change touches anything in the right column, the harness on the left is man
 | `UpdatesTests` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
 | `BundleIdentifierMigrationTests` | `Migrations/BundleIdentifierMigration.swift` — the id mapping, moving without overwriting, every spelling of a saved path into the old folders, preferences, the login-item flag, the backup and its expiry, the repair of an earlier move |
 | `UpdateCheckTests` | `UpdateCheckStore` — stopping, in-flight cancellation, cached offer suppression, restart and independent manual checking |
-| `SupportTests` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
 | `AIProviderTests` | `AI/Model/` and `AISettingsStore` — instruction composition, provider requests and streams, route settings, protocol framing, CLI launch encodings and queued Codex writes across cancellation, timeout and Stop |
 | `OpenCodeMCPTests` | OpenCode's per-turn MCP bridge and installed CLI launch, authentication, scoped catalog, consent dispatch, serial calls, result budgets and cancellation |
 | `AppleIntelligenceTests` | On-device status, snapshot deltas, transcript assembly and error mapping; real generation is opt-in |
@@ -273,7 +272,8 @@ marked by a `SettingsRowTitle`. Either gap compiles and reads fine, and fails on
 search result that navigates and then sits there.
 
 Last, `Scripts/check-migrations.sh` fails once a stable release has shipped a migration, which is the
-cue to delete it. See [migrations.md](migrations.md).
+cue to delete it (see [migrations.md](migrations.md)), and `Scripts/check-fork-invariants.js` verifies
+Termcast's fork invariants, removed Support references, and test-harness source paths.
 
 ## Performance measurement
 
@@ -985,7 +985,7 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   round trip preserve the choice.
 - Every pane renders and the sidebar switches without flicker
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
-- Export produces a `.tinycast`; import applies it and reports a per-category summary
+- Export produces a `.termcast`; import applies `.termcast` or `.tinycast` and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it
 - Untick a category on **import** and confirm it did not arrive, while the ticked ones did
 - An image clip round-trips and still renders; the archive can then be deleted without breaking it

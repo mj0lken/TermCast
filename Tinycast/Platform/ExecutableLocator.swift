@@ -73,7 +73,9 @@ enum ExecutableLocator {
             process.executableURL = executable
             process.arguments = arguments
             process.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
-            process.environment = ProcessInfo.processInfo.environment.merging(["TINYCAST": "1"]) {
+            process.environment = ProcessInfo.processInfo.environment.merging(
+                ["TERMCAST": "1", "TINYCAST": "1"]
+            ) {
                 _, new in new
             }
             process.standardInput = FileHandle.nullDevice

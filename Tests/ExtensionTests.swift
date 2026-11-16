@@ -916,6 +916,20 @@ struct ExtensionTests {
         let tiny = ExtensionDeepLink.parse(
             url: URL(string: "tinycast://extensions/linear/linear/create-issue")!)
         check("deeplink mirrors raycast:// as tinycast://", tiny == canonical)
+        let term = ExtensionDeepLink.parse(
+            url: URL(string: "termcast://extensions/linear/linear/create-issue")!)
+        check("deeplink mirrors raycast:// as termcast://", term == canonical)
+        let copiedTerm = ExtensionDeepLink.url(
+            extensionName: "linear/linear", commandName: "create-issue", arguments: [:], scheme: "termcast")
+        check(
+            "a copied termcast:// deeplink parses back to its command",
+            copiedTerm.flatMap(ExtensionDeepLink.parse) == canonical, String(describing: copiedTerm))
+        let copiedTermDev = ExtensionDeepLink.url(
+            extensionName: "demo", commandName: "search", arguments: [:], scheme: "termcast-dev")
+        check(
+            "a copied termcast-dev:// deeplink parses back to its command",
+            copiedTermDev.flatMap(ExtensionDeepLink.parse)?.extensionCandidates == ["demo"],
+            String(describing: copiedTermDev))
         let copied = ExtensionDeepLink.url(
             extensionName: "linear/linear", commandName: "create-issue", arguments: [:], scheme: "tinycast")
         check(
@@ -950,6 +964,10 @@ struct ExtensionTests {
             "store Install accepts the Tinycast scheme",
             ExtensionDeepLink.route(
                 url: URL(string: "tinycast://extensions/linear/linear?source=webstore")!) == install)
+        check(
+            "store Install accepts the Termcast scheme",
+            ExtensionDeepLink.route(
+                url: URL(string: "termcast://extensions/linear/linear?source=webstore")!) == install)
         check(
             "store Install accepts the path-based scheme",
             ExtensionDeepLink.route(

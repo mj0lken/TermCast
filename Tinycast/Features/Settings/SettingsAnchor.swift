@@ -139,7 +139,7 @@ extension SettingsAnchor {
 
     static let aboutAbout = Self(tab: .about, title: "About")
     static let aboutTermcast = Self(tab: .about, title: "Termcast")
-    static let aboutTinycast = Self(tab: .about, title: "Tinycast")
+    static let aboutTinycast = Self(tab: .about, title: "A Tinycast fork")
 }
 
 enum SettingsTarget: Hashable, Sendable {
