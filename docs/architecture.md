@@ -29,7 +29,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ RaycastDecoder · Scrypt · AppSettingsKey · SettingsBackupCoverage          │
 │ SettingsFile{JSON,Key,Value,Format,Binding,Issue,Identity} ·               │
 │ HotKeySpelling · HyperScroll{Zone,Engine} · DisplayDDC ·                   │
-│ NotchHUD{Metric,Geometry} · MediaKeyEvent ·                                │
+│ NotchHUD{Metric,Geometry} · Notch{Tab,ShelfItem,WeekStrip} ·               │
+│ NowPlaying{Snapshot,RelayMessage} · MediaKeyEvent ·                        │
 │ WindowManagementFileFormat ·                                               │
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft ·                                              │
@@ -48,6 +49,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ HotKeyCenter · HyperKeyTap · HyperScrollRunner · KeyboardRemapper ·        │
 │ ModifierTapMonitor · TrackpadTouchMonitor · MediaKeyPoster ·               │
 │ MediaKeyInterceptorTap · AudioVolumeService · KeyboardBacklightService ·   │
+│ NowPlaying{Service,Monitor} · NotchShelfStore · BatteryStatusService ·     │
 │ DisplayBrightnessService · SecureInputMonitor · RunningAppsMonitor ·       │
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ AXMenuAccess · WindowZOrder · WindowSwitchSweep ·                          │

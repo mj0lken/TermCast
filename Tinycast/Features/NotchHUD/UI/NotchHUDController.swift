@@ -8,6 +8,11 @@ final class NotchHUDController {
     private static let collapseSettleDuration: TimeInterval = 0.28
 
     private let state = NotchHUDState()
+
+    var style: NotchHUDStyle {
+        get { state.style }
+        set { if state.style != newValue { state.style = newValue } }
+    }
     private var panel: NotchHUDPanel?
     private var activeScreenFrame: CGRect?
     private var dismissTask: Task<Void, Never>?

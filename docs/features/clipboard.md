@@ -288,22 +288,21 @@ An edit is held to `ClipboardStore.maxTextLength`, the same 32,000 characters ca
 longer one is refused with a HUD and nothing changes; past that, every later paste of the entry
 would reindex it on the main actor.
 
-## Type filter
+## Category sidebar & search ranking
 
-The clipboard header carries a `ClipboardFilterButton` at the trailing edge of the search field —
-the only palette screen with a control up there. It toggles a `PopoverMenu` anchored `.topTrailing`
-under the button, so the ⌘K Actions menu, the app menu and this one are the same view on the same
-glass. **⌘P** toggles it; ↑/↓, ↵ and Esc come free from `RootPaletteView`'s one menu path, and the
-menu opens highlighting the *active* filter rather than the first row, the way a pop-up button does.
-A native, row-height search field above the rows filters their titles with the shared fuzzy matcher;
-an empty result centres **No Results** in one row. Escape clears a non-empty query before closing.
-The filter is not gated on the list having rows: an over-narrow filter empties it, and the button is
-the way back out.
+`ClipboardView` lays out a narrow left-hand `ClipboardCategorySidebar` beside the detailed item list,
+with a bottom-third `ClipboardBottomPreviewPane` that opens on the right side when an item is
+clicked. **⌘P** still opens the `PopoverMenu` filter picker from `RootPaletteView`, highlighting the
+active `ClipboardCategory` so keyboard-only switching keeps the exact same muscle memory.
 
-`ClipboardFilter` owns the seven cases and everything the UI needs from them — title, glyph, and the
-`emptyMessage` that stops "Clipboard history is empty" from appearing over a history that only looks
-empty. The cases are **exclusive**: a copied URL is a link, not a narrower kind of text, so *Text
-Only* means prose, and *Colors Only* takes `#FF5733` out of it.
+`ClipboardCategory` owns the thirteen sidebar buckets (`All`, `Pinned`, `Text`, `Links`, `Emails`,
+`Colors`, `Images`, `Videos`, `Audio`, `PDFs`, `Apps`, `Folders`, `Other Files`), hiding empty
+categories (other than `All` and the currently active category) so the sidebar stays compact, while
+`ClipboardFilter` continues to back `ClipboardStore.search(_:filter:)` over SQLite FTS and `item_text`.
+When a search query is active, `ClipboardCategory.filterAndRank` ranks title matches (first line or
+filename prefix before substring) ahead of body/OCR matches while keeping pinned entries at the top.
+`ClipboardMetadataCache` resolves off-main file sizes, image dimensions, character counts and source
+app icons for the right-side detail rows and bottom-third preview drawer.
 
 `ClipboardItem.textForm` derives `plain`/`color`/`link`/`email` from the text on demand — nil for an
 image.

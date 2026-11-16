@@ -33,11 +33,13 @@ struct TinycastApp: App {
     /// Read in `body` for Observation; SwiftUI echoes the binding back, so only a change writes.
     private var menuBarInsertion: Binding<Bool> {
         let settings = AppCore.shared.settings
-        let isInserted = settings.showInMenuBar
+        // The open notch carries the app menu itself, so the status item would only duplicate it.
+        let notchOwnsMenu = settings.notchShelfEnabled
+        let isInserted = settings.showInMenuBar && !notchOwnsMenu
         return Binding(
             get: { isInserted },
             set: { inserted in
-                guard inserted != settings.showInMenuBar else { return }
+                guard !notchOwnsMenu, inserted != settings.showInMenuBar else { return }
                 settings.showInMenuBar = inserted
             })
     }

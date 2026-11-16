@@ -35,8 +35,26 @@ enum NotchHUDGeometry {
         }
     }
 
+    struct OpenTrayLayout: Sendable, Equatable {
+        let panelFrame: CGRect
+        let trayWidth: CGFloat
+        let trayHeight: CGFloat
+        let headerHeight: CGFloat
+        let notchOriginX: CGFloat
+        let notchWidth: CGFloat
+        let earRadius: CGFloat
+        let cornerRadius: CGFloat
+        let isNotched: Bool
+    }
+
     static let earRadius: CGFloat = 6
+    static let openEarRadius: CGFloat = 10
     static let innerCornerRadius: CGFloat = 14
+    static let openCornerRadius: CGFloat = 22
+    static let openTrayIdealWidth: CGFloat = 604
+    static let openTrayBodyHeight: CGFloat = 166
+    static let nonNotchedSensorWidth: CGFloat = 160
+    static let nonNotchedSensorHeight: CGFloat = 8
     static let floatingTopOffset: CGFloat = 8
     static let floatingPillHeight: CGFloat = 36
     static let floatingPillWidth: CGFloat = 224
@@ -121,6 +139,72 @@ enum NotchHUDGeometry {
             trackWidth: trackWidth,
             wingStretch: wingStretch,
             trackCompression: trackCompression)
+    }
+
+    static func sensorFrame(for screen: ScreenMetrics) -> CGRect {
+        if screen.safeAreaTop > 0 {
+            let (notchMinX, notchMaxX, _, _) = notchHorizontalMetrics(for: screen)
+            let width = max(notchMaxX - notchMinX, 1)
+            return CGRect(
+                x: notchMinX.rounded(),
+                y: screen.frame.maxY - screen.safeAreaTop,
+                width: width.rounded(),
+                height: screen.safeAreaTop)
+        }
+        return CGRect(
+            x: (screen.frame.midX - nonNotchedSensorWidth / 2).rounded(),
+            y: screen.frame.maxY - nonNotchedSensorHeight,
+            width: nonNotchedSensorWidth,
+            height: nonNotchedSensorHeight)
+    }
+
+    static func resolveOpenTray(screen: ScreenMetrics) -> OpenTrayLayout {
+        let isNotched = screen.safeAreaTop > 0
+        let headerHeight = isNotched ? screen.safeAreaTop : floatingPillHeight
+        let trayWidth = min(openTrayIdealWidth, max(screen.frame.width - 48, 360))
+        let trayHeight = headerHeight + openTrayBodyHeight
+        let ear = isNotched ? openEarRadius : 0
+
+        if isNotched {
+            let (notchMinX, notchMaxX, _, _) = notchHorizontalMetrics(for: screen)
+            let notchCenterX = (notchMinX + notchMaxX) / 2
+            let notchWidth = max(notchMaxX - notchMinX, 1)
+            let canvasWidth = trayWidth + ear * 2
+            let minX = max(
+                screen.frame.minX + 8,
+                min(notchCenterX - canvasWidth / 2, screen.frame.maxX - canvasWidth - 8))
+            let panelFrame = CGRect(
+                x: minX.rounded(),
+                y: (screen.frame.maxY - trayHeight).rounded(),
+                width: canvasWidth.rounded(),
+                height: trayHeight.rounded())
+            return OpenTrayLayout(
+                panelFrame: panelFrame,
+                trayWidth: trayWidth,
+                trayHeight: trayHeight,
+                headerHeight: headerHeight,
+                notchOriginX: notchMinX - panelFrame.minX,
+                notchWidth: notchWidth,
+                earRadius: ear,
+                cornerRadius: openCornerRadius,
+                isNotched: true)
+        }
+
+        let panelFrame = CGRect(
+            x: (screen.frame.midX - trayWidth / 2).rounded(),
+            y: (screen.frame.maxY - floatingTopOffset - trayHeight).rounded(),
+            width: trayWidth.rounded(),
+            height: trayHeight.rounded())
+        return OpenTrayLayout(
+            panelFrame: panelFrame,
+            trayWidth: trayWidth,
+            trayHeight: trayHeight,
+            headerHeight: headerHeight,
+            notchOriginX: trayWidth / 2,
+            notchWidth: 0,
+            earRadius: 0,
+            cornerRadius: openCornerRadius,
+            isNotched: false)
     }
 
     private static func notchHorizontalMetrics(

@@ -177,15 +177,20 @@ struct RootPaletteView: View {
 
     // MARK: - Popover menu content
 
-    /// The clipboard type filter's rows; activating one is the only way the filter changes.
+    /// The clipboard category filter's rows for ⌘P, matching the narrow left sidebar.
     private var clipboardFilterContent: PopoverMenuContent {
-        PopoverMenuContent(
-            items: ClipboardFilter.allCases.enumerated().map { index, filter in
+        let visible = ClipboardCategory.visibleCategories(
+            in: store.items,
+            active: vm.clipboardCategory,
+            knownDirectories: core.clipboardMetadata.knownDirectories)
+        return PopoverMenuContent(
+            items: visible.enumerated().map { index, entry in
                 PopoverMenuItem(
-                    title: filter.title, systemImage: filter.systemImage,
+                    title: entry.category.title,
+                    systemImage: entry.category.systemImage,
                     startsSection: index == 1
                 ) {
-                    vm.clipboardFilter = filter
+                    vm.clipboardCategory = entry.category
                 }
             })
     }
@@ -471,6 +476,7 @@ struct RootPaletteView: View {
             .modifier(ExtensionSelectionForwarder(screen: extensionScreen, selection: vm.selection))
             // A narrower list means the old index points at a different row, or at none.
             .onChange(of: vm.clipboardFilter) { land(restoringSelection: true) }
+            .onChange(of: vm.clipboardCategory) { land(restoringSelection: true) }
             // The filter is part of the query, so narrowing re-runs it rather than thinning rows.
             .onChange(of: vm.fileSearchFilter) {
                 land()
@@ -479,6 +485,8 @@ struct RootPaletteView: View {
             .onChange(of: vm.mode) { oldMode, newMode in
                 terminalCoordinator.noteModeChanged(from: oldMode, to: newMode)
                 vm.clipboardFilter = .all
+                vm.clipboardCategory = .all
+                vm.clipboardPreviewExpanded = false
                 vm.fileSearchFilter = .all
                 vm.emojiCategoryFilter = .all
                 vm.emojiGridColumnsOverride = nil
@@ -878,12 +886,6 @@ struct RootPaletteView: View {
             if tabOpensChat {
                 headerGutter(width: metrics.spacing.md)
                 quickAITabHint
-            }
-            if !isCollapsed, vm.mode == .clipboard {
-                headerGutter(width: metrics.spacing.md)
-                ClipboardFilterButton(
-                    filter: vm.clipboardFilter, isOpen: openMenu == .clipboardFilter,
-                    action: toggleClipboardFilter)
             }
             if !isCollapsed, vm.mode == .fileSearch {
                 headerGutter(width: metrics.spacing.md)
@@ -1288,7 +1290,11 @@ struct RootPaletteView: View {
             closeMenus()
             return
         }
-        let active = ClipboardFilter.allCases.firstIndex(of: vm.clipboardFilter) ?? 0
+        let visible = ClipboardCategory.visibleCategories(
+            in: store.items,
+            active: vm.clipboardCategory,
+            knownDirectories: core.clipboardMetadata.knownDirectories)
+        let active = visible.firstIndex { $0.category == vm.clipboardCategory } ?? 0
         open(.clipboardFilter, highlighting: active)
     }
 

@@ -18,6 +18,7 @@ final class AppCore {
         fileURL: AppPaths.applicationSupport().appendingPathComponent("room-parking.json"))
     let roomSession = RoomSession()
     let clipboardStore = ClipboardStore()
+    let clipboardMetadata = ClipboardMetadataCache()
     @ObservationIgnored private var clipboardTextIndexer: ClipboardTextIndexer?
     let clipboardManager: ClipboardManager
     let snippetsStore: SnippetsStore
@@ -463,6 +464,31 @@ final class AppCore {
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()
+            notchHUD.refreshCalendarState = { [weak self] in
+                guard let self else { return (false, false, []) }
+                self.calendarStore.refreshAccess()
+                let hasAccess = self.calendarStore.access == .granted
+                let enabled = self.settings.calendarEnabled
+                guard enabled, hasAccess else { return (enabled, hasAccess, []) }
+                let interval = NotchWeekStrip.dateInterval(around: Date())
+                return (enabled, hasAccess, self.calendarStore.events(in: interval))
+            }
+            notchHUD.onOpenCamera = { [weak self] in
+                guard let self else { return }
+                Task { await self.cameraCoordinator.show() }
+            }
+            notchHUD.onOpenClipboard = { [weak self] in
+                self?.paletteCoordinator.showPalette(mode: .clipboard)
+            }
+            notchHUD.onOpenSettings = { [weak self] in
+                self?.settingsCoordinator.showSettings(tab: .notch)
+            }
+            notchHUD.onEnableCalendar = { [weak self] in
+                self?.calendarCoordinator.setCalendarEnabled(true)
+            }
+            notchHUD.onJoinMeeting = { [weak self] meeting in
+                self?.calendarCoordinator.join(meeting)
+            }
             notchHUD.start()
             dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             dictationKey.start()

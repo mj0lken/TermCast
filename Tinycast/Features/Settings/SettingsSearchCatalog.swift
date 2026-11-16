@@ -447,13 +447,55 @@ enum SettingsSearchCatalog {
     private static let notch: [SettingsSearchEntry] = [
         .init(
             pane: .notch,
-            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island"]),
+            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island", "shelf"]),
         .init(
             .notchNotch, "Replace system volume & brightness HUD",
             keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island", "sound"]),
         .init(
+            .notchNotch, "Show power & charging notifications",
+            keywords: ["battery", "magsafe", "charger", "plugged", "power"]),
+        .init(
+            .notchShelf, "Enable Open Notch (Media, Calendar & Shelf)",
+            keywords: ["now playing", "music", "spotify", "calendar", "upcoming", "shelf", "airdrop", "tray"]),
+        .init(
+            .notchShelf, "Open notch on hover",
+            keywords: ["hover", "cursor", "mouse", "expand"]),
+        .init(
+            .notchShelf, "Hover delay",
+            keywords: ["delay", "dwell", "hover"]),
+        .init(
+            .notchShelf, "Haptic feedback",
+            keywords: ["trackpad", "vibration", "taptic"]),
+        .init(
+            .notchShelf, "Remember last tab",
+            keywords: ["tab", "home", "shelf"]),
+        .init(
+            .notchNotch, "Show percentage",
+            keywords: ["percent", "number", "hud"]),
+        .init(
+            .notchNotch, "Tint progress bar with accent colour",
+            keywords: ["accent", "color", "colour", "tint", "bar"]),
+        .init(
+            .notchContent, "Show Now Playing",
+            keywords: ["media", "music", "spotify", "player"]),
+        .init(
+            .notchContent, "Show calendar",
+            keywords: ["events", "meetings", "agenda"]),
+        .init(
+            .notchContent, "Hide all-day events",
+            keywords: ["all day", "birthdays", "holidays"]),
+        .init(
+            .notchContent, "Show battery indicator",
+            keywords: ["battery", "charge", "power"]),
+        .init(
+            .notchContent, "Show clipboard button",
+            keywords: ["clipboard", "history", "paste", "icon", "notch"]),
+        .init(
             .notchPreview, "Preview Notch HUD",
-            keywords: ["notch", "hud", "test", "preview"])
+            keywords: ["notch", "hud", "test", "preview"]),
+        .init(
+            .notchPreview, "Preview Open Notch",
+            keywords: ["open", "tray", "shelf", "media", "preview"])
     ]
 
     private static let navigation: [SettingsSearchEntry] = [

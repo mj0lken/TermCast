@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// Owns the Notch HUD's lifecycle, tap installation, hardware service routing and preview.
+/// Owns the Notch HUD, interactive Open-Notch tray, Now Playing, Shelf and Battery lifecycles.
 @MainActor
 @Observable
 final class NotchHUDManager: HealthCheckable {
@@ -21,13 +21,25 @@ final class NotchHUDManager: HealthCheckable {
     private(set) var status: Status = .off
 
     @ObservationIgnored weak var healthTicker: HealthTicker?
+    @ObservationIgnored var refreshCalendarState: (() -> (enabled: Bool, hasAccess: Bool, events: [MeetingEvent]))?
+    @ObservationIgnored var onOpenClipboard: (() -> Void)?
+    @ObservationIgnored var onOpenCamera: (() -> Void)?
+    @ObservationIgnored var onOpenSettings: (() -> Void)?
+    @ObservationIgnored var onEnableCalendar: (() -> Void)?
+    @ObservationIgnored var onJoinMeeting: ((MeetingEvent) -> Void)?
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let displayBrightness: DisplayBrightnessService
     @ObservationIgnored private let audioVolume = AudioVolumeService()
     @ObservationIgnored private let keyboardBacklight = KeyboardBacklightService()
+    @ObservationIgnored private let nowPlaying = NowPlayingService()
+    @ObservationIgnored private let shelfStore = NotchShelfStore()
+    @ObservationIgnored private let battery = BatteryStatusService()
     @ObservationIgnored private let tap = MediaKeyInterceptorTap()
     @ObservationIgnored private let controller = NotchHUDController()
+    @ObservationIgnored private lazy var trayController = makeTrayController()
+    @ObservationIgnored private var hasTrayController = false
+    @ObservationIgnored private var shelfLoaded = false
     @ObservationIgnored private var observers: [NotificationToken] = []
     @ObservationIgnored private var darwinObservers: [DarwinNotificationToken] = []
     @ObservationIgnored private var permissionRetry: Task<Void, Never>?
@@ -58,9 +70,12 @@ final class NotchHUDManager: HealthCheckable {
         audioVolume.onExternalVolumeChange = { [weak self] state in
             self?.presentExternalVolumeChange(state)
         }
+        battery.onPowerSourceChanged = { [weak self] status in
+            self?.presentBatteryChange(status)
+        }
         displayBrightness.onBrightnessStepped = { [weak self] outcome in
             guard let self, self.isEnabled else { return }
-            self.controller.present(
+            self.presentHUD(
                 metric: .screenBrightness(level: outcome.level),
                 overshoot: outcome.overshoot,
                 preferredDisplayID: outcome.displayID)
@@ -71,14 +86,19 @@ final class NotchHUDManager: HealthCheckable {
     }
 
     func prepareForTermination() {
-        stop(.off)
+        stopAll()
     }
 
     func healthCheck() {
         apply()
     }
 
-    // MARK: - Direct Routing (Hyper Scroll & System Actions)
+    func calendarDidUpdate() {
+        guard hasTrayController, trayController.isOpen else { return }
+        trayController.syncCalendarData()
+    }
+
+    // MARK: - Direct Routing (Hyper Scroll, System Actions & Tray Preview)
 
     func isBluetoothOutput() -> Bool {
         audioVolume.isBluetoothOutput()
@@ -88,7 +108,6 @@ final class NotchHUDManager: HealthCheckable {
         keyboardBacklight.resetGesture()
     }
 
-    /// Direct fast path for `HyperScrollRunner` so active sliders skip synthetic `MediaKeyPoster` round-trips.
     func handleMediaKeyFromScroll(_ key: MediaKeyPoster.Key, fine: Bool) -> Bool {
         guard isEnabled else { return false }
         switch key {
@@ -114,23 +133,23 @@ final class NotchHUDManager: HealthCheckable {
 
     func stepVolume(up: Bool, fine: Bool = false) {
         guard let outcome = audioVolume.step(up: up, fine: fine) else { return }
-        controller.present(
+        presentHUD(
             metric: .volume(level: outcome.state.level, muted: outcome.state.isMuted),
             overshoot: outcome.overshoot)
     }
 
     func toggleMute() {
         guard let state = audioVolume.toggleMute() else { return }
-        controller.present(metric: .volume(level: state.level, muted: state.isMuted))
+        presentHUD(metric: .volume(level: state.level, muted: state.isMuted))
     }
 
     func presentVolumeState(level: Double, muted: Bool) {
-        controller.present(metric: .volume(level: level, muted: muted))
+        presentHUD(metric: .volume(level: level, muted: muted))
     }
 
     func stepKeyboardBacklight(up: Bool, fine: Bool = false) {
         guard let outcome = keyboardBacklight.step(up: up, fine: fine) else { return }
-        controller.present(
+        presentHUD(
             metric: .keyboardBacklight(level: outcome.level, suppressed: outcome.isSuppressed),
             overshoot: outcome.overshoot)
     }
@@ -143,10 +162,30 @@ final class NotchHUDManager: HealthCheckable {
         ]
         let metric = samples[previewStepIndex % samples.count]
         previewStepIndex += 1
-        controller.present(metric: metric)
+        presentHUD(metric: metric)
     }
 
-    // MARK: - Physical Media Keys & External Audio Events
+    func openTrayPreview(tab: NotchTab? = nil) {
+        ensureShelfServicesRunning()
+        trayController.open(preferredTab: tab)
+    }
+
+    // MARK: - Physical Media Keys & Notifications
+
+    private func presentHUD(
+        metric: NotchHUDMetric,
+        overshoot: Double = 0,
+        preferredDisplayID: CGDirectDisplayID? = nil
+    ) {
+        if hasTrayController, trayController.isOpen {
+            trayController.showInlineHUD(metric: metric)
+            return
+        }
+        controller.present(
+            metric: metric,
+            overshoot: overshoot,
+            preferredDisplayID: preferredDisplayID)
+    }
 
     private func handlePhysicalMediaKey(_ event: MediaKeyEvent) {
         guard isEnabled else { return }
@@ -177,7 +216,7 @@ final class NotchHUDManager: HealthCheckable {
     private func presentBluetoothConnected(_ state: AudioVolumeService.State) {
         guard isEnabled else { return }
         let symbol = NotchHUDMetric.audioDeviceSymbol(for: state.deviceName)
-        controller.present(
+        presentHUD(
             metric: .audioDeviceConnected(
                 name: state.deviceName,
                 symbol: symbol,
@@ -187,18 +226,64 @@ final class NotchHUDManager: HealthCheckable {
 
     private func presentExternalVolumeChange(_ state: AudioVolumeService.State) {
         guard isEnabled else { return }
-        controller.present(metric: .volume(level: state.level, muted: state.isMuted))
+        presentHUD(metric: .volume(level: state.level, muted: state.isMuted))
+    }
+
+    private func presentBatteryChange(_ status: BatteryStatusService.Status) {
+        guard pauseReasons.isEmpty,
+            settings.notchBatteryNotifications,
+            settings.notchHUDEnabled || settings.notchShelfEnabled
+        else { return }
+        presentHUD(
+            metric: .battery(
+                percentage: status.percentage,
+                isPluggedIn: status.isPluggedIn))
     }
 
     // MARK: - Lifecycle Convergence
 
     private func apply() {
-        guard settings.notchHUDEnabled else {
-            return stop(.off)
+        let hudRequested = settings.notchHUDEnabled
+        let shelfRequested = settings.notchShelfEnabled
+
+        guard hudRequested || shelfRequested else {
+            stopAll()
+            return
         }
+
         guard pauseReasons.isEmpty else {
-            return stop(.paused)
+            pauseActiveSubsystems()
+            return
         }
+
+        if shelfRequested {
+            ensureShelfServicesRunning()
+            trayController.startSensor()
+        } else if hasTrayController {
+            trayController.stopAll()
+            nowPlaying.stop()
+        }
+
+        if shelfRequested || (hudRequested && settings.notchBatteryNotifications) {
+            battery.start()
+        } else {
+            battery.stop()
+        }
+
+        guard hudRequested else {
+            tap.tearDown()
+            audioVolume.stop()
+            keyboardBacklight.resetGesture()
+            displayBrightness.showsSystemOSD = true
+            controller.dismissImmediately()
+            healthTicker?.unsubscribe(self)
+            if status != .off { status = .off }
+            return
+        }
+
+        controller.style = NotchHUDStyle(
+            showsPercentage: settings.notchShowsPercentage,
+            tintsAccent: settings.notchTintsAccent)
         displayBrightness.showsSystemOSD = false
         audioVolume.start()
 
@@ -213,14 +298,63 @@ final class NotchHUDManager: HealthCheckable {
         if status != .active { status = .active }
     }
 
-    private func stop(_ nextStatus: Status) {
+    private func ensureShelfServicesRunning() {
+        if !shelfLoaded {
+            shelfLoaded = true
+            shelfStore.load()
+        }
+        if settings.notchShowsMedia {
+            nowPlaying.start()
+        } else {
+            nowPlaying.stop()
+        }
+        battery.start()
+    }
+
+    private func pauseActiveSubsystems() {
         tap.tearDown()
         audioVolume.stop()
+        nowPlaying.stop()
+        battery.stop()
         keyboardBacklight.resetGesture()
         displayBrightness.showsSystemOSD = true
         controller.dismissImmediately()
+        if hasTrayController { trayController.stopAll() }
         healthTicker?.unsubscribe(self)
-        if status != nextStatus { status = nextStatus }
+        if settings.notchHUDEnabled, status != .paused {
+            status = .paused
+        }
+    }
+
+    private func stopAll() {
+        tap.tearDown()
+        audioVolume.stop()
+        nowPlaying.stop()
+        battery.stop()
+        keyboardBacklight.resetGesture()
+        displayBrightness.showsSystemOSD = true
+        controller.dismissImmediately()
+        if hasTrayController { trayController.stopAll() }
+        healthTicker?.unsubscribe(self)
+        if status != .off { status = .off }
+    }
+
+    private func makeTrayController() -> NotchTrayController {
+        hasTrayController = true
+        let created = NotchTrayController(
+            settings: settings,
+            nowPlaying: nowPlaying,
+            shelfStore: shelfStore,
+            battery: battery)
+        created.refreshCalendarState = { [weak self] in
+            self?.refreshCalendarState?() ?? (false, false, [])
+        }
+        created.onOpenClipboard = { [weak self] in self?.onOpenClipboard?() }
+        created.onOpenCamera = { [weak self] in self?.onOpenCamera?() }
+        created.onOpenSettings = { [weak self] in self?.onOpenSettings?() }
+        created.onEnableCalendar = { [weak self] in self?.onEnableCalendar?() }
+        created.onJoinMeeting = { [weak self] meeting in self?.onJoinMeeting?(meeting) }
+        return created
     }
 
     private func recoverTap() {
@@ -241,6 +375,18 @@ final class NotchHUDManager: HealthCheckable {
     private func observeSettings() {
         withObservationTracking {
             _ = settings.notchHUDEnabled
+            _ = settings.notchShelfEnabled
+            _ = settings.notchOpenOnHover
+            _ = settings.notchHoverDelayMs
+            _ = settings.notchHapticsEnabled
+            _ = settings.notchRemembersLastTab
+            _ = settings.notchBatteryNotifications
+            _ = settings.notchShowsPercentage
+            _ = settings.notchTintsAccent
+            _ = settings.notchShowsBattery
+            _ = settings.notchShowsMedia
+            _ = settings.notchShowsClipboard
+            _ = settings.clipboardEnabled
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

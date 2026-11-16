@@ -6,6 +6,7 @@ enum NotchHUDMetric: Sendable, Equatable {
     case screenBrightness(level: Double)
     case keyboardBacklight(level: Double, suppressed: Bool)
     case audioDeviceConnected(name: String, symbol: String, level: Double, muted: Bool)
+    case battery(percentage: Int, isPluggedIn: Bool)
 
     struct StepResult: Sendable, Equatable {
         let level: Double
@@ -75,6 +76,8 @@ enum NotchHUDMetric: Sendable, Equatable {
             suppressed ? "light.min" : "light.max"
         case .audioDeviceConnected(_, let symbol, _, _):
             symbol
+        case .battery(_, let isPluggedIn):
+            isPluggedIn ? "bolt.batteryblock.fill" : "battery.100"
         }
     }
 
@@ -86,12 +89,18 @@ enum NotchHUDMetric: Sendable, Equatable {
             Self.clamp(level)
         case .keyboardBacklight(let level, let suppressed):
             suppressed ? 0 : Self.clamp(level)
+        case .battery(let percentage, _):
+            Self.clamp(Double(percentage) / 100.0)
         }
     }
 
     var isToast: Bool {
-        if case .audioDeviceConnected = self { return true }
-        return false
+        switch self {
+        case .audioDeviceConnected, .battery:
+            true
+        case .volume, .screenBrightness, .keyboardBacklight:
+            false
+        }
     }
 
     var dwell: TimeInterval {

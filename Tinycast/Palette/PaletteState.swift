@@ -19,8 +19,25 @@ final class PaletteState {
     /// True while an IME holds marked text, which leaves `query` empty. The panel publishes it.
     var isComposing = false
     var clipboardFilter: ClipboardFilter = .all {
-        didSet { if oldValue != clipboardFilter { restoredSelection = nil } }
+        didSet {
+            guard oldValue != clipboardFilter else { return }
+            restoredSelection = nil
+            let mapped = ClipboardCategory(filter: clipboardFilter)
+            if clipboardCategory.backingFilter != clipboardFilter {
+                clipboardCategory = mapped
+            }
+        }
     }
+    var clipboardCategory: ClipboardCategory = .all {
+        didSet {
+            guard oldValue != clipboardCategory else { return }
+            restoredSelection = nil
+            if clipboardFilter != clipboardCategory.backingFilter {
+                clipboardFilter = clipboardCategory.backingFilter
+            }
+        }
+    }
+    var clipboardPreviewExpanded = false
     var fileSearchFilter: FileSearchFilter = .all
     var emojiCategoryFilter: EmojiCategoryFilter = .all
     /// Nil means the configured default; zoom only overrides it for this picker session.
@@ -142,6 +159,8 @@ final class PaletteState {
         pendingArgumentEntryID = nil
         argumentEntryID = nil
         clipboardFilter = .all
+        clipboardCategory = .all
+        clipboardPreviewExpanded = false
         fileSearchFilter = .all
         emojiCategoryFilter = .all
         emojiGridColumnsOverride = nil

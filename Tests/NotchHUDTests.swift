@@ -31,6 +31,13 @@ struct NotchHUDTests {
         testNotchedGeometryAndMenuBarClamping()
         testNonNotchedFloatingPillFallback()
         testMediaKeyDecoding()
+        testOpenTrayAndSensorGeometry()
+        testShelfItems()
+        testNowPlayingSnapshot()
+        testNowPlayingSeek()
+        testNowPlayingRelayMessage()
+        testNowPlayingRelayArtworkCarryOver()
+        testWeekStrip()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -210,5 +217,149 @@ struct NotchHUDTests {
         expect(
             MediaKeyEvent.decode(subtype: 4, data1: soundUpDown) == nil,
             "non-aux subtypes are ignored")
+    }
+
+    static func testOpenTrayAndSensorGeometry() {
+        let macBook = NotchHUDGeometry.ScreenMetrics(
+            frame: CGRect(x: 0, y: 0, width: 2056, height: 1329),
+            safeAreaTop: 38,
+            auxiliaryTopLeft: CGRect(x: 0, y: 1291, width: 918, height: 38),
+            auxiliaryTopRight: CGRect(x: 1138, y: 1291, width: 918, height: 38))
+
+        let sensor = NotchHUDGeometry.sensorFrame(for: macBook)
+        expectCG(sensor.minX, 918, "notched sensor starts at leftAux.maxX")
+        expectCG(sensor.width, 220, "notched sensor spans only the dead camera housing")
+        expectCG(sensor.maxY, 1329, "notched sensor sits flush at screen.frame.maxY")
+
+        let tray = NotchHUDGeometry.resolveOpenTray(screen: macBook)
+        expect(tray.isNotched, "notched screen resolves notched open tray")
+        expectCG(tray.panelFrame.maxY, 1329, "open tray stays anchored to screen.frame.maxY")
+        expectCG(tray.headerHeight, 38, "open tray header height matches physical notch height")
+        expectCG(tray.panelFrame.minX + tray.notchOriginX, 918, "open tray notchOriginX locks to cutout")
+    }
+
+    static func testShelfItems() {
+        let link = NotchShelfItem(kind: .link(URL(string: "https://www.blazoer.com/products/ring-cobalt")!))
+        expect(link.displayTitle.contains("www.blazoer.com"), "link displays host on first line")
+
+        let duplicate = NotchShelfItem(kind: .link(URL(string: "https://www.blazoer.com/products/ring-cobalt")!))
+        let file = NotchShelfItem(kind: .file(URL(fileURLWithPath: "/tmp/proposal-final-2026-deck.pdf")))
+        let list = NotchShelfItem.inserting([duplicate], into: [file, link])
+        expect(list.count == 2, "reinserting an existing link deduplicates instead of duplicating")
+        expect(list.first?.id == duplicate.id, "reinserted item moves to the front of the shelf")
+    }
+
+    static func testNowPlayingSnapshot() {
+        let anchor = Date(timeIntervalSince1970: 1_000)
+        let playing = NowPlayingSnapshot(
+            title: "Track",
+            artist: "Artist",
+            album: "Album",
+            duration: 200,
+            elapsedAtAnchor: 10,
+            anchorDate: anchor,
+            playbackRate: 1.0,
+            isPlaying: true,
+            clientBundleID: "com.apple.Music",
+            clientName: "Music",
+            artworkID: nil,
+            artworkData: nil)
+        expect(playing.liveElapsed(at: anchor.addingTimeInterval(15)), 25, "playing advances elapsed time")
+        expect(playing.progress(at: anchor.addingTimeInterval(90)), 0.5, "100s / 200s = 50% progress")
+        expect(NowPlayingSnapshot.formatTimestamp(6) == "0:06", "6s formats as 0:06")
+        expect(NowPlayingSnapshot.formatTimestamp(3725) == "1:02:05", "hour+ formats with hours")
+    }
+
+    static func testNowPlayingSeek() {
+        let anchor = Date(timeIntervalSince1970: 1_000)
+        let playing = NowPlayingSnapshot(
+            title: "Track",
+            artist: "Artist",
+            album: "Album",
+            duration: 200,
+            elapsedAtAnchor: 10,
+            anchorDate: anchor,
+            playbackRate: 1.0,
+            isPlaying: true,
+            clientBundleID: "com.apple.Music",
+            clientName: "Music",
+            artworkID: "art",
+            artworkData: Data([1]))
+        let later = anchor.addingTimeInterval(30)
+
+        let sought = playing.seeking(to: 120, at: later)
+        expect(sought.liveElapsed(at: later), 120, "seeking re-anchors elapsed time at the seek")
+        expect(sought.liveElapsed(at: later.addingTimeInterval(5)), 125, "playback continues from the seek")
+        expect(sought.title == "Track" && sought.artworkData == Data([1]), "seeking keeps the track")
+        expect(playing.seeking(to: 900, at: later).liveElapsed(at: later), 200, "a seek clamps to duration")
+        expect(playing.seeking(to: -4, at: later).liveElapsed(at: later), 0, "a seek clamps to zero")
+    }
+
+    static func relayMessage(_ json: String) -> NowPlayingRelayMessage? {
+        NowPlayingRelayMessage.decode(line: Data(json.utf8))
+    }
+
+    static func testNowPlayingRelayMessage() {
+        let received = Date(timeIntervalSince1970: 5_000)
+        let line = """
+            {"isPlaying":true,"bundleID":"com.apple.WebKit.GPU","parentBundleID":"com.apple.Safari",\
+            "appName":"Safari","artworkID":"a1","title":"Song","artist":"Band","album":"LP",\
+            "duration":240,"elapsed":12.5,"rate":1,"timestamp":4990}
+            """
+        let snapshot = relayMessage(line)?.snapshot(carrying: nil, receivedAt: received)
+        expect(snapshot?.title == "Song", "relay title decodes")
+        expect(snapshot?.artist == "Band" && snapshot?.album == "LP", "relay artist and album decode")
+        expect(snapshot?.isPlaying == true, "relay playing state decodes")
+        expect(snapshot?.clientBundleID == "com.apple.Safari", "a helper process reports its parent app")
+        expect(snapshot?.clientName == "Safari", "relay source name decodes")
+        expect(snapshot?.liveElapsed(at: received) ?? 0, 22.5, "elapsed is anchored at the relay timestamp")
+
+        let direct = relayMessage(#"{"isPlaying":false,"bundleID":"com.spotify.client","title":"Song"}"#)?
+            .snapshot(carrying: nil, receivedAt: received)
+        expect(direct?.clientBundleID == "com.spotify.client", "an app without a parent reports itself")
+        expect(direct?.isPlaying == false, "a paused relay line is paused")
+        expect(direct?.anchorDate == received, "a line without a timestamp anchors at its arrival")
+        expect(direct?.liveElapsed(at: received.addingTimeInterval(60)) ?? -1, 0, "paused time stands still")
+
+        let blankParent = relayMessage(
+            #"{"bundleID":"com.spotify.client","parentBundleID":"","title":"Song"}"#)?
+            .snapshot(carrying: nil, receivedAt: received)
+        expect(blankParent?.clientBundleID == "com.spotify.client", "an empty parent falls back to the app")
+
+        expect(relayMessage("{}")?.snapshot(carrying: nil, receivedAt: received) == nil, "an empty line is silence")
+        expect(
+            relayMessage(#"{"isPlaying":true,"title":"  "}"#)?.snapshot(carrying: nil, receivedAt: received) == nil,
+            "a blank title is silence")
+        expect(relayMessage("not json") == nil, "a malformed line is rejected")
+    }
+
+    static func testNowPlayingRelayArtworkCarryOver() {
+        let received = Date(timeIntervalSince1970: 5_000)
+        let artwork = Data([0xFF, 0xD8, 0xFF])
+        let withArt = relayMessage(
+            #"{"title":"Song","artworkID":"a1","artwork":"\#(artwork.base64EncodedString())"}"#)?
+            .snapshot(carrying: nil, receivedAt: received)
+        expect(withArt?.artworkData == artwork, "relay artwork decodes from base64")
+
+        let sameArt = relayMessage(#"{"title":"Song","artworkID":"a1","isPlaying":true}"#)?
+            .snapshot(carrying: withArt, receivedAt: received)
+        expect(sameArt?.artworkData == artwork, "a line for the same artwork keeps the image already sent")
+
+        let nextTrack = relayMessage(#"{"title":"Other","artworkID":"b2"}"#)?
+            .snapshot(carrying: sameArt, receivedAt: received)
+        expect(nextTrack?.artworkData == nil, "a new track never shows the previous artwork")
+
+        let unidentified = relayMessage(#"{"title":"Other"}"#)?
+            .snapshot(carrying: withArt, receivedAt: received)
+        expect(unidentified?.artworkData == nil, "a line without an artwork identity carries nothing over")
+    }
+
+    static func testWeekStrip() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let ref = Date(timeIntervalSince1970: 1_794_830_400)
+        let built = NotchWeekStrip.build(around: ref, calendar: calendar, locale: locale)
+        expect(built.days.count == 6, "week strip builds 6 day slots (-2..+3)")
+        expect(built.days[2].isToday, "slot index 2 (offset 0) is marked as today")
     }
 }

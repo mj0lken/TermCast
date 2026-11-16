@@ -1,5 +1,6 @@
 import CoreGraphics
 import Observation
+import SwiftUI
 
 /// Observable display state driving `NotchHUDView` without recreating its hosting hierarchy.
 @MainActor
@@ -13,4 +14,5 @@ final class NotchHUDState {
             auxiliaryTopLeft: nil,
             auxiliaryTopRight: nil))
     var isExpanded = false
+    var style = NotchHUDStyle()
 }

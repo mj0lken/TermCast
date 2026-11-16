@@ -149,6 +149,7 @@ final class CalendarCoordinator {
         store.onChange = { [weak self] in
             self?.publishEntries()
             self?.refreshMenuBarEvent()
+            self?.core.notchHUD.calendarDidUpdate()
         }
         clock.onTick = { [weak self] in self?.minuteDidPass() }
         applySpan()

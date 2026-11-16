@@ -41,6 +41,7 @@ struct ClipboardTests {
         defaultActionChords()
         plainTextSkipsTheFile()
         offersTextExtraction()
+        categorySidebarAndTitleRanking()
 
         print("\(passes)/\(passes + failures) passed")
         if failures > 0 { exit(1) }
@@ -869,6 +870,9 @@ struct ClipboardTests {
         expect(ClipboardFileKind.of(path: "/a/b.png") == .image, "a .png is an image")
         expect(ClipboardFileKind.of(path: "/a/b.pdf") == .pdf, "a .pdf is a PDF")
         expect(ClipboardFileKind.of(path: "/a/b.m4a") == .audio, "an .m4a is audio")
+        expect(
+            ClipboardFileKind.of(path: "/Applications/Safari.app", isDirectory: true) == .app,
+            "an .app bundle is an app even when directory flag is set")
         expect(ClipboardFileKind.of(path: "/a/README") == .other, "a bare name is not a folder")
         expect(ClipboardFileKind.of(path: "/a/b", isDirectory: true) == .folder, "a folder is one")
     }
@@ -945,6 +949,37 @@ struct ClipboardTests {
             !ClipboardItem(filePath: "/Users/me/report.pdf", sourceBundleID: nil)
                 .offersTextExtraction,
             "a PDF stays a background-indexing capability")
+    }
+
+    static func categorySidebarAndTitleRanking() {
+        let plainBodyMatch = ClipboardItem(
+            text: "Meeting Notes\nQuarterly budget figures inside",
+            sourceBundleID: nil)
+        let titlePrefixMatch = ClipboardItem(
+            text: "Budget Q4 Overview\nGeneral summary",
+            sourceBundleID: nil)
+        let titleSubstringMatch = ClipboardItem(
+            text: "Annual Budget Plan\nDetails",
+            sourceBundleID: nil)
+        let appItem = ClipboardItem(filePath: "/Applications/Safari.app", sourceBundleID: nil)
+        let audioItem = ClipboardItem(filePath: "/Users/me/Music/demo.mp3", sourceBundleID: nil)
+
+        let items = [plainBodyMatch, titleSubstringMatch, titlePrefixMatch, appItem, audioItem]
+        let visible = ClipboardCategory.visibleCategories(
+            in: items,
+            active: .all,
+            knownDirectories: ["/Applications/Safari.app"])
+        expect(
+            visible.map(\.category) == [.all, .text, .audio, .apps],
+            "sidebar hides empty categories while keeping populated ones in canonical order")
+
+        let ranked = ClipboardCategory.filterAndRank(
+            [plainBodyMatch, titleSubstringMatch, titlePrefixMatch],
+            category: .text,
+            query: "budget")
+        expect(
+            ranked.map(\.id) == [titlePrefixMatch.id, titleSubstringMatch.id, plainBodyMatch.id],
+            "title prefix beats title substring, which beats body-only text match")
     }
 
     // MARK: - Harness

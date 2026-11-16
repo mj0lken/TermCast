@@ -210,6 +210,76 @@ final class AppSettings {
         }
     }
 
+    var notchShelfEnabled: Bool {
+        didSet {
+            defaults.set(notchShelfEnabled, forKey: Key.notchShelfEnabled.rawValue)
+        }
+    }
+
+    var notchOpenOnHover: Bool {
+        didSet {
+            defaults.set(notchOpenOnHover, forKey: Key.notchOpenOnHover.rawValue)
+        }
+    }
+
+    var notchHoverDelayMs: Int {
+        didSet {
+            defaults.set(notchHoverDelayMs, forKey: Key.notchHoverDelayMs.rawValue)
+        }
+    }
+
+    var notchHoverDelay: TimeInterval {
+        TimeInterval(min(max(notchHoverDelayMs, 100), 1000)) / 1000.0
+    }
+
+    var notchHapticsEnabled: Bool {
+        didSet {
+            defaults.set(notchHapticsEnabled, forKey: Key.notchHapticsEnabled.rawValue)
+        }
+    }
+
+    var notchRemembersLastTab: Bool {
+        didSet {
+            defaults.set(notchRemembersLastTab, forKey: Key.notchRemembersLastTab.rawValue)
+        }
+    }
+
+    var notchBatteryNotifications: Bool {
+        didSet {
+            defaults.set(
+                notchBatteryNotifications,
+                forKey: Key.notchBatteryNotifications.rawValue)
+        }
+    }
+
+    var notchShowsPercentage: Bool {
+        didSet { defaults.set(notchShowsPercentage, forKey: Key.notchShowsPercentage.rawValue) }
+    }
+
+    var notchTintsAccent: Bool {
+        didSet { defaults.set(notchTintsAccent, forKey: Key.notchTintsAccent.rawValue) }
+    }
+
+    var notchShowsMedia: Bool {
+        didSet { defaults.set(notchShowsMedia, forKey: Key.notchShowsMedia.rawValue) }
+    }
+
+    var notchShowsCalendar: Bool {
+        didSet { defaults.set(notchShowsCalendar, forKey: Key.notchShowsCalendar.rawValue) }
+    }
+
+    var notchHidesAllDayEvents: Bool {
+        didSet { defaults.set(notchHidesAllDayEvents, forKey: Key.notchHidesAllDayEvents.rawValue) }
+    }
+
+    var notchShowsBattery: Bool {
+        didSet { defaults.set(notchShowsBattery, forKey: Key.notchShowsBattery.rawValue) }
+    }
+
+    var notchShowsClipboard: Bool {
+        didSet { defaults.set(notchShowsClipboard, forKey: Key.notchShowsClipboard.rawValue) }
+    }
+
     /// Preferred skin tone applied to modifier-capable emoji at render and copy time.
     var emojiSkinTone: EmojiSkinTone {
         didSet { defaults.set(emojiSkinTone.rawValue, forKey: Key.emojiSkinTone.rawValue) }
@@ -860,6 +930,38 @@ final class AppSettings {
         hyperKeyTrackpadSliders = defaults.bool(
             forKey: Key.hyperKeyTrackpadSliders.rawValue)
         notchHUDEnabled = defaults.bool(forKey: Key.notchHUDEnabled.rawValue)
+        notchShelfEnabled = defaults.bool(forKey: Key.notchShelfEnabled.rawValue)
+        notchOpenOnHover =
+            defaults.object(forKey: Key.notchOpenOnHover.rawValue) == nil
+            || defaults.bool(forKey: Key.notchOpenOnHover.rawValue)
+        notchHoverDelayMs =
+            defaults.object(forKey: Key.notchHoverDelayMs.rawValue)
+            .flatMap { $0 as? Int }
+            .map { min(max($0, 100), 1000) } ?? 350
+        notchHapticsEnabled =
+            defaults.object(forKey: Key.notchHapticsEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.notchHapticsEnabled.rawValue)
+        notchRemembersLastTab = defaults.bool(forKey: Key.notchRemembersLastTab.rawValue)
+        notchBatteryNotifications =
+            defaults.object(forKey: Key.notchBatteryNotifications.rawValue) == nil
+            || defaults.bool(forKey: Key.notchBatteryNotifications.rawValue)
+        notchShowsPercentage =
+            defaults.object(forKey: Key.notchShowsPercentage.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsPercentage.rawValue)
+        notchTintsAccent = defaults.bool(forKey: Key.notchTintsAccent.rawValue)
+        notchShowsMedia =
+            defaults.object(forKey: Key.notchShowsMedia.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsMedia.rawValue)
+        notchShowsCalendar =
+            defaults.object(forKey: Key.notchShowsCalendar.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsCalendar.rawValue)
+        notchHidesAllDayEvents = defaults.bool(forKey: Key.notchHidesAllDayEvents.rawValue)
+        notchShowsBattery =
+            defaults.object(forKey: Key.notchShowsBattery.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsBattery.rawValue)
+        notchShowsClipboard =
+            defaults.object(forKey: Key.notchShowsClipboard.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsClipboard.rawValue)
         emojiSkinTone =
             defaults.string(forKey: Key.emojiSkinTone.rawValue).flatMap(EmojiSkinTone.init) ?? .none
         emojiGridColumns =

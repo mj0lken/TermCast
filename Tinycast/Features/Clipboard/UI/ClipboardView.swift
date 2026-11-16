@@ -1,17 +1,92 @@
 import AppKit
 import SwiftUI
 
-struct ClipboardList: View {
+// MARK: - Narrow Left Category Sidebar
 
+struct ClipboardCategorySidebar: View {
+    @Environment(\.metrics) private var metrics
+    let entries: [ClipboardCategory.SidebarEntry]
+    let selected: ClipboardCategory
+    let onSelect: (ClipboardCategory) -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(entries) { entry in
+                    ClipboardCategoryRow(
+                        entry: entry,
+                        isSelected: entry.category == selected,
+                        onSelect: { onSelect(entry.category) })
+                }
+            }
+            .padding(.horizontal, metrics.spacing.sm)
+            .padding(.vertical, metrics.spacing.sm)
+            .hideNativeScrollers()
+        }
+        .edgeDissolve()
+    }
+}
+
+private struct ClipboardCategoryRow: View {
+    @Environment(\.metrics) private var metrics
+    let entry: ClipboardCategory.SidebarEntry
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var hovered = false
+
+    private var fill: Color {
+        if isSelected { return Theme.Colors.selection }
+        if hovered { return Theme.Colors.rowHover }
+        return .clear
+    }
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: metrics.spacing.sm) {
+                SymbolImage(
+                    name: entry.category.systemImage,
+                    size: Theme.Typography.menuSymbolSize,
+                    monochrome: true
+                )
+                .foregroundStyle(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                .frame(width: 18, height: 18)
+
+                Text(entry.category.title)
+                    .font(.callout.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 4)
+
+                Text(verbatim: "\(entry.count)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+            .padding(.horizontal, metrics.spacing.sm)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: metrics.radius.barControl, style: .continuous)
+                    .fill(fill)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .armedHover($hovered)
+    }
+}
+
+// MARK: - Detailed Right-Side List
+
+struct ClipboardList: View {
     @Environment(\.metrics) private var metrics
     let results: [ClipboardItem]
     let selectedID: ClipboardItem.ID?
-    /// Changes only when the list should scroll, so mouse selection never yanks it.
+    let metadataCache: ClipboardMetadataCache
     let scroll: ScrollIntent
     let onSelect: (ClipboardItem) -> Void
     let onActivate: () -> Void
     let onActions: (ClipboardItem) -> Void
-    /// Nil when the entry has nothing left to hand over, which is reported rather than dragged.
     let onDragPayload: (ClipboardItem) -> ClipDragPayload?
     let onDropped: () -> Void
     @Environment(ClipboardStore.self) private var store
@@ -27,12 +102,10 @@ struct ClipboardList: View {
         }
     }
 
-    /// Whether the selection sits on flat index 0, whose section header should stay visible.
     private var firstRowSelected: Bool {
         selectedID != nil && selectedID == results.first?.id
     }
 
-    /// Pins share one header; the rest are newest-first, a header per date bucket.
     private var rows: [Row] {
         var rows: [Row] = []
         var currentTitle: String?
@@ -61,13 +134,15 @@ struct ClipboardList: View {
                             SectionHeader(title: title, isFirst: row.id == rows.first?.id)
                         case .item(let item, let slot):
                             ClipboardRow(
-                                item: item, selected: item.id == selectedID,
+                                item: item,
+                                selected: item.id == selectedID,
                                 imageURL: store.imageURL(for: item),
-                                ownsImage: store.ownsImage(of: item), slot: slot
+                                ownsImage: store.ownsImage(of: item),
+                                metadataCache: metadataCache,
+                                slot: slot
                             )
                             .selectionFrame(item.id == selectedID)
                             .contentShape(Rectangle())
-                            // The light catcher: `.contextMenu` stalls.
                             .onRightClick { onActions(item) }
                             .onRowClick(
                                 select: { onSelect(item) },
@@ -89,7 +164,6 @@ struct ClipboardList: View {
             }
             .edgeDissolve()
             .thinScrollbar()
-            // Snap to the origin on the first row so its section header shows too.
             .scrollFollowsSelection(
                 scroll, row: selectedID?.uuidString, atOrigin: firstRowSelected, proxy: proxy)
         }
@@ -125,74 +199,181 @@ enum DateBucket: Int {
 }
 
 private struct ClipboardRow: View {
+    @MainActor private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    @MainActor private static let shortDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("d MMM")
+        return formatter
+    }()
 
     @Environment(\.metrics) private var metrics
     let item: ClipboardItem
     let selected: Bool
     let imageURL: URL?
     let ownsImage: Bool
-    /// This row's ⌘-digit, or nil when it is not among the first ten visible pins.
+    let metadataCache: ClipboardMetadataCache
     let slot: Character?
     @Environment(PaletteState.self) private var palette
     @State private var hovered = false
 
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
     private var fill: Color {
         if selected { return Theme.Colors.selection }
         if hovered { return Theme.Colors.rowHover }
         return .clear
     }
 
+    private var entryMeta: ClipboardMetadataCache.EntryMetadata? {
+        metadataCache.metadata(for: item)
+    }
+
     var body: some View {
         IconCache.observeStyle()
-        return HStack(spacing: metrics.spacing.lg) {
+        let appInfo = metadataCache.sourceApp(for: item.sourceBundleID)
+        return HStack(spacing: metrics.spacing.md) {
             thumbnail(item.colorValue)
                 .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
-            Text(previewText)
-                .font(metrics.typography.menuRow)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer(minLength: 0)
-            if let slot, palette.commandHeld {
-                HStack(spacing: metrics.spacing.xxs) {
-                    KeyCapChip(text: "⌘", style: .outline)
-                    KeyCapChip(text: String(slot), style: .outline)
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(primaryTitle)
+                        .font(metrics.typography.menuRow)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if item.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.Colors.textTertiary)
+                    }
+                }
+
+                if let secondary = secondarySubtitle {
+                    Text(secondary)
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+
+            Spacer(minLength: metrics.spacing.sm)
+
+            HStack(spacing: metrics.spacing.sm) {
+                if let sizeLabel {
+                    Text(verbatim: sizeLabel)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+
+                if let appInfo {
+                    Image(nsImage: appInfo.icon)
+                        .resizable()
+                        .frame(width: 16, height: 16)
+                        .accessibilityLabel(appInfo.name)
+                }
+
+                if let slot, palette.commandHeld {
+                    HStack(spacing: metrics.spacing.xxs) {
+                        KeyCapChip(text: "⌘", style: .outline)
+                        KeyCapChip(text: String(slot), style: .outline)
+                    }
+                } else {
+                    Text(verbatim: formattedTimestamp)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .frame(minWidth: 46, alignment: .trailing)
                 }
             }
         }
         .padding(.horizontal, metrics.spacing.md)
-        .padding(.vertical, metrics.spacing.sm)
+        .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
                 .fill(fill)
         )
         .armedHover($hovered)
+        .task(id: item.id) {
+            metadataCache.ensureLoaded(for: item, imageURL: imageURL)
+        }
     }
 
-    private var previewText: String {
+    private var primaryTitle: String {
         switch item.kind {
-        // Cap before trimming: never walk a multi-MB clipboard string per row.
         case .text:
-            return String((item.text ?? "").prefix(200)).trimmingCharacters(
-                in: .whitespacesAndNewlines)
-        case .image: return String(localized: "Image")
+            return ClipboardCategory.displayTitle(for: item)
+        case .image:
+            if let size = entryMeta?.pixelSize {
+                return String(localized: "Image (\(Int(size.width))×\(Int(size.height)))")
+            }
+            return String(localized: "Image")
         case .file:
-            return item.filePath.map {
-                URL(filePath: $0, directoryHint: .inferFromPath).lastPathComponent
-            } ?? String(localized: "File")
+            return ClipboardCategory.displayTitle(for: item)
         }
+    }
+
+    private var secondarySubtitle: String? {
+        switch item.kind {
+        case .text:
+            guard let text = item.text else { return nil }
+            let head = String(text.prefix(320))
+            let lines = head
+                .split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            return lines.count > 1 ? lines[1] : nil
+        case .image:
+            return nil
+        case .file:
+            guard let path = item.filePath else { return nil }
+            let parent = (path as NSString).deletingLastPathComponent
+            return (parent as NSString).abbreviatingWithTildeInPath
+        }
+    }
+
+    private var sizeLabel: String? {
+        switch item.kind {
+        case .text:
+            if item.colorValue != nil { return String(localized: "Color") }
+            guard let chars = entryMeta?.characterCount else { return nil }
+            return String(localized: "\(chars) chars")
+        case .image, .file:
+            if let bytes = entryMeta?.fileBytes {
+                return bytes.formatted(.byteCount(style: .file))
+            }
+            if item.kind == .file {
+                return fileKind.title
+            }
+            return nil
+        }
+    }
+
+    private var formattedTimestamp: String {
+        if Calendar.current.isDateInToday(item.createdAt) {
+            return Self.timeFormatter.string(from: item.createdAt)
+        }
+        if Calendar.current.isDateInYesterday(item.createdAt) {
+            return String(localized: "Yesterday")
+        }
+        return Self.shortDateFormatter.string(from: item.createdAt)
     }
 
     @ViewBuilder
     private func thumbnail(_ color: ColorValue?) -> some View {
         switch item.kind {
         case .text:
-            // A colour states itself, so it takes the tile a glyph would otherwise fill.
             if let color {
                 ColorSwatch(color: color)
                     .frame(width: artworkSize, height: artworkSize)
             } else {
-                Image(nsImage: IconCache.symbolIcon(named: "doc.text")).resizable()
+                Image(nsImage: IconCache.symbolIcon(named: textGlyph)).resizable()
             }
         case .image:
             AsyncThumbnail(url: imageURL, maxPixel: 64, source: .image(derived: ownsImage)) { image in
@@ -206,34 +387,189 @@ private struct ClipboardRow: View {
                 Image(nsImage: IconCache.symbolIcon(named: "photo")).resizable()
             }
         case .file:
-            AsyncThumbnail(url: fileURL, maxPixel: 64, source: .file) { image in
-                image
+            if fileKind == .app, let path = item.filePath {
+                Image(nsImage: IconCache.icon(forFile: path))
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
                     .frame(width: artworkSize, height: artworkSize)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: metrics.radius.thumbnail, style: .continuous))
-            } placeholder: {
-                Image(nsImage: IconCache.symbolIcon(named: fileKind.systemImage)).resizable()
+            } else {
+                AsyncThumbnail(url: fileURL, maxPixel: 64, source: .file) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: artworkSize, height: artworkSize)
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: metrics.radius.thumbnail, style: .continuous))
+                } placeholder: {
+                    Image(nsImage: IconCache.symbolIcon(named: fileKind.systemImage)).resizable()
+                }
             }
         }
     }
 
-    // Not `fileURLWithPath:`, which stats the path: on a network mount that stalls the render.
+    private var textGlyph: String {
+        switch item.textForm {
+        case .link: "link"
+        case .email: "at"
+        case .color: "eyedropper"
+        case .plain, .none: "doc.text"
+        }
+    }
+
     private var fileURL: URL? {
         item.filePath.map { URL(filePath: $0, directoryHint: .inferFromPath) }
     }
 
     private var fileKind: ClipboardFileKind {
-        item.filePath.map { ClipboardFileKind.of(path: $0) } ?? .other
+        item.filePath.map {
+            ClipboardFileKind.of(path: $0, isDirectory: entryMeta?.isDirectory == true)
+        } ?? .other
     }
 
     private var artworkSize: CGFloat { metrics.size.resultRowIcon * IconCache.appIconExtent }
 }
 
-/// ImageIO for a blob we hold; QuickLook for a referenced file, which may be any type.
+// MARK: - Bottom-Third Preview Drawer
+
+struct ClipboardBottomPreviewPane: View {
+    @MainActor private static let copiedFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }()
+
+    @Environment(\.metrics) private var metrics
+    let item: ClipboardItem
+    let metadataCache: ClipboardMetadataCache
+    let onClose: () -> Void
+    @Environment(ClipboardStore.self) private var store
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: metrics.spacing.xs) {
+            headerRow
+            previewContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(.horizontal, metrics.spacing.lg)
+        .padding(.top, metrics.spacing.sm)
+        .padding(.bottom, metrics.spacing.sm)
+        .task(id: item.id) {
+            metadataCache.ensureLoaded(for: item, imageURL: store.imageURL(for: item))
+        }
+    }
+
+    private var headerRow: some View {
+        let appInfo = metadataCache.sourceApp(for: item.sourceBundleID)
+        let meta = metadataCache.metadata(for: item)
+        return HStack(spacing: metrics.spacing.sm) {
+            if let appInfo {
+                Image(nsImage: appInfo.icon)
+                    .resizable()
+                    .frame(width: 15, height: 15)
+                Text(verbatim: appInfo.name)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                Text(verbatim: "·")
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+
+            Text(verbatim: detailSummary(meta: meta))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Spacer(minLength: metrics.spacing.sm)
+
+            Button(action: onClose) {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(Theme.Colors.controlSurface))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "Hide Preview"))
+        }
+    }
+
+    private func detailSummary(meta: ClipboardMetadataCache.EntryMetadata?) -> String {
+        var parts: [String] = []
+        switch item.kind {
+        case .text:
+            if let chars = meta?.characterCount, let words = meta?.wordCount {
+                parts.append(String(localized: "\(words) words · \(chars) chars"))
+            }
+        case .image:
+            if let size = meta?.pixelSize {
+                parts.append("\(Int(size.width))×\(Int(size.height))")
+            }
+            if let bytes = meta?.fileBytes {
+                parts.append(bytes.formatted(.byteCount(style: .file)))
+            }
+        case .file:
+            if let type = meta?.typeDescription {
+                parts.append(type)
+            }
+            if let bytes = meta?.fileBytes {
+                parts.append(bytes.formatted(.byteCount(style: .file)))
+            }
+        }
+        parts.append(Self.copiedFormatter.string(from: item.createdAt))
+        return parts.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private var previewContent: some View {
+        switch item.kind {
+        case .text:
+            if let color = item.colorValue {
+                ColorPreview(color: color, text: item.text ?? "")
+            } else {
+                ScrollView {
+                    Text(item.text ?? "")
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+        case .image:
+            HStack {
+                Spacer(minLength: 0)
+                AsyncThumbnail(
+                    url: store.imageURL(for: item),
+                    maxPixel: metrics.size.clipboardPreviewPixel,
+                    source: .image(derived: store.ownsImage(of: item))
+                ) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: metrics.radius.thumbnail, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: metrics.radius.thumbnail, style: .continuous)
+                                .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
+                } placeholder: {
+                    Image(systemName: "photo")
+                        .font(.title2)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
+                Spacer(minLength: 0)
+            }
+        case .file:
+            if let path = item.filePath {
+                FilePreviewStage(path: path)
+            }
+        }
+    }
+}
+
+// MARK: - Async Thumbnail Loader
+
 private enum ThumbnailSource {
-    /// `derived` only for a blob we hold, so no copy is ever written beside someone else's file.
     case image(derived: Bool)
     case file
 
@@ -254,11 +590,9 @@ private enum ThumbnailSource {
     }
 }
 
-/// A downsampled thumbnail, decoding misses off the main thread.
 private struct AsyncThumbnail<Content: View, Placeholder: View>: View {
     let url: URL?
     let maxPixel: CGFloat
-    /// Not nested here: the off-main decode would carry this view's isolated `View` conformances.
     var source: ThumbnailSource = .image(derived: false)
     @ViewBuilder let content: (Image) -> Content
     @ViewBuilder let placeholder: () -> Placeholder
@@ -282,232 +616,8 @@ private struct AsyncThumbnail<Content: View, Placeholder: View>: View {
                 image = hit
                 return
             }
-            image = nil  // show the placeholder while a new image decodes
+            image = nil
             image = await source.loadAsync(url, maxPixel: maxPixel)
         }
-    }
-}
-
-struct ClipboardPreview: View {
-
-    @Environment(\.metrics) private var metrics
-    let item: ClipboardItem?
-    @Environment(ClipboardStore.self) private var store
-
-    var body: some View {
-        if let item {
-            VStack(alignment: .leading, spacing: 0) {
-                content(for: item)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                ClipboardInfoSection(item: item, imageURL: store.imageURL(for: item))
-            }
-            .padding(.horizontal, 12)
-        } else {
-            Color.clear
-        }
-    }
-
-    @ViewBuilder
-    private func content(for item: ClipboardItem) -> some View {
-        switch item.kind {
-        case .text:
-            if let color = item.colorValue {
-                ColorPreview(color: color, text: item.text ?? "")
-            } else {
-                ScrollView {
-                    Text(item.text ?? "")
-                        .font(.system(.subheadline, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-            }
-        case .image:
-            AsyncThumbnail(
-                url: store.imageURL(for: item), maxPixel: metrics.size.clipboardPreviewPixel,
-                source: .image(derived: store.ownsImage(of: item))
-            ) { image in
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                            .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
-                    )
-            } placeholder: {
-                Image(systemName: "photo").font(.system(.largeTitle))
-                    .symbolRenderingMode(.hierarchical).foregroundStyle(.tertiary)
-            }
-        case .file:
-            if let path = item.filePath { FilePreviewStage(path: path) }
-        }
-    }
-}
-
-/// The "Information" block; disk-touching details are gathered off the main actor.
-private struct ClipboardInfoSection: View {
-    @Environment(\.metrics) private var metrics
-    let item: ClipboardItem
-    let imageURL: URL?
-
-    @State private var details = Details()
-
-    private struct Details: Equatable, Sendable {
-        var characters: Int?
-        var words: Int?
-        var pixelSize: CGSize?
-        var fileBytes: Int?
-        var typeName: String?
-    }
-
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: String
-        var icon: NSImage?
-        var id: String { label }
-    }
-
-    /// Relative day plus exact time; shared, `DateFormatter` being expensive to build.
-    @MainActor private static let copiedFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        formatter.doesRelativeDateFormatting = true
-        return formatter
-    }()
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        if let icon = row.icon {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .frame(width: 20, height: 20)
-                        }
-                        Text(row.value).lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(.callout)
-                    .padding(.vertical, metrics.spacing.sm)
-                }
-            }
-        }
-        .padding(.top, metrics.spacing.xl)
-        .task(id: item.id) { await loadDetails() }
-    }
-
-    private var rows: [InfoRow] {
-        var rows: [InfoRow] = []
-        if let source {
-            rows.append(InfoRow(label: String(localized: "Source"), value: source.name, icon: source.icon))
-        }
-        switch item.kind {
-        case .text:
-            let isColor = item.colorValue != nil
-            rows.append(
-                InfoRow(
-                    label: String(localized: "Type"),
-                    value: isColor ? String(localized: "Color") : String(localized: "Text")))
-            // A colour's own notations are the pane above; its length is not what you came for.
-            if !isColor {
-                if let characters = details.characters {
-                    rows.append(
-                        InfoRow(label: String(localized: "Characters"), value: characters.formatted()))
-                }
-                if let words = details.words {
-                    rows.append(InfoRow(label: String(localized: "Words"), value: words.formatted()))
-                }
-            }
-        case .image:
-            rows.append(InfoRow(label: String(localized: "Type"), value: String(localized: "Image")))
-            if let size = details.pixelSize {
-                rows.append(
-                    InfoRow(
-                        label: String(localized: "Dimensions"),
-                        value: "\(Int(size.width))×\(Int(size.height))"))
-            }
-            if let bytes = details.fileBytes {
-                rows.append(
-                    InfoRow(
-                        label: String(localized: "Size"),
-                        value: Int64(bytes).formatted(.byteCount(style: .file))))
-            }
-        case .file:
-            let path = item.filePath ?? ""
-            rows.append(
-                InfoRow(
-                    label: String(localized: "Type"),
-                    value: details.typeName ?? ClipboardFileKind.of(path: path).title))
-            rows.append(
-                InfoRow(
-                    label: String(localized: "Path"),
-                    value: (path as NSString).abbreviatingWithTildeInPath))
-            if let bytes = details.fileBytes {
-                rows.append(
-                    InfoRow(
-                        label: String(localized: "Size"),
-                        value: Int64(bytes).formatted(.byteCount(style: .file))))
-            }
-        }
-        rows.append(
-            InfoRow(
-                label: String(localized: "Copied"),
-                value: Self.copiedFormatter.string(from: item.createdAt)))
-        return rows
-    }
-
-    private var source: (name: String, icon: NSImage)? {
-        IconCache.observeStyle()
-        guard let bundleID = item.sourceBundleID,
-            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
-        else { return nil }
-        return (url.deletingPathExtension().lastPathComponent, IconCache.icon(forFile: url.path))
-    }
-
-    private func loadDetails() async {
-        // Only a text entry: a file's `text` is its path, and counting its words says nothing.
-        let text = item.kind == .text ? item.text : nil
-        let url = imageURL
-        let filePath = item.filePath
-        details = await Task.detached(priority: .userInitiated) {
-            var details = Details()
-            if let text {
-                details.characters = text.count
-                details.words = Self.wordCount(text)
-            }
-            if let url {
-                details.pixelSize = ImageThumbnail.pixelSize(of: url)
-                details.fileBytes = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
-            }
-            if let filePath {
-                let fileURL = URL(fileURLWithPath: filePath)
-                let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .contentTypeKey])
-                details.fileBytes = values?.fileSize
-                details.typeName = values?.contentType?.localizedDescription
-            }
-            return details
-        }.value
-    }
-
-    /// Single pass: `split(whereSeparator:)` allocates per word, which a multi-MB copy feels.
-    private nonisolated static func wordCount(_ text: String) -> Int {
-        var count = 0
-        var inWord = false
-        for scalar in text.unicodeScalars {
-            let separator = CharacterSet.whitespacesAndNewlines.contains(scalar)
-            if !separator && !inWord { count += 1 }
-            inWord = !separator
-        }
-        return count
     }
 }

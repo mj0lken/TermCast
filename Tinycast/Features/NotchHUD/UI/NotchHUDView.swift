@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct NotchHUDStyle: Equatable {
+    var showsPercentage = true
+    var tintsAccent = false
+
+    var fill: Color { tintsAccent ? Color.accentColor : Theme.Colors.textPrimary }
+}
+
+extension EnvironmentValues {
+    @Entry var notchHUDStyle = NotchHUDStyle()
+}
+
 struct NotchHUDView: View {
     let state: NotchHUDState
 
@@ -42,6 +53,7 @@ struct NotchHUDView: View {
             height: state.layout.panelFrame.height,
             alignment: .topLeading)
         .environment(\.colorScheme, .dark)
+        .environment(\.notchHUDStyle, state.style)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
     }
@@ -58,6 +70,11 @@ struct NotchHUDView: View {
             return String(localized: "Keyboard brightness \(state.metric.percentageText())")
         case .audioDeviceConnected(let name, _, _, _):
             return String(localized: "\(name) connected")
+        case .battery(let percentage, let isPluggedIn):
+            if isPluggedIn {
+                return String(localized: "Charging \(percentage)%")
+            }
+            return String(localized: "Battery \(percentage)%")
         }
     }
 }
@@ -176,6 +193,7 @@ private struct NotchHUDGlyph: View {
 }
 
 private struct NotchHUDRightReadout: View {
+    @Environment(\.notchHUDStyle) private var style
     let metric: NotchHUDMetric
     let trackWidth: CGFloat
 
@@ -189,18 +207,35 @@ private struct NotchHUDRightReadout: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+        case .battery(let percentage, let isPluggedIn):
+            Text(
+                isPluggedIn
+                    ? String(localized: "Charging · \(percentage)%")
+                    : String(localized: "On Battery · \(percentage)%")
+            )
+            .font(.caption.monospacedDigit().weight(.medium))
+            .foregroundStyle(isPluggedIn ? Theme.Colors.success : Theme.Colors.textPrimary)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
         case .volume, .screenBrightness, .keyboardBacklight:
-            NotchHUDLevelBar(level: metric.effectiveLevel, trackWidth: trackWidth)
-            Text(verbatim: metric.percentageText())
-                .font(.caption.monospacedDigit().weight(.medium))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .lineLimit(1)
-                .frame(width: Theme.Size.notchHUDReadoutWidth, alignment: .trailing)
+            NotchHUDLevelBar(
+                level: metric.effectiveLevel,
+                trackWidth: style.showsPercentage
+                    ? trackWidth : trackWidth + Theme.Size.notchHUDReadoutWidth)
+            if style.showsPercentage {
+                Text(verbatim: metric.percentageText())
+                    .font(.caption.monospacedDigit().weight(.medium))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .frame(width: Theme.Size.notchHUDReadoutWidth, alignment: .trailing)
+            }
         }
     }
 }
 
 private struct NotchHUDLevelBar: View {
+    @Environment(\.notchHUDStyle) private var style
     let level: Double
     let trackWidth: CGFloat
 
@@ -212,7 +247,7 @@ private struct NotchHUDLevelBar: View {
                 .frame(width: trackWidth, height: Theme.Size.notchHUDTrackHeight)
 
             Capsule()
-                .fill(Theme.Colors.textPrimary)
+                .fill(style.fill)
                 .frame(
                     width: max(trackWidth * clamped, clamped > 0 ? Theme.Size.notchHUDTrackHeight : 0),
                     height: Theme.Size.notchHUDTrackHeight)

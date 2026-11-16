@@ -31,6 +31,19 @@ struct SettingsBackup: Codable {
         var hyperKeySecureInputCompatibility: Bool?
         var hyperKeyTrackpadSliders: Bool?
         var notchHUDEnabled: Bool?
+        var notchShelfEnabled: Bool?
+        var notchOpenOnHover: Bool?
+        var notchHoverDelayMs: Int?
+        var notchHapticsEnabled: Bool?
+        var notchRemembersLastTab: Bool?
+        var notchBatteryNotifications: Bool?
+        var notchShowsPercentage: Bool?
+        var notchTintsAccent: Bool?
+        var notchShowsMedia: Bool?
+        var notchShowsCalendar: Bool?
+        var notchHidesAllDayEvents: Bool?
+        var notchShowsBattery: Bool?
+        var notchShowsClipboard: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -160,6 +173,19 @@ extension SettingsBackup {
             hyperKeySecureInputCompatibility: s.hyperKeySecureInputCompatibility,
             hyperKeyTrackpadSliders: s.hyperKeyTrackpadSliders,
             notchHUDEnabled: s.notchHUDEnabled,
+            notchShelfEnabled: s.notchShelfEnabled,
+            notchOpenOnHover: s.notchOpenOnHover,
+            notchHoverDelayMs: s.notchHoverDelayMs,
+            notchHapticsEnabled: s.notchHapticsEnabled,
+            notchRemembersLastTab: s.notchRemembersLastTab,
+            notchBatteryNotifications: s.notchBatteryNotifications,
+            notchShowsPercentage: s.notchShowsPercentage,
+            notchTintsAccent: s.notchTintsAccent,
+            notchShowsMedia: s.notchShowsMedia,
+            notchShowsCalendar: s.notchShowsCalendar,
+            notchHidesAllDayEvents: s.notchHidesAllDayEvents,
+            notchShowsBattery: s.notchShowsBattery,
+            notchShowsClipboard: s.notchShowsClipboard,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -380,6 +406,58 @@ extension SettingsBackup {
         }
         if let flag = s.notchHUDEnabled {
             settings.notchHUDEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchShelfEnabled {
+            settings.notchShelfEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchOpenOnHover {
+            settings.notchOpenOnHover = flag
+            count += 1
+        }
+        if let ms = s.notchHoverDelayMs, (100...1000).contains(ms) {
+            settings.notchHoverDelayMs = ms
+            count += 1
+        }
+        if let flag = s.notchHapticsEnabled {
+            settings.notchHapticsEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchRemembersLastTab {
+            settings.notchRemembersLastTab = flag
+            count += 1
+        }
+        if let flag = s.notchBatteryNotifications {
+            settings.notchBatteryNotifications = flag
+            count += 1
+        }
+        if let flag = s.notchShowsPercentage {
+            settings.notchShowsPercentage = flag
+            count += 1
+        }
+        if let flag = s.notchTintsAccent {
+            settings.notchTintsAccent = flag
+            count += 1
+        }
+        if let flag = s.notchShowsMedia {
+            settings.notchShowsMedia = flag
+            count += 1
+        }
+        if let flag = s.notchShowsCalendar {
+            settings.notchShowsCalendar = flag
+            count += 1
+        }
+        if let flag = s.notchHidesAllDayEvents {
+            settings.notchHidesAllDayEvents = flag
+            count += 1
+        }
+        if let flag = s.notchShowsBattery {
+            settings.notchShowsBattery = flag
+            count += 1
+        }
+        if let flag = s.notchShowsClipboard {
+            settings.notchShowsClipboard = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {

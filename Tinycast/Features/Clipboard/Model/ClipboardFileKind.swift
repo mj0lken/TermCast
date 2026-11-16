@@ -7,13 +7,15 @@ enum ClipboardFileKind: Sendable {
     case movie
     case audio
     case pdf
+    case app
     case folder
     case other
 
     /// Resolved from the extension, never from disk, so a vanished file still classifies.
     static func of(path: String, isDirectory: Bool = false) -> ClipboardFileKind {
-        guard !isDirectory else { return .folder }
         let url = URL(filePath: path, directoryHint: .inferFromPath)
+        if url.pathExtension.lowercased() == "app" { return .app }
+        guard !isDirectory else { return .folder }
         let type = UTType(filenameExtension: url.pathExtension)
         guard let type else { return .other }
         if type.conforms(to: .image) { return .image }
@@ -31,6 +33,7 @@ enum ClipboardFileKind: Sendable {
         case .movie: return String(localized: "Movie")
         case .audio: return String(localized: "Audio")
         case .pdf: return "PDF"
+        case .app: return String(localized: "Application")
         case .folder: return String(localized: "Folder")
         case .other: return String(localized: "File")
         }
@@ -42,6 +45,7 @@ enum ClipboardFileKind: Sendable {
         case .movie: return "film"
         case .audio: return "waveform"
         case .pdf: return "doc.richtext"
+        case .app: return "app.badge"
         case .folder: return "folder"
         case .other: return "doc"
         }

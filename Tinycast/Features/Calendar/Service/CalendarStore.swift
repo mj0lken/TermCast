@@ -151,6 +151,21 @@ final class CalendarStore {
         publish(store.events(matching: predicate).compactMap(Self.meeting(from:)))
     }
 
+    /// Queries an explicit window (such as the Notch's 6-day week strip) without mutating `span`.
+    func events(in interval: DateInterval) -> [MeetingEvent] {
+        guard access == .granted, interval.duration > 0 else { return [] }
+        let store = eventStore ?? EKEventStore()
+        eventStore = store
+        observeStoreChanges()
+        let selected = store.calendars(for: .event).filter {
+            !hiddenCalendarIDs.contains($0.calendarIdentifier)
+        }
+        guard !selected.isEmpty else { return [] }
+        let predicate = store.predicateForEvents(
+            withStart: interval.start, end: interval.end, calendars: selected)
+        return store.events(matching: predicate).compactMap(Self.meeting(from:))
+    }
+
     private func publish(_ next: [MeetingEvent]) {
         guard next != events else { return }
         events = next
