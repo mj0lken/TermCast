@@ -1,18 +1,19 @@
 <h1 align="center">
   <a href="https://mj0lken.github.io/TermCast/"><img src="docs/images/icon.png" alt="TermCast app icon" width="120" height="120"></a><br>
-  TermCast - a TinyCast fork
+  TermCast — a Tinycast fork
 </h1>
 
 <p align="center">
-  A fork that brings the full power of a native terminal directly into <a href="https://github.com/abue-ammar/tinycast">TinyCast</a>—run shell commands, cycle working folders, and manage live multi-tab PTY sessions without leaving the launcher palette.
+  A native macOS launcher built on <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> with an <strong>integrated multi-tab PTY terminal</strong>, <strong>Hyper Key trackpad sliders</strong> for per-display brightness &amp; volume, and <strong>Magnet-grade window management</strong>—all inside one lightweight SwiftUI + AppKit palette.
 </p>
 
 <p align="center">
   <a href="https://mj0lken.github.io/TermCast/"><strong>Website</strong></a> ·
   <a href="https://github.com/mj0lken/TermCast/releases"><strong>Releases</strong></a> ·
   <a href="#install"><strong>Install</strong></a> ·
-  <a href="docs/features/terminal.md"><strong>Terminal Docs</strong></a> ·
-  <a href="https://tinycast.dev/docs/"><strong>Launcher Docs</strong></a>
+  <a href="#1-native-multi-tab-pty-terminal"><strong>Terminal</strong></a> ·
+  <a href="#2-hyper-key--trackpad-scroll-sliders"><strong>Hyper Key</strong></a> ·
+  <a href="#3-window-management"><strong>Window Management</strong></a>
 </p>
 
 <p align="center">
@@ -29,7 +30,7 @@
   <img src="docs/screenshot.png" alt="TermCast command palette running Terminal Mode" width="750">
 </p>
 
-Built natively with SwiftUI and AppKit—zero third-party dependencies, no Electron, and no telemetry. Runs your existing Raycast extensions natively in JavaScriptCore.
+Built natively with SwiftUI and AppKit—zero third-party dependencies, no Electron, no telemetry, and a `<100 MB` memory footprint. Runs Raycast store extensions natively in JavaScriptCore.
 
 ## Install
 
@@ -39,29 +40,59 @@ Requires **macOS 26** or newer:
 brew install --cask mj0lken/tap/termcast
 ```
 
-Or download the signed `Termcast-<version>.dmg` (or `Termcast-Universal-<version>.dmg` for Intel) directly from [**Releases**](https://github.com/mj0lken/TermCast/releases), drag `Termcast.app` into `/Applications`, and enable **Settings → Terminal**.
+Or download the signed `Termcast-<version>.dmg` (or `Termcast-Universal-<version>.dmg` for Intel) directly from [**Releases**](https://github.com/mj0lken/TermCast/releases) and drag `Termcast.app` into `/Applications`.
 
-## Terminal Mode
+---
 
-| Shortcut | Action |
+## Core Superpowers
+
+### 1. Native Multi-Tab PTY Terminal
+
+Run real shell commands and interactive CLI tools right inside the launcher palette—backed by true `PseudoTerminal` sessions, packed 16-byte cell buffers with VM-slab scrollback, ANSI color themes, and persistent `cd` working-directory tracking.
+
+| Trigger | Action |
 | :--- | :--- |
-| **Type a CLI command** | Automatically formats the input in monospace, shows the active folder strip underneath, and highlights `Terminal ⇧↵` |
-| **`⇧↵` (`Shift+Return`)** | Executes the typed command in a terminal tab (or opens the Terminal panel when empty) |
-| **`>`** | Jumps straight into Terminal Mode and active PTY tabs |
-| **`⇧⇥` (`Shift+Tab`)** | Cycles through recent working directories right beneath the search bar |
+| **Type any CLI command** | Switches the search bar to monospace, reveals the working-directory strip, and arms `Terminal ⇧↵` |
+| **`⇧↵` (`Shift+Return`)** | Runs the typed command in a live PTY tab (or opens Terminal Mode when empty) |
+| **`>`** | Jumps directly into Terminal Mode and active sessions |
+| **`⇧⇥` (`Shift+Tab`)** | Cycles through recent working folders right under the search bar |
 | **`⌘N` / `⌘1`–`⌘9` / `⇥`** | Spawns and switches between concurrent PTY tabs |
-| **`⌘.` / `⌃X`** | Interrupts a running process (`SIGINT`) or closes the current tab |
+| **`⌘.` / `⌃X`** | Sends `SIGINT` to a running process or closes an idle tab |
 
-Each tab runs on a real `PseudoTerminal` with full ANSI color streaming, interactive stdin, and persistent `cd` directory tracking across commands. Read the architecture notes in [`docs/features/terminal.md`](docs/features/terminal.md).
+Architecture details: [`docs/features/terminal.md`](docs/features/terminal.md).
+
+### 2. Hyper Key & Trackpad Scroll Sliders
+
+Turn `Caps Lock` (or another modifier) into a system-wide **Hyper Key** (`⌃⌥⌘⇧`) with optional Quick Press (`Esc`, Caps Lock toggle, or input-source switch), Secure Input fallback, and **three-zone trackpad scroll sliders**:
+
+| Hold Hyper + Two-Finger Vertical Scroll | Controls | Details |
+| :--- | :--- | :--- |
+| **Left third of trackpad** | **Display Brightness** | Targets **only the display under your cursor**—smooth `DisplayServices` + native macOS HUD on Apple displays, and EDID-matched `IOAVService` DDC/CI (`VCP 0x10`) on external monitors |
+| **Center third of trackpad** | **Keyboard Backlight** | Fine `1/64` (`⇧⌥`) steps via isolated `.privateState` HID media events |
+| **Right third (or external mouse wheel)** | **System Volume** | `1/64` fine steps on local speakers/wired headphones; `45 ms`-paced `1/16` steps over Bluetooth AVRCP for zero lag |
+
+Zones lock on touch-down so sideways finger drift never jumps controls, and post-release trackpad momentum is suppressed automatically. Architecture details: [`docs/features/hotkeys.md`](docs/features/hotkeys.md).
+
+### 3. Window Management
+
+Full mouse-and-keyboard window tiling without installing a separate window manager:
+
+- **Drag-to-Snap & Drag-Away Restore** — Drag any window to screen edges or corners for halves, quarters, horizontal/vertical thirds, or maximize, with customizable edge sensitivity, interactive zone toggles, live Liquid Glass snap previews, `Esc` / right-click cancel, and automatic original-size restore when dragging away.
+- **Traffic-Light Hover Menu** — Hover a window's green zoom (or yellow minimize) button to summon a non-activating tiling popover with schematic tile icons and your custom sizes.
+- **Fractional Grid & Multi-Display Layouts** — Draw custom tiles on a `6×4`, `12×8`, or `24×12` visual grid, toggle tight screen-edge fitting (`0 pt` outer margins with inner gaps), save multi-monitor **Window Layouts** and **Rooms**, or trigger any tile from the menu-bar **Window Management** submenu and global hotkeys.
+
+Architecture details: [`docs/features/window-management.md`](docs/features/window-management.md).
+
+---
 
 ## Inherited Launcher Suite
 
-Everything from upstream [TinyCast](https://github.com/abue-ammar/tinycast) comes built in:
+Built on upstream [Tinycast](https://github.com/abue-ammar/tinycast), including:
 
-- **Fuzzy Launcher & Hotkeys** — Instant app, file, system-command, and per-app global chord bindings.
-- **Raycast Extensions** — Native JavaScriptCore runtime compatible with Raycast store extensions.
-- **Clipboard, Snippets & Quicklinks** — Searchable text/image clipboard history, keyword text expansion, and parameterized URLs.
-- **Inline Calculator, Notes & Window Management** — Live unit/currency/timezone math, a persistent floating scratchpad, emoji search, and keyboard window snapping.
+- **Fuzzy Launcher & Per-App Hotkeys** — Instant app, file, menu-bar item, and system-action search with learned local ranking.
+- **Raycast Extensions & AI** — Native JavaScriptCore runtime for Raycast extensions, plus Quick AI, AI Chat, local CLI providers (Claude, Codex, Antigravity, OpenCode), and MCP tool servers.
+- **Clipboard, Snippets, Notes & Calculator** — Searchable text/image clipboard history, keyword text expansion, floating Markdown scratchpad, quicklinks, emoji picker, and live currency/unit/timezone math.
+- **Portable `.termcast` Backups & `settings.json`** — Export/import `.termcast`, `.tinycast`, and Raycast `.rayconfig` archives, or sync preferences with `~/.config/termcast/settings.json`.
 
 ---
 

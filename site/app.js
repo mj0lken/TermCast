@@ -1,17 +1,22 @@
 (() => {
   const copyBtn = document.getElementById("copy-btn");
+  const copyLabel = document.getElementById("copy-label");
+  const copyStatus = document.getElementById("copy-status");
   const buildCmd = document.getElementById("build-cmd");
 
-  if (copyBtn && buildCmd && navigator.clipboard) {
+  if (copyBtn && copyLabel && buildCmd && navigator.clipboard) {
     copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(buildCmd.textContent || "");
-        copyBtn.textContent = "Copied";
+        copyLabel.textContent = "Copied";
+        if (copyStatus) copyStatus.textContent = "Copied Homebrew install command to clipboard.";
         window.setTimeout(() => {
-          copyBtn.textContent = "Copy";
+          copyLabel.textContent = "Copy";
+          if (copyStatus) copyStatus.textContent = "";
         }, 1600);
       } catch {
-        copyBtn.textContent = "Failed";
+        copyLabel.textContent = "Failed";
+        if (copyStatus) copyStatus.textContent = "Could not copy command.";
       }
     });
   }

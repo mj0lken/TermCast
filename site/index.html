@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>TermCast - a TinyCast fork</title>
-  <meta name="description" content="TermCast — a fork that brings the full power of a native multi-tab PTY terminal directly into TinyCast on macOS 26+.">
-  <meta property="og:title" content="TermCast - a TinyCast fork">
-  <meta property="og:description" content="A fork that brings the full power of a native multi-tab PTY terminal directly into TinyCast.">
+  <title>TermCast — Terminal, Hyper Key &amp; Window Management for macOS</title>
+  <meta name="description" content="TermCast — a native macOS 26+ launcher (Tinycast fork) with a multi-tab PTY terminal, Hyper Key trackpad sliders for per-display brightness &amp; volume, and drag-to-snap window management.">
+  <meta property="og:title" content="TermCast — Terminal, Hyper Key &amp; Window Management for macOS">
+  <meta property="og:description" content="Multi-tab PTY terminal, Hyper Key trackpad brightness/volume sliders, and Magnet-grade drag-to-snap + traffic-light window management in one native Swift 6 launcher.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://mj0lken.github.io/TermCast/">
   <meta property="og:image" content="https://mj0lken.github.io/TermCast/assets/screenshot.png">
@@ -19,13 +19,15 @@
 </head>
 <body>
   <header class="site-header">
+    <a class="skip-link visually-hidden" href="#main-heading">Skip to main content</a>
     <div class="shell header-inner">
       <a class="brand" href="./">
         <img class="brand-icon" src="./assets/icon.png" alt="" width="30" height="30">
         <span class="brand-name">TermCast</span>
       </a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="#features">Features</a>
+        <a href="#pillars">Pillars</a>
+        <a href="#suite">Launcher Suite</a>
         <a href="https://github.com/mj0lken/TermCast/releases">Releases</a>
         <a class="nav-github" href="https://github.com/mj0lken/TermCast">
           <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
@@ -48,11 +50,11 @@
                 <path fill="#863bff" d="M 28.120 41.551 L 62.120 59.551 A 5.600 5.600 0 0 1 62.120 69.449 L 28.120 87.449 A 5.600 5.600 0 0 1 20.551 85.120 A 5.600 5.600 0 0 1 22.880 77.551 L 44.526 66.091 A 1.800 1.800 0 0 0 44.526 62.909 L 22.880 51.449 A 5.600 5.600 0 0 1 20.551 43.880 A 5.600 5.600 0 0 1 28.120 41.551 Z"/>
               </svg>
             </span>
-            macOS 26+ · Swift 6 · AGPL-3.0
+            macOS 26+ · Swift 6 · Zero Dependencies · AGPL-3.0
           </p>
-          <h1>TermCast <span class="title-sub">- a TinyCast fork</span></h1>
+          <h1 id="main-heading" tabindex="-1">TermCast <span class="title-sub">— a Tinycast fork</span></h1>
           <p class="lead">
-            A fork that brings the full power of a native terminal directly into <a href="https://github.com/abue-ammar/tinycast">TinyCast</a>—run shell commands, cycle working folders, and manage live multi-tab PTY sessions without ever leaving the launcher palette.
+            A native macOS menu-bar launcher built on <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> with three flagship upgrades: a <strong>live multi-tab PTY terminal</strong>, <strong>Hyper Key trackpad sliders</strong> for per-display brightness &amp; volume, and <strong>drag-to-snap + traffic-light window management</strong>.
           </p>
 
           <div class="cta-row">
@@ -66,7 +68,7 @@
               <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
                 <path d="M8 0C3.58 0 0 3.58 0 8a8.01 8.01 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
               </svg>
-              <span>View on GitHub</span>
+              <span>Source on GitHub</span>
             </a>
           </div>
 
@@ -74,7 +76,11 @@
             <div class="brew-pill">
               <span class="brew-prompt" aria-hidden="true">$</span>
               <pre><code id="build-cmd">brew install --cask mj0lken/tap/termcast</code></pre>
-              <button id="copy-btn" class="copy-btn" type="button" aria-label="Copy Homebrew install command">Copy</button>
+              <button id="copy-btn" class="copy-btn" type="button">
+                <span id="copy-label">Copy</span>
+                <span class="visually-hidden"> Homebrew install command</span>
+              </button>
+              <span id="copy-status" class="visually-hidden" aria-live="polite"></span>
             </div>
           </div>
         </div>
@@ -92,56 +98,155 @@
       </div>
     </section>
 
-    <section id="features" class="features">
+    <section id="pillars" class="pillars">
       <div class="shell">
-        <h2 class="visually-hidden">Core capabilities</h2>
+        <div class="section-head">
+          <h2>Three built-in power tools, zero background bloat</h2>
+          <p>Replaces a standalone drop-down terminal, a trackpad brightness/DDC utility, and a tiling window manager inside a single &lt;100 MB accessory app.</p>
+        </div>
+
+        <div class="pillar-grid">
+          <article class="pillar-card">
+            <div class="pillar-top">
+              <span class="pillar-kicker kicker-emerald">01 · Terminal Mode</span>
+              <h3>Multi-Tab Live PTY Terminal</h3>
+              <p>
+                Type any shell command in the root launcher to switch into monospace, cycle recent working folders with <kbd>⇧⇥</kbd>, and stream real <code>zsh</code> PTY output with interactive stdin, ANSI themes, and VM-slab scrollback.
+              </p>
+            </div>
+
+            <div class="mini-visual visual-terminal" aria-hidden="true">
+              <div class="term-tabs">
+                <span class="term-tab is-active">1 · ~/Projects/termcast</span>
+                <span class="term-tab">2 · server</span>
+              </div>
+              <div class="term-line"><span class="term-prompt">❯</span> git status -sb</div>
+              <div class="term-out">## main...origin/main</div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip"><kbd>⇧↵</kbd> Run inline</span>
+              <span class="chip"><kbd>&gt;</kbd> Terminal</span>
+              <span class="chip"><kbd>⇧⇥</kbd> Folders</span>
+              <span class="chip"><kbd>⌘1–9</kbd> Tabs</span>
+            </div>
+          </article>
+
+          <article class="pillar-card">
+            <div class="pillar-top">
+              <span class="pillar-kicker kicker-violet">02 · Hyper Key + Trackpad</span>
+              <h3>Per-Display Brightness &amp; Volume Sliders</h3>
+              <p>
+                Remap <code>Caps Lock</code> to Hyper (<kbd>⌃⌥⌘⇧</kbd>), then hold Hyper and two-finger scroll vertically on your trackpad. Brightness targets <strong>only the display under your cursor</strong>—Apple displays via <code>DisplayServices</code> and external monitors via DDC/CI.
+              </p>
+            </div>
+
+            <div class="mini-visual visual-trackpad" aria-hidden="true">
+              <div class="pad-zone">
+                <span class="pad-glyph">☀︎</span>
+                <span class="pad-name">Display</span>
+                <span class="pad-sub">Cursor / DDC</span>
+              </div>
+              <div class="pad-zone">
+                <span class="pad-glyph">⌨︎</span>
+                <span class="pad-name">Backlight</span>
+                <span class="pad-sub">1/64 steps</span>
+              </div>
+              <div class="pad-zone">
+                <span class="pad-glyph">🔊</span>
+                <span class="pad-name">Volume</span>
+                <span class="pad-sub">AVRCP-paced</span>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip"><kbd>✦</kbd> + 2-finger scroll</span>
+              <span class="chip">DDC/CI external</span>
+              <span class="chip">Zone lock</span>
+            </div>
+          </article>
+
+          <article class="pillar-card">
+            <div class="pillar-top">
+              <span class="pillar-kicker kicker-emerald">03 · Window Management</span>
+              <h3>Drag-to-Snap, Green Button &amp; Grids</h3>
+              <p>
+                Drag windows to screen edges or corners with live Liquid Glass previews and drag-away size restore, hover any window's green zoom button for a tiling popover, or draw custom tiles on a <code>6×4</code>, <code>12×8</code>, or <code>24×12</code> grid.
+              </p>
+            </div>
+
+            <div class="mini-visual visual-wm" aria-hidden="true">
+              <div class="wm-screen">
+                <div class="wm-dots">
+                  <span class="wm-dot"></span>
+                  <span class="wm-dot"></span>
+                  <span class="wm-dot is-green"></span>
+                </div>
+                <div class="wm-tiles">
+                  <span class="wm-tile is-primary"></span>
+                  <span class="wm-tile"></span>
+                  <span class="wm-tile"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip">Edge drag-snap</span>
+              <span class="chip">Traffic-light menu</span>
+              <span class="chip">Rooms &amp; layouts</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="suite" class="features">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Plus the entire Tinycast launcher suite</h2>
+          <p>Compatible with Raycast store extensions out of the box, with portable <code>.termcast</code> backups and two-way <code>settings.json</code> sync.</p>
+        </div>
+
         <div class="card-grid">
           <article class="card">
-            <div class="card-body">
-              <h3>
-                <span class="dot dot-emerald" aria-hidden="true"></span>
-                Inline Shell Execution
-              </h3>
-              <p>
-                Type any CLI command in the root launcher to switch into monospace, preview your active folder bar, and execute straight into a tab.
-              </p>
-            </div>
+            <h3>
+              <span class="dot dot-violet" aria-hidden="true"></span>
+              Raycast Extensions &amp; AI
+            </h3>
+            <p>
+              Runs Raycast store extensions natively in JavaScriptCore alongside Quick AI, AI Chat, local CLI providers (Claude, Codex, Antigravity, OpenCode), and MCP tool servers.
+            </p>
             <div class="chip-row">
-              <span class="chip"><kbd>⇧↵</kbd> Run</span>
-              <span class="chip"><kbd>⇧⇥</kbd> Cycle folder</span>
+              <span class="chip">JavaScriptCore</span>
+              <span class="chip">MCP + Local CLIs</span>
             </div>
           </article>
 
           <article class="card">
-            <div class="card-body">
-              <h3>
-                <span class="dot dot-emerald" aria-hidden="true"></span>
-                Multi-Tab Live PTYs
-              </h3>
-              <p>
-                Real <code>zsh</code> pseudo-terminals with full ANSI color streaming, interactive stdin, and persistent <code>cd</code> state across runs.
-              </p>
-            </div>
+            <h3>
+              <span class="dot dot-emerald" aria-hidden="true"></span>
+              Clipboard, Snippets &amp; Notes
+            </h3>
+            <p>
+              Searchable text &amp; image clipboard history, keyword snippet expansion, floating Markdown scratchpad, quicklinks, emoji search, and live unit/currency/timezone math.
+            </p>
             <div class="chip-row">
-              <span class="chip"><kbd>&gt;</kbd> Open</span>
-              <span class="chip"><kbd>⌘1–9</kbd> Tabs</span>
-              <span class="chip"><kbd>⌘.</kbd> Stop</span>
+              <span class="chip">SQLite history</span>
+              <span class="chip">Live FX &amp; units</span>
             </div>
           </article>
 
           <article class="card">
-            <div class="card-body">
-              <h3>
-                <span class="dot dot-violet" aria-hidden="true"></span>
-                Everything in TinyCast
-              </h3>
-              <p>
-                Fuzzy app &amp; file search, clipboard history, snippets, inline calculator, window snapping, and native Raycast extensions in JavaScriptCore.
-              </p>
-            </div>
+            <h3>
+              <span class="dot dot-violet" aria-hidden="true"></span>
+              Portable Backups &amp; Dotfiles
+            </h3>
+            <p>
+              Export single-file <code>.termcast</code> backups, import <code>.termcast</code>, <code>.tinycast</code>, or Raycast <code>.rayconfig</code> archives, and mirror preferences to <code>~/.config/termcast/settings.json</code>.
+            </p>
             <div class="chip-row">
-              <span class="chip">Zero deps</span>
-              <span class="chip">Raycast JS</span>
+              <span class="chip"><code>.termcast</code></span>
+              <span class="chip"><code>settings.json</code></span>
             </div>
           </article>
         </div>
@@ -152,7 +257,7 @@
   <footer class="site-footer">
     <div class="shell footer-inner">
       <p class="footer-meta">
-        <strong>TermCast</strong> · Licensed under <a href="https://github.com/mj0lken/TermCast/blob/main/LICENSE">AGPL-3.0</a>
+        <strong>TermCast</strong> · A <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> fork · Licensed under <a href="https://github.com/mj0lken/TermCast/blob/main/LICENSE">AGPL-3.0</a>
       </p>
       <nav class="footer-links" aria-label="Footer">
         <a href="https://github.com/mj0lken/TermCast">
@@ -162,7 +267,7 @@
           <span>GitHub</span>
         </a>
         <a href="https://github.com/mj0lken/TermCast/releases">Releases</a>
-        <a href="https://github.com/mj0lken/TermCast/blob/main/docs/features/terminal.md">Docs</a>
+        <a href="https://github.com/mj0lken/TermCast/blob/main/docs/README.md">Docs</a>
       </nav>
     </div>
   </footer>
