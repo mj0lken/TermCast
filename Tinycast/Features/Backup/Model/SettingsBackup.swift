@@ -29,6 +29,7 @@ struct SettingsBackup: Codable {
         var hyperKeyIncludesShift: Bool?
         var hyperKeyQuickPress: String?
         var hyperKeySecureInputCompatibility: Bool?
+        var hyperKeyTrackpadSliders: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -156,6 +157,7 @@ extension SettingsBackup {
             hyperKeyIncludesShift: s.hyperKeyIncludesShift,
             hyperKeyQuickPress: s.hyperKeyQuickPress.rawValue,
             hyperKeySecureInputCompatibility: s.hyperKeySecureInputCompatibility,
+            hyperKeyTrackpadSliders: s.hyperKeyTrackpadSliders,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -368,6 +370,10 @@ extension SettingsBackup {
         }
         if let flag = s.hyperKeySecureInputCompatibility {
             settings.hyperKeySecureInputCompatibility = flag
+            count += 1
+        }
+        if let flag = s.hyperKeyTrackpadSliders {
+            settings.hyperKeyTrackpadSliders = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {

@@ -174,6 +174,9 @@ enum SettingsSearchCatalog {
             .generalHyperKey, "Secure Input Compatibility",
             keywords: ["password", "secure input", "right control"]),
         .init(
+            .generalHyperKey, "Trackpad Scroll Sliders",
+            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"]),
+        .init(
             .generalCalculator, "Number format",
             keywords: ["decimal", "comma", "separator", "locale", "region", "thousands"]),
         .init(
@@ -552,7 +555,10 @@ enum SettingsSearchCatalog {
             keywords: ["add", "create", "project", "windows"]),
         .init(
             group: .windowManagementCustomSizes, "Custom Sizes",
-            keywords: ["custom", "size", "resize", "dimensions", "pixels", "points", "percent", "alias"]),
+            keywords: [
+                "custom", "size", "resize", "dimensions", "pixels", "points", "percent",
+                "fractional", "grid", "cells", "alias"
+            ]),
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])

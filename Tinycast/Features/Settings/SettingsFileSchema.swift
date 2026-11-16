@@ -52,6 +52,8 @@ enum SettingsFileSchema {
         case .hyperKeyQuickPress: return bind(settings, \.hyperKeyQuickPress)
         case .hyperKeySecureInputCompatibility:
             return bind(settings, \.hyperKeySecureInputCompatibility)
+        case .hyperKeyTrackpadSliders:
+            return bind(settings, \.hyperKeyTrackpadSliders)
         case .calcNumberStyle: return bind(settings, \.calcNumberStyle)
         case .launcherShowsSuggestions: return bind(settings, \.launcherShowsSuggestions)
         case .rootSearchSensitivity: return bind(settings, \.rootSearchSensitivity)

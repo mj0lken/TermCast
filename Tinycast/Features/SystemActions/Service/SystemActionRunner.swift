@@ -60,13 +60,17 @@ enum SystemActionRunner {
                 }
             }
         case .playPause:
-            try postMediaKey(16)
+            try postMediaKey(.playPause)
         case .nextTrack:
-            try postMediaKey(17)
+            try postMediaKey(.nextTrack)
         case .previousTrack:
-            try postMediaKey(18)
+            try postMediaKey(.previousTrack)
         case .toggleMute:
-            try toggleMute()
+            if Permissions.isAccessibilityTrusted() {
+                MediaKeyPoster.post(.mute)
+            } else {
+                try toggleMute()
+            }
         case .toggleMicrophoneMute:
             let muted = try await Task.detached {
                 try await toggleMicrophoneMute()
@@ -74,9 +78,17 @@ enum SystemActionRunner {
             return SystemActionFeedback(
                 muted ? String(localized: "Microphone Muted") : String(localized: "Microphone Unmuted"))
         case .volumeUp:
-            try stepVolume(up: true)
+            if Permissions.isAccessibilityTrusted() {
+                MediaKeyPoster.post(.soundUp)
+            } else {
+                try stepVolume(up: true)
+            }
         case .volumeDown:
-            try stepVolume(up: false)
+            if Permissions.isAccessibilityTrusted() {
+                MediaKeyPoster.post(.soundDown)
+            } else {
+                try stepVolume(up: false)
+            }
         case .setVolume:
             break  // AppCore owns the value-picking dialog and calls setVolume directly.
         case .volume0:
@@ -353,7 +365,7 @@ enum SystemActionRunner {
         _ = unsafeBitCast(symbol, to: LockScreen.self)()
     }
 
-    private static func postMediaKey(_ key: Int32) throws {
+    private static func postMediaKey(_ key: MediaKeyPoster.Key) throws {
         guard Permissions.ensureAccessibility() else {
             throw SystemActionFailure(
                 String(
@@ -362,14 +374,7 @@ enum SystemActionRunner {
                         """),
                 settings: .accessibility)
         }
-        // The same route as the keyboard's media keys; 0xA/0xB are down and up.
-        for state in [0xA, 0xB] {
-            let data1 = Int((key << 16) | (Int32(state) << 8))
-            let event = NSEvent.otherEvent(
-                with: .systemDefined, location: .zero, modifierFlags: [], timestamp: 0,
-                windowNumber: 0, context: nil, subtype: 8, data1: data1, data2: -1)
-            event?.cgEvent?.post(tap: .cghidEventTap)
-        }
+        MediaKeyPoster.post(key)
     }
 
     private static func hideOtherApps(except previousApp: NSRunningApplication?) {

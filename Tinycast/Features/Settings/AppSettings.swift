@@ -196,6 +196,14 @@ final class AppSettings {
         }
     }
 
+    var hyperKeyTrackpadSliders: Bool {
+        didSet {
+            defaults.set(
+                hyperKeyTrackpadSliders,
+                forKey: Key.hyperKeyTrackpadSliders.rawValue)
+        }
+    }
+
     /// Preferred skin tone applied to modifier-capable emoji at render and copy time.
     var emojiSkinTone: EmojiSkinTone {
         didSet { defaults.set(emojiSkinTone.rawValue, forKey: Key.emojiSkinTone.rawValue) }
@@ -843,6 +851,8 @@ final class AppSettings {
             ?? .none
         hyperKeySecureInputCompatibility = defaults.bool(
             forKey: Key.hyperKeySecureInputCompatibility.rawValue)
+        hyperKeyTrackpadSliders = defaults.bool(
+            forKey: Key.hyperKeyTrackpadSliders.rawValue)
         emojiSkinTone =
             defaults.string(forKey: Key.emojiSkinTone.rawValue).flatMap(EmojiSkinTone.init) ?? .none
         emojiGridColumns =

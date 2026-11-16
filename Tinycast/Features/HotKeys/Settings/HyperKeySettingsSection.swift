@@ -82,6 +82,16 @@ struct HyperKeySettingsSection: View {
                         """)
                 }
             }
+
+            Toggle(isOn: $settings.hyperKeyTrackpadSliders) {
+                SettingsRowTitle(.generalHyperKey, "Trackpad Scroll Sliders")
+                Text("Hold the Hyper Key and scroll vertically to adjust brightness or volume.")
+            }
+            .settingsEnabled(settings.hyperKey != .none)
+
+            HyperKeyTrackpadDiagramView(
+                keyTitle: settings.hyperKey == .none ? nil : settings.hyperKey.title,
+                isActive: settings.hyperKey != .none && settings.hyperKeyTrackpadSliders)
         } header: {
             SettingsSectionHeader(.generalHyperKey)
         }
