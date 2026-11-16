@@ -448,6 +448,7 @@ run SystemActionTests      Tinycast/Features/SystemActions/Model/SystemAction.sw
 run MicrophoneMuteTests    Tinycast/Features/SystemActions/Service/SystemActionFailure.swift \
                            Tinycast/Features/SystemActions/Service/SystemActionRunner+Microphone.swift
 run VolumeTests            Tinycast/Features/SystemActions/Model/VolumeLevel.swift
+run NotchHUDTests          Tinycast/Features/NotchHUD/Model/*.swift
 run WindowCommandTests     Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
                            Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
                            Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \

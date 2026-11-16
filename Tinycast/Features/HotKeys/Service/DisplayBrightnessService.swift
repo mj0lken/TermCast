@@ -8,6 +8,12 @@ import ObjectiveC
 /// Adjusts brightness on one specific display via DisplayServices or Apple Silicon DDC/CI.
 @MainActor
 final class DisplayBrightnessService {
+    struct StepOutcome: Sendable, Equatable {
+        let displayID: CGDirectDisplayID
+        let level: Double
+        let overshoot: Double
+    }
+
     private enum ActiveBackend {
         case native(displayID: CGDirectDisplayID, level: Double)
         case ddc(displayID: CGDirectDisplayID, target: DisplayDDC.Target)
@@ -22,6 +28,9 @@ final class DisplayBrightnessService {
 
     private static let ddcWriteSpacing: Duration = .milliseconds(50)
     private static let ddcReadDelay: Duration = .milliseconds(40)
+
+    var showsSystemOSD = true
+    var onBrightnessStepped: ((StepOutcome) -> Void)?
 
     private var activeBackend: ActiveBackend?
     private var ddcLevels: [CGDirectDisplayID: Double] = [:]
@@ -48,33 +57,81 @@ final class DisplayBrightnessService {
         ddcReadTasks.removeAll()
     }
 
-    func step(on displayID: CGDirectDisplayID, delta: Double) {
+    @discardableResult
+    func step(on displayID: CGDirectDisplayID, delta: Double) -> StepOutcome? {
         if activeBackend?.displayID != displayID {
             activeBackend = resolveBackend(for: displayID)
         }
-        guard let backend = activeBackend else { return }
+        guard let backend = activeBackend else { return nil }
 
         switch backend {
         case .native(_, let current):
-            let next = min(max(current + delta, 0), 1)
+            let raw = current + delta
+            let next = min(max(raw, 0), 1)
             activeBackend = .native(displayID: displayID, level: next)
             guard NativeDisplayAPI.setBrightness(displayID: displayID, level: Float(next)) else {
-                return
+                return nil
             }
-            NativeOSD.showBrightness(level: next, on: displayID)
+            if showsSystemOSD {
+                NativeOSD.showBrightness(level: next, on: displayID)
+            }
+            let outcome = StepOutcome(
+                displayID: displayID,
+                level: next,
+                overshoot: Self.overshoot(raw: raw, delta: delta))
+            onBrightnessStepped?(outcome)
+            return outcome
 
         case .ddc(_, let target):
             let current = ddcLevels[displayID] ?? 0.5
-            let next = min(max(current + delta, 0), 1)
+            let raw = current + delta
+            let next = min(max(raw, 0), 1)
             ddcLevels[displayID] = next
             ddcWriteGenerations[displayID, default: 0] &+= 1
             ddcReadTasks.removeValue(forKey: displayID)?.cancel()
-            NativeOSD.showBrightness(level: next, on: displayID)
+            if showsSystemOSD {
+                NativeOSD.showBrightness(level: next, on: displayID)
+            }
             enqueueDDCWrite(displayID: displayID, target: target, level: next)
+            let outcome = StepOutcome(
+                displayID: displayID,
+                level: next,
+                overshoot: Self.overshoot(raw: raw, delta: delta))
+            onBrightnessStepped?(outcome)
+            return outcome
 
         case .unsupported:
-            return
+            return nil
         }
+    }
+
+    /// Steps `preferred` when controllable, falling back to the built-in display for physical F1/F2.
+    @discardableResult
+    func stepPreferredDisplay(
+        preferred: CGDirectDisplayID?,
+        delta: Double
+    ) -> StepOutcome? {
+        if let preferred, let outcome = step(on: preferred, delta: delta) {
+            return outcome
+        }
+        guard let builtIn = Self.builtInDisplayID(), builtIn != preferred else {
+            return nil
+        }
+        return step(on: builtIn, delta: delta)
+    }
+
+    static func builtInDisplayID() -> CGDirectDisplayID? {
+        var count: UInt32 = 0
+        var active = [CGDirectDisplayID](repeating: 0, count: 16)
+        guard CGGetActiveDisplayList(16, &active, &count) == .success else { return nil }
+        return active.prefix(Int(count)).first { CGDisplayIsBuiltin($0) != 0 }
+    }
+
+    private static func overshoot(raw: Double, delta: Double) -> Double {
+        let reference = max(abs(delta), 1.0 / 64.0)
+        if raw < 0 { return -min(abs(raw) / reference, 1) }
+        if raw > 1 { return min((raw - 1) / reference, 1) }
+        return 0
     }
 
     private func resolveBackend(for displayID: CGDirectDisplayID) -> ActiveBackend {

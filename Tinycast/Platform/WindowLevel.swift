@@ -7,4 +7,6 @@ extension NSWindow.Level {
     static let paletteDropGuide = NSWindow.Level(rawValue: palette.rawValue - 1)
     /// Above the palette, so a confirmation is never buried under its trigger.
     static let dialog = NSWindow.Level(rawValue: palette.rawValue + 1)
+    /// Above `.statusBar`, so inline notch wings clear the menu bar across every Space.
+    static let notchHUD = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
 }

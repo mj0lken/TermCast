@@ -12,6 +12,7 @@ enum SettingsBackupCoverage {
         "hyperKeyQuickPress": .hyperKeyQuickPress,
         "hyperKeySecureInputCompatibility": .hyperKeySecureInputCompatibility,
         "hyperKeyTrackpadSliders": .hyperKeyTrackpadSliders,
+        "notchHUDEnabled": .notchHUDEnabled,
         "showInMenuBar": .showInMenuBar,
         "automaticallyCheckForUpdates": .automaticallyCheckForUpdates,
         "emojiSkinTone": .emojiSkinTone,

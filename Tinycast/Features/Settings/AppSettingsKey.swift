@@ -13,6 +13,7 @@ enum AppSettingsKey: String, CaseIterable {
     case hyperKeyQuickPress = "hyperKeyQuickPress"
     case hyperKeySecureInputCompatibility = "hyperKeySecureInputCompatibility"
     case hyperKeyTrackpadSliders = "hyperKeyTrackpadSliders"
+    case notchHUDEnabled = "notchHUDEnabled"
     case emojiSkinTone = "emojiSkinTone"
     case emojiGridColumns = "emojiGridColumns"
     case showInMenuBar = "showInMenuBar"

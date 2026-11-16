@@ -26,10 +26,28 @@ final class AppCore {
     let textInjector: TextInjector
     let hotKeys = HotKeyManager()
     let dictationAudioDucker = DictationAudioDucker()
+    let displayBrightness = DisplayBrightnessService()
     @ObservationIgnored private(set) lazy var dictationModels =
         DictationModelStore(idleRelease: settings.dictationIdleRelease)
+    @ObservationIgnored private(set) lazy var notchHUD = NotchHUDManager(
+        settings: settings,
+        displayBrightness: displayBrightness,
+        isSuppressingExternalAudioHUD: { [unowned self] in
+            self.dictationAudioDucker.isActive
+        })
     @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
-        settings: settings, hotKeys: hotKeys)
+        settings: settings,
+        hotKeys: hotKeys,
+        displayBrightness: displayBrightness,
+        routeMediaKey: { [unowned self] key, fine in
+            self.notchHUD.handleMediaKeyFromScroll(key, fine: fine)
+        },
+        resetKeyboardBrightness: { [unowned self] in
+            self.notchHUD.resetBacklightGesture()
+        },
+        isBluetoothAudio: { [unowned self] in
+            self.notchHUD.isBluetoothOutput()
+        })
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     let windowMover = WindowMover()
     @ObservationIgnored private(set) lazy var windowDragMonitor = WindowDragMonitor(
@@ -368,6 +386,7 @@ final class AppCore {
             updateCoordinator.applyAutomaticChecking()
 
             hyperKey.healthTicker = healthTicker
+            notchHUD.healthTicker = healthTicker
             dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
             windowDragMonitor.healthTicker = healthTicker
@@ -444,6 +463,7 @@ final class AppCore {
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()
+            notchHUD.start()
             dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             dictationKey.start()
             windowDragMonitor.start()
@@ -623,6 +643,7 @@ final class AppCore {
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
+        notchHUD.prepareForTermination()
         dictationKey.prepareForTermination()
         windowDragMonitor.prepareForTermination()
         windowGreenButtonMonitor.prepareForTermination()

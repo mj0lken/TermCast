@@ -161,6 +161,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `SystemActionTests` | `SystemActions/Model/SystemAction.swift` |
 | `MicrophoneMuteTests` | Native input mute, delayed confirmation, device switches and failures; injected CoreAudio calls only |
 | `VolumeTests` | `SystemActions/Model/VolumeLevel.swift` |
+| `NotchHUDTests` | `NotchHUD/Model/NotchHUDMetric.swift`, `NotchHUDGeometry.swift`, `MediaKeyEvent.swift` — coarse/fine step math, rubber-band boundary overshoot, notched inline wing geometry, auxiliary menu-bar clamping, non-notched pill fallback and subtype-8 media key decoding |
 | `WindowCommandTests` | `WindowManagement/WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift` |
 | `WindowLayoutTests` | `WindowManagement/Model/WindowLayout*.swift` and `CustomWindowSize*.swift` — the layout record, its geometry and its inverse, the plan and the store; custom sizes' units, frames and store |
 | `WindowRoomTests` | `WindowManagement/Model/Room*.swift` — every room layout and its minimum sizes, the grid, arrangement reading, window matching, parking, the plan, Tab's choices and the three stores |

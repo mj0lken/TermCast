@@ -57,15 +57,32 @@ final class SystemActionCoordinator {
         }
         do {
             var feedback: SystemActionFeedback?
+            if core.notchHUD.isEnabled, Self.mediaKeyVolumeActions.contains(action.id) {
+                switch action.id {
+                case .volumeUp:
+                    core.notchHUD.stepVolume(up: true)
+                case .volumeDown:
+                    core.notchHUD.stepVolume(up: false)
+                case .toggleMute:
+                    core.notchHUD.toggleMute()
+                default:
+                    break
+                }
+                return
+            }
             if action.id == .setVolume {
                 guard let selected = try await chosenVolume(volume) else { return }
                 try SystemActionRunner.setVolume(selected)
             } else {
-                feedback = try await SystemActionRunner.run(action.id, previousApp: previousApp)
+                feedback = try await SystemActionRunner.run(action.id, previousApp: targetOrPrevious(previousApp))
             }
-            if Self.showsCustomVolumeFeedback(for: action.id) {
+            if Self.showsCustomVolumeFeedback(for: action.id, notchHUDActive: core.notchHUD.isEnabled) {
                 let state = try SystemActionRunner.outputState()
-                volumeHUD.show(level: state.level, muted: state.muted)
+                if core.notchHUD.isEnabled {
+                    core.notchHUD.presentVolumeState(level: Double(state.level), muted: state.muted)
+                } else {
+                    volumeHUD.show(level: state.level, muted: state.muted)
+                }
             } else if let feedback {
                 core.showMessage(feedback.title, tone: feedback.isNoOp ? .neutral : .success)
             }
@@ -84,11 +101,18 @@ final class SystemActionCoordinator {
     }
 
     /// Media-key volume actions raise macOS or BoringNotch's own HUD once Accessibility is granted.
-    private static func showsCustomVolumeFeedback(for id: SystemAction.ID) -> Bool {
-        if mediaKeyVolumeActions.contains(id), Permissions.isAccessibilityTrusted() {
+    private static func showsCustomVolumeFeedback(
+        for id: SystemAction.ID,
+        notchHUDActive: Bool
+    ) -> Bool {
+        if !notchHUDActive, mediaKeyVolumeActions.contains(id), Permissions.isAccessibilityTrusted() {
             return false
         }
         return showsVolumeFeedback.contains(id)
+    }
+
+    private func targetOrPrevious(_ previousApp: NSRunningApplication?) -> NSRunningApplication? {
+        previousApp
     }
 
     private static let mediaKeyVolumeActions: Set<SystemAction.ID> = [

@@ -204,6 +204,12 @@ final class AppSettings {
         }
     }
 
+    var notchHUDEnabled: Bool {
+        didSet {
+            defaults.set(notchHUDEnabled, forKey: Key.notchHUDEnabled.rawValue)
+        }
+    }
+
     /// Preferred skin tone applied to modifier-capable emoji at render and copy time.
     var emojiSkinTone: EmojiSkinTone {
         didSet { defaults.set(emojiSkinTone.rawValue, forKey: Key.emojiSkinTone.rawValue) }
@@ -853,6 +859,7 @@ final class AppSettings {
             forKey: Key.hyperKeySecureInputCompatibility.rawValue)
         hyperKeyTrackpadSliders = defaults.bool(
             forKey: Key.hyperKeyTrackpadSliders.rawValue)
+        notchHUDEnabled = defaults.bool(forKey: Key.notchHUDEnabled.rawValue)
         emojiSkinTone =
             defaults.string(forKey: Key.emojiSkinTone.rawValue).flatMap(EmojiSkinTone.init) ?? .none
         emojiGridColumns =

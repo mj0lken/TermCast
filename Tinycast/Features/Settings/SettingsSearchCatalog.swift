@@ -110,8 +110,8 @@ enum SettingsSearchCatalog {
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
-        + windowManagement + navigation + notes + calendar + emoji + ai + quickActions + dictation
-        + extensions + permissions
+        + windowManagement + notch + navigation + notes + calendar + emoji + ai + quickActions
+        + dictation + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -442,6 +442,18 @@ enum SettingsSearchCatalog {
         .init(
             .snippetsLibrary, "Snippets Folder",
             keywords: ["reveal", "finder", "markdown", "files", "location", "path", "dotfiles"])
+    ]
+
+    private static let notch: [SettingsSearchEntry] = [
+        .init(
+            pane: .notch,
+            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island"]),
+        .init(
+            .notchNotch, "Replace system volume & brightness HUD",
+            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island", "sound"]),
+        .init(
+            .notchPreview, "Preview Notch HUD",
+            keywords: ["notch", "hud", "test", "preview"])
     ]
 
     private static let navigation: [SettingsSearchEntry] = [

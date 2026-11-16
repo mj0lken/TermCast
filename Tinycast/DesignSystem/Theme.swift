@@ -293,6 +293,10 @@ enum Theme {
         static let hudHeight: CGFloat = 100
         static let dictationPanel = CGSize(width: 144, height: 44)
         static let dictationWaveBar: CGFloat = 2
+        /// Hardware-locked notch HUD icon, track and tabular readout slots.
+        static let notchHUDIcon: CGFloat = 15
+        static let notchHUDTrackHeight: CGFloat = 5
+        static let notchHUDReadoutWidth: CGFloat = 38
         /// Read-only volume bar geometry used by the HUD.
         static let volumeTrackHeight: CGFloat = 6
         /// Fixed slot for the level readout, sized to the widest string it ever holds.
@@ -370,6 +374,12 @@ enum Theme {
         /// Starts promptly and eases gently into the chevron's final direction.
         static let chevronAnimation = Animation.timingCurve(
             0.16, 1, 0.3, 1, duration: Theme.Duration.menuChevron)
+    }
+
+    enum NotchMotion {
+        /// Heavy, damped spring so wings and bar fill grow organically out of the camera bezel.
+        static let wing = Animation.interpolatingSpring(mass: 1.0, stiffness: 260, damping: 24)
+        static let bar = Animation.interpolatingSpring(mass: 1.0, stiffness: 260, damping: 24)
     }
 
     enum Typography {
@@ -525,6 +535,8 @@ enum Theme {
         /// The command output window's page: a flat surface the log sits directly on.
         static let terminalSurface = adaptive(
             dark: .srgbInk(0.07, alpha: 1), light: .srgbInk(0.99, alpha: 1))
+        /// Pure optical black to match the physical camera cutout in both Light and Dark modes.
+        static let notchHardwareBlack = Color.black
 
         enum Syntax {
             static let keyword = pair(dark: 0xFC5FA3, light: 0xAD3DA4)

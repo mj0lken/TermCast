@@ -30,6 +30,7 @@ struct SettingsBackup: Codable {
         var hyperKeyQuickPress: String?
         var hyperKeySecureInputCompatibility: Bool?
         var hyperKeyTrackpadSliders: Bool?
+        var notchHUDEnabled: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -158,6 +159,7 @@ extension SettingsBackup {
             hyperKeyQuickPress: s.hyperKeyQuickPress.rawValue,
             hyperKeySecureInputCompatibility: s.hyperKeySecureInputCompatibility,
             hyperKeyTrackpadSliders: s.hyperKeyTrackpadSliders,
+            notchHUDEnabled: s.notchHUDEnabled,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -374,6 +376,10 @@ extension SettingsBackup {
         }
         if let flag = s.hyperKeyTrackpadSliders {
             settings.hyperKeyTrackpadSliders = flag
+            count += 1
+        }
+        if let flag = s.notchHUDEnabled {
+            settings.notchHUDEnabled = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {
