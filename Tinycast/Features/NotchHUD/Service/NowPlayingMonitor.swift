@@ -9,25 +9,20 @@ final class NowPlayingMonitor {
 
     private var process: Process?
     private var input: FileHandle?
-    private var output: FileHandle?
+    private var reader: Task<Void, Never>?
     private var buffer = Data()
-    private var launchID: UInt64 = 0
 
     private static let logger = Logger(subsystem: "com.tinycast", category: "NowPlaying")
     private static let hostURL = URL(fileURLWithPath: "/usr/bin/osascript")
     /// A line carries one base64 artwork image; anything this long is not the relay talking.
     private static let lineLimit = 8 * 1_048_576
 
-    var isRunning: Bool { process?.isRunning == true }
-
     func start() {
-        guard !isRunning else { return }
+        guard process == nil else { return }
         guard let script = Bundle.main.url(forResource: "NowPlayingRelay", withExtension: "js") else {
             Self.logger.error("NowPlayingRelay.js is missing from the app bundle")
             return
         }
-        launchID &+= 1
-        let launch = launchID
         let process = Process()
         let stdin = Pipe()
         let stdout = Pipe()
@@ -36,46 +31,57 @@ final class NowPlayingMonitor {
         process.standardInput = stdin
         process.standardOutput = stdout
         process.standardError = FileHandle.nullDevice
-        stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        // A terminal shell that inherited this end would keep the relay alive past Tinycast.
+        _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETFD, FD_CLOEXEC)
+
+        let (chunks, continuation) = AsyncStream.makeStream(of: Data.self)
+        stdout.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
-            guard !data.isEmpty else { return }
-            Task { @MainActor in self?.consume(data, from: launch) }
-        }
-        process.terminationHandler = { [weak self] process in
-            let status = process.terminationStatus
-            Task { @MainActor in self?.didExit(launch, status: status) }
+            guard data.isEmpty else {
+                continuation.yield(data)
+                return
+            }
+            handle.readabilityHandler = nil
+            continuation.finish()
         }
         do {
             try process.run()
         } catch {
             stdout.fileHandleForReading.readabilityHandler = nil
+            continuation.finish()
             Self.logger.error("Could not start the now-playing relay: \(error.localizedDescription)")
             return
         }
         self.process = process
         input = stdin.fileHandleForWriting
-        output = stdout.fileHandleForReading
+        reader = Task { [weak self] in
+            // One task draining one stream keeps chunks in the order the relay wrote them.
+            for await chunk in chunks {
+                self?.consume(chunk)
+            }
+            guard !Task.isCancelled else { return }
+            self?.relayDidCloseOutput()
+        }
     }
 
     /// Closing stdin is the relay's cue to leave; SIGTERM covers one that is not listening.
     func stop() {
         guard let process else { return }
-        launchID &+= 1
         release()
         process.terminate()
     }
 
     private func release() {
-        output?.readabilityHandler = nil
+        reader?.cancel()
+        reader = nil
         try? input?.close()
-        process = nil
         input = nil
-        output = nil
+        process = nil
         buffer.removeAll()
     }
 
-    private func consume(_ data: Data, from launch: UInt64) {
-        guard launch == launchID else { return }
+    private func consume(_ data: Data) {
+        guard !Task.isCancelled else { return }
         buffer.append(data)
         while let newline = buffer.firstIndex(of: 0x0A) {
             let line = Data(buffer[..<newline])
@@ -86,9 +92,8 @@ final class NowPlayingMonitor {
         if buffer.count > Self.lineLimit { buffer.removeAll() }
     }
 
-    private func didExit(_ launch: UInt64, status: Int32) {
-        guard launch == launchID else { return }
-        Self.logger.error("The now-playing relay exited unexpectedly with status \(status)")
+    private func relayDidCloseOutput() {
+        Self.logger.error("The now-playing relay exited unexpectedly")
         release()
         onExit?()
     }

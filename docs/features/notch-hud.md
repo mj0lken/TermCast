@@ -8,7 +8,7 @@ Hardware-blended inline Notch HUD and interactive Open-Notch tray (`Home` Now Pl
 - **Zero per-step CoreAudio device discovery.** `AudioVolumeService` caches the default output device, transport type and volume/mute properties via `AudioObjectAddPropertyListenerBlock`.
 - **Event-driven Now Playing and Battery.** `NowPlayingMonitor` reads one line per change from the relay and never polls; a 1 Hz `TimelineView` scrubber runs only while the tray is visibly expanded and playing. `BatteryStatusService` listens to `IOPSNotificationCreateRunLoopSource` without polling.
 - **Now Playing is read out of process, through `/usr/bin/osascript`.** macOS answers now-playing queries only for Apple-signed processes, so an in-process `MediaRemote` read returns nothing on every supported release. `NowPlayingMonitor` runs `Resources/NowPlayingRelay.js` under `osascript` instead, and the relay exists only while `notchShelfEnabled` and `notchShowsMedia` are both on. Transport (play/pause, next, previous, seek) is still accepted from Tinycast itself and stays in-process in `NowPlayingService`.
-- **The relay never outlives Tinycast.** It holds the read end of a pipe Tinycast never writes to and exits on end-of-file, so a crash or a force-quit takes it down too. `NowPlayingMonitor` ignores output from any launch but the current one.
+- **The relay never outlives Tinycast.** It holds the read end of a pipe Tinycast never writes to and exits on end-of-file, so a crash or a force-quit takes it down too. The pipe end Tinycast holds is close-on-exec, so a terminal shell cannot inherit it and keep the relay alive. Each launch is drained by its own task in the order the relay wrote, and that task is cancelled on stop, so output from an earlier launch is never applied.
 - **Pure optical black (`#000000`) in both Light and Dark appearances.** `NotchHUDPanel` and `NotchTrayPanel` pin their panel `appearance` to `.darkAqua` and fill `NotchWingShape` with `Theme.Colors.notchHardwareBlack` so both inline wings and the expanded tray blend seamlessly into the physical camera housing.
 - **No `NSWindow` resizing during spring overshoot.** `NotchHUDGeometry` reserves overshoot headroom inside `panelFrame` once per presentation so rubber-band stretch animates inside SwiftUI's `NotchWingShape` without reallocating WindowServer backing stores.
 - **Native macOS `⌥` shortcut preservation.** Bare `⌥` + Volume/Brightness passes through `MediaKeyEvent.decode` untouched so macOS continues opening **System Settings → Sound / Displays**.
@@ -47,9 +47,10 @@ The relay prints one JSON object per line, and an object with no `title` means n
 was true), `isPlaying`, `bundleID`, `parentBundleID`, `appName`, `artworkID` and `artwork` (base64).
 
 - **Artwork crosses the pipe once per image.** A play/pause repeats the whole response, so the relay
-  sends `artwork` only when `artworkID` or the image size changes, and
-  `NowPlayingRelayMessage.snapshot(carrying:receivedAt:)` keeps the previous image while `artworkID`
-  matches. The relay forgets what it sent once nothing is playing, because Tinycast drops it then too.
+  sends `artwork` only when the image size changes, and
+  `NowPlayingRelayMessage.snapshot(carrying:receivedAt:)` keeps the previous image while consecutive
+  lines share an `artworkID`. The two rules must stay mirrored: the relay forgets what it sent on any
+  line with a different `artworkID` or no title, because that is exactly when Tinycast drops its copy.
 - **The source is the parent app.** A browser plays through a helper process, so `parentBundleID` wins
   over `bundleID` when it is present; the tray shows that app's icon and name.
 - **The controller's worker queue is the main queue.** JavaScript called from any other thread waits

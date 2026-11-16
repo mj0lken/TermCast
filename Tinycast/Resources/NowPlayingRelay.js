@@ -10,7 +10,8 @@ const INFO_KEY_PREFIX = "kMRMediaRemoteNowPlayingInfo";
 const output = $.NSFileHandle.fileHandleWithStandardOutput;
 const input = $.NSFileHandle.fileHandleWithStandardInput;
 const mainQueue = $.NSOperationQueue.mainQueue.underlyingQueue;
-let sentArtworkKey = "";
+let lineArtworkID;
+let sentArtworkLength = 0;
 let sentLine = "";
 
 function infoValue(info, key) {
@@ -45,34 +46,44 @@ function describeItem(item, message) {
   message.timestamp = timestamp === undefined ? undefined : Number(timestamp.timeIntervalSince1970);
 }
 
-// A state change repeats the whole response, so each image crosses the pipe only once.
-function attachArtwork(item, message) {
-  const artwork = item.artwork;
-  if (artwork.isNil() || artwork.imageData.isNil()) return;
-  const data = artwork.imageData;
-  const key = message.artworkID + ":" + Number(data.length);
-  if (key === sentArtworkKey) return;
-  sentArtworkKey = key;
-  message.artwork = ObjC.unwrap(data.base64EncodedStringWithOptions(0));
+// Tinycast keeps an image only while consecutive lines share an artworkID; resend on any break.
+function forgetArtworkUnlessContinuing(message) {
+  const hasTrack = String(message.title || "").trim() !== "";
+  if (!hasTrack || message.artworkID !== lineArtworkID) sentArtworkLength = 0;
+  lineArtworkID = hasTrack ? message.artworkID : undefined;
 }
 
-function describe(response) {
+// A state change repeats the whole response, so each image crosses the pipe only once.
+function attachArtwork(item, message) {
+  forgetArtworkUnlessContinuing(message);
+  if (lineArtworkID === undefined || item.isNil()) return;
+  const artwork = item.artwork;
+  if (artwork.isNil() || artwork.imageData.isNil()) return;
+  const length = Number(artwork.imageData.length);
+  if (length === sentArtworkLength) return;
+  sentArtworkLength = length;
+  message.artwork = ObjC.unwrap(artwork.imageData.base64EncodedStringWithOptions(0));
+}
+
+function currentItem(response) {
+  if (response.isNil() || response.playbackQueue.isNil()) return $();
+  return response.playbackQueue.contentItemWithOffset(0);
+}
+
+function describe(response, item) {
   const message = {};
   if (response.isNil()) return message;
   message.isPlaying = Number(response.playbackState) === PLAYBACK_STATE_PLAYING;
   describeClient(response, message);
-  const queue = response.playbackQueue;
-  const item = queue.isNil() ? $() : queue.contentItemWithOffset(0);
-  if (item.isNil()) return message;
-  describeItem(item, message);
-  attachArtwork(item, message);
+  if (!item.isNil()) describeItem(item, message);
   return message;
 }
 
 function emit(controller) {
-  const message = describe(controller.response);
-  // Tinycast drops the image once nothing plays, so a returning track must be sent again.
-  if (!message.title) sentArtworkKey = "";
+  const response = controller.response;
+  const item = currentItem(response);
+  const message = describe(response, item);
+  attachArtwork(item, message);
   const line = JSON.stringify(message) + "\n";
   if (line === sentLine) return;
   sentLine = line;
