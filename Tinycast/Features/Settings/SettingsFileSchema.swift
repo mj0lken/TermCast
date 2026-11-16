@@ -62,6 +62,8 @@ enum SettingsFileSchema {
         case .notchHidesAllDayEvents: return bind(settings, \.notchHidesAllDayEvents)
         case .notchShowsBattery: return bind(settings, \.notchShowsBattery)
         case .notchShowsClipboard: return bind(settings, \.notchShowsClipboard)
+        case .notchShowsLiveActivities: return bind(settings, \.notchShowsLiveActivities)
+        case .notchInputSourceNotifications: return bind(settings, \.notchInputSourceNotifications)
         case .hyperKey: return bind(settings, \.hyperKey)
         case .hyperKeyIncludesShift: return bind(settings, \.hyperKeyIncludesShift)
         case .hyperKeyQuickPress: return bind(settings, \.hyperKeyQuickPress)

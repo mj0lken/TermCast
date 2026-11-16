@@ -75,6 +75,8 @@ struct NotchHUDView: View {
                 return String(localized: "Charging \(percentage)%")
             }
             return String(localized: "Battery \(percentage)%")
+        case .notice(_, let text):
+            return text
         }
     }
 }
@@ -199,7 +201,7 @@ private struct NotchHUDRightReadout: View {
 
     var body: some View {
         switch metric {
-        case .audioDeviceConnected(let name, _, _, _):
+        case .audioDeviceConnected(let name, _, _, _), .notice(_, let name):
             Text(verbatim: name)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(Theme.Colors.textPrimary)

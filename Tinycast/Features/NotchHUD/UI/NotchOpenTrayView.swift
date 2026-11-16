@@ -7,7 +7,10 @@ struct NotchOpenTrayView: View {
     let nowPlaying: NowPlayingService
     let shelfStore: NotchShelfStore
     let battery: BatteryStatusService
+    let timer: NotchTimer
+    let terminal: NotchTerminalActions
     let onOpenClipboard: () -> Void
+    let onOpenNotes: () -> Void
     let onOpenCamera: () -> Void
     let menu: NotchAppMenuActions
     let onEnableCalendar: () -> Void
@@ -40,8 +43,12 @@ struct NotchOpenTrayView: View {
                 NotchOpenHeaderBar(
                     state: state,
                     shelfCount: shelfStore.items.count,
+                    runningTerminalCount: state.showsTerminal
+                        ? NotchTerminalSession.runningCount(in: terminal.sessions()) : 0,
                     battery: battery,
+                    timer: timer,
                     onOpenClipboard: onOpenClipboard,
+                    onOpenNotes: onOpenNotes,
                     onOpenCamera: onOpenCamera,
                     menu: menu
                 )
@@ -57,6 +64,8 @@ struct NotchOpenTrayView: View {
                             onJoinMeeting: onJoinMeeting)
                     case .shelf:
                         NotchShelfBodyView(shelfStore: shelfStore)
+                    case .terminal:
+                        NotchTerminalBodyView(actions: terminal)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
@@ -111,8 +120,11 @@ struct NotchOpenTrayView: View {
 private struct NotchOpenHeaderBar: View {
     let state: NotchOpenTrayState
     let shelfCount: Int
+    let runningTerminalCount: Int
     let battery: BatteryStatusService
+    let timer: NotchTimer
     let onOpenClipboard: () -> Void
+    let onOpenNotes: () -> Void
     let onOpenCamera: () -> Void
     let menu: NotchAppMenuActions
 
@@ -136,6 +148,17 @@ private struct NotchOpenHeaderBar: View {
                 ) {
                     state.tab = .shelf
                 }
+
+                if state.showsTerminal {
+                    NotchTabButton(
+                        symbol: "apple.terminal.fill",
+                        label: String(localized: "Terminal Sessions"),
+                        isSelected: state.tab == .terminal,
+                        badgeCount: runningTerminalCount
+                    ) {
+                        state.tab = .terminal
+                    }
+                }
                 Spacer(minLength: 0)
             }
             .padding(.leading, Theme.Spacing.lg)
@@ -148,7 +171,7 @@ private struct NotchOpenHeaderBar: View {
                 }
             }
 
-            HStack(spacing: Theme.Spacing.md) {
+            HStack(spacing: Theme.Spacing.sm) {
                 Spacer(minLength: 0)
 
                 if let metric = state.inlineHUDMetric {
@@ -156,28 +179,25 @@ private struct NotchOpenHeaderBar: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 } else {
                     if state.showsClipboard {
-                        Button(action: onOpenClipboard) {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Theme.Colors.textSecondary)
-                                .frame(width: 24, height: 24)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(String(localized: "Open Clipboard History"))
+                        NotchHeaderIconButton(
+                            symbol: "paperclip",
+                            label: String(localized: "Open Clipboard History"),
+                            action: onOpenClipboard)
                     }
 
-                    Button(action: onOpenCamera) {
-                        Image(systemName: "web.camera")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
+                    if state.showsNotes {
+                        NotchHeaderIconButton(
+                            symbol: "note.text",
+                            label: String(localized: "Open Notes"),
+                            action: onOpenNotes)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Open Camera Mirror"))
 
-                    NotchAppMenuButton(actions: menu)
+                    NotchHeaderIconButton(
+                        symbol: "web.camera",
+                        label: String(localized: "Open Camera Mirror"),
+                        action: onOpenCamera)
+
+                    NotchAppMenuButton(actions: menu, timer: timer)
 
                     if state.showsBattery, battery.status.hasBattery {
                         NotchBatteryBadge(status: battery.status)
@@ -188,6 +208,29 @@ private struct NotchOpenHeaderBar: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .animation(.easeOut(duration: 0.16), value: state.inlineHUDMetric)
+    }
+}
+
+private struct NotchHeaderIconButton: View {
+    let symbol: String
+    let label: String
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(isHovering ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(isHovering ? Theme.Colors.controlHover : .clear))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
 
@@ -252,18 +295,26 @@ private struct NotchInlineOpenHUDChip: View {
         HStack(spacing: 6) {
             SymbolImage(name: metric.symbol, size: 12, monochrome: true)
                 .foregroundStyle(Theme.Colors.textPrimary)
-            Capsule()
-                .fill(Theme.Colors.controlSurface)
-                .frame(width: 56, height: 4)
-                .overlay(alignment: .leading) {
-                    Capsule()
-                        .fill(style.fill)
-                        .frame(width: 56 * CGFloat(metric.effectiveLevel), height: 4)
+            if case .notice(_, let text) = metric {
+                Text(verbatim: text)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .frame(maxWidth: 120)
+            } else {
+                Capsule()
+                    .fill(Theme.Colors.controlSurface)
+                    .frame(width: 56, height: 4)
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(style.fill)
+                            .frame(width: 56 * CGFloat(metric.effectiveLevel), height: 4)
+                    }
+                if style.showsPercentage {
+                    Text(verbatim: metric.percentageText())
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
-            if style.showsPercentage {
-                Text(verbatim: metric.percentageText())
-                    .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
             }
         }
         .padding(.horizontal, 8)
@@ -583,7 +634,9 @@ private struct NotchCalendarAgendaCard: View {
                     ScrollView(.vertical) {
                         VStack(spacing: Theme.Spacing.xs) {
                             ForEach(dayEvents) { event in
-                                NotchAgendaEventRow(event: event) {
+                                NotchAgendaEventRow(
+                                    event: event, now: now, leadMinutes: state.meetingLeadMinutes
+                                ) {
                                     onJoinMeeting(event)
                                 }
                             }
@@ -598,6 +651,8 @@ private struct NotchCalendarAgendaCard: View {
 
 private struct NotchAgendaEventRow: View {
     let event: MeetingEvent
+    let now: Date
+    let leadMinutes: Int
     let action: () -> Void
 
     private var barColor: Color {
@@ -610,6 +665,12 @@ private struct NotchAgendaEventRow: View {
             return String(localized: "Online (\(link.provider.title))")
         }
         return event.calendarName
+    }
+
+    /// The pill appears exactly when the closed notch is counting down to this call.
+    private var isJoinable: Bool {
+        guard event.link != nil else { return false }
+        return NotchMeetingCountdown(leadMinutes: leadMinutes).current(from: [event], now: now) != nil
     }
 
     var body: some View {
@@ -639,6 +700,13 @@ private struct NotchAgendaEventRow: View {
                     Text("All-day")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Theme.Colors.textSecondary)
+                } else if isJoinable {
+                    Text("Join")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Theme.Colors.success))
                 } else {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(event.start, format: .dateTime.hour().minute())
@@ -844,19 +912,117 @@ private struct NotchShelfCardView: View {
     }
 }
 
+// MARK: - Terminal Sessions Page
+
+private struct NotchTerminalBodyView: View {
+    let actions: NotchTerminalActions
+
+    var body: some View {
+        let sessions = NotchTerminalSession.ordered(actions.sessions())
+        if sessions.isEmpty {
+            VStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: "apple.terminal")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+                Text("No terminal sessions")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                Button("Open Terminal", action: actions.openTerminal)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView(.vertical) {
+                VStack(spacing: Theme.Spacing.xs) {
+                    ForEach(sessions) { session in
+                        NotchTerminalSessionRow(session: session) {
+                            actions.open(session.id)
+                        }
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+        }
+    }
+}
+
+private struct NotchTerminalSessionRow: View {
+    let session: NotchTerminalSession
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Theme.Spacing.md) {
+                Circle()
+                    .fill(session.isRunning ? Theme.Colors.success : Theme.Colors.textTertiary)
+                    .frame(width: 7, height: 7)
+
+                Text(verbatim: session.title)
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+
+                Text(verbatim: session.directory)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+
+                Spacer(minLength: Theme.Spacing.sm)
+
+                Text(verbatim: session.isRunning ? String(localized: "Running") : String(localized: "Idle"))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(session.isRunning ? Theme.Colors.success : Theme.Colors.textTertiary)
+            }
+            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(isHovering ? Theme.Colors.controlHover : Theme.Colors.rowHover)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+    }
+}
+
 // MARK: - App Menu
 
 struct NotchAppMenuActions {
     let openNotchSettings: () -> Void
 }
 
+struct NotchTerminalActions {
+    let sessions: () -> [NotchTerminalSession]
+    let open: (NotchTerminalSession.ID) -> Void
+    let openTerminal: () -> Void
+}
+
 /// The menu-bar item, moved into the notch while Open Notch hides the status item.
 private struct NotchAppMenuButton: View {
     let actions: NotchAppMenuActions
+    let timer: NotchTimer
 
     var body: some View {
         Menu {
             MenuBarMenu(appName: Bundle.main.appDisplayName)
+            Divider()
+            Menu("Start Timer") {
+                ForEach(NotchTimerPreset.minutes, id: \.self) { minutes in
+                    Button {
+                        timer.start(minutes: minutes)
+                    } label: {
+                        Text(Duration.seconds(minutes * 60), format: .units(allowed: [.minutes], width: .wide))
+                    }
+                }
+            }
+            if timer.end != nil {
+                Button("Cancel Timer") { timer.cancel() }
+            }
             Divider()
             Button("Notch Settings…", action: actions.openNotchSettings)
         } label: {

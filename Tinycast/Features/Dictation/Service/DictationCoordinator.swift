@@ -16,7 +16,15 @@ final class DictationCoordinator {
     private let injector: TextInjector
     private let showMessage: (String, DialogTone) -> Void
     private let confirmEnable: () async -> Bool
-    @ObservationIgnored private var phase: Phase = .idle
+    /// Lets another surface mirror a recording without owning any part of it.
+    @ObservationIgnored var onListeningChanged: ((Bool) -> Void)?
+    @ObservationIgnored var onLevels: (([Float]) -> Void)?
+    @ObservationIgnored private var phase: Phase = .idle {
+        didSet {
+            let isListening = phase == .listening
+            if isListening != (oldValue == .listening) { onListeningChanged?(isListening) }
+        }
+    }
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var enableTask: Task<Void, Never>?
     @ObservationIgnored private var startTask: Task<Void, Never>?
@@ -51,6 +59,7 @@ final class DictationCoordinator {
         capture.onLevels = { [weak self] in
             guard let self else { return }
             panel.state.levels = $0
+            onLevels?($0)
             if pendingStartCue == token { playStartCue() }
         }
         capture.onLimit = { [weak self] in self?.accept() }

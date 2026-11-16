@@ -455,6 +455,15 @@ enum SettingsSearchCatalog {
             .notchNotch, "Show power & charging notifications",
             keywords: ["battery", "magsafe", "charger", "plugged", "power"]),
         .init(
+            .notchNotch, "Show input source changes",
+            keywords: ["keyboard", "language", "layout", "input", "switch"]),
+        .init(
+            .notchShelf, "Show live activities around the closed notch",
+            keywords: [
+                "live", "activity", "music", "equalizer", "meeting", "countdown", "timer", "dictation",
+                "microphone", "camera", "terminal", "dynamic island"
+            ]),
+        .init(
             .notchShelf, "Enable Open Notch (Media, Calendar & Shelf)",
             keywords: ["now playing", "music", "spotify", "calendar", "upcoming", "shelf", "airdrop", "tray"]),
         .init(

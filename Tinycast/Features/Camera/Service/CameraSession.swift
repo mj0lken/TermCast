@@ -25,6 +25,9 @@ final class CameraSession {
         ).devices
     }
 
+    /// Lets a watcher of system-wide camera use tell Tinycast's own sessions from another app's.
+    private(set) static var liveSessionCount = 0
+
     private let purpose: Purpose
     private var capture: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
@@ -44,6 +47,7 @@ final class CameraSession {
         }
         guard access == .granted else { return .denied }
         guard let capture = capture ?? configure() else { return .noCamera }
+        if self.capture == nil { Self.liveSessionCount += 1 }
         self.capture = capture
         guard !capture.isRunning else { return .live(capture) }
         let box = CaptureBox(session: capture)
@@ -55,6 +59,7 @@ final class CameraSession {
         guard let capture else { return }
         // A reused session without an output of its own feeds a new preview layer no frames.
         self.capture = nil
+        Self.liveSessionCount -= 1
         photoOutput = nil
         guard capture.isRunning else { return }
         // The camera light must go out with the panel, so this is never left to deallocation.

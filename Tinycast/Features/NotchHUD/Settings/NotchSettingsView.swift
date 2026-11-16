@@ -50,6 +50,12 @@ struct NotchSettingsView: View {
                     Text("Displays a brief notch notification when plugging in or unplugging power.")
                 }
                 .settingsEnabled(settings.notchHUDEnabled || settings.notchShelfEnabled)
+
+                Toggle(isOn: $settings.notchInputSourceNotifications) {
+                    SettingsRowTitle(.notchNotch, "Show input source changes")
+                    Text("Names the keyboard layout in the notch each time you switch to another one.")
+                }
+                .settingsEnabled(settings.notchHUDEnabled)
             }
             .settingsAnchor(.notchNotch)
 
@@ -82,6 +88,16 @@ struct NotchSettingsView: View {
 
                 Toggle(isOn: $settings.notchRemembersLastTab) {
                     SettingsRowTitle(.notchShelf, "Remember last tab")
+                }
+                .settingsEnabled(settings.notchShelfEnabled)
+
+                Toggle(isOn: $settings.notchShowsLiveActivities) {
+                    SettingsRowTitle(.notchShelf, "Show live activities around the closed notch")
+                    Text(
+                        """
+                        Keeps music, an upcoming meeting, a timer, dictation, running terminal sessions and \
+                        microphone or camera use visible beside the notch.
+                        """)
                 }
                 .settingsEnabled(settings.notchShelfEnabled)
             } header: {

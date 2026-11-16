@@ -70,6 +70,8 @@ enum NotchHUDGeometry {
     static let idealTrackWidth: CGFloat = 72
     static let maxWingOvershootStretch: CGFloat = 4
     static let maxTrackOvershootCompression: CGFloat = 2
+    static let liveMaxLeftWingWidth: CGFloat = 60
+    static let liveMaxRightWingWidth: CGFloat = 66
 
     static func resolve(
         screen: ScreenMetrics,
@@ -139,6 +141,42 @@ enum NotchHUDGeometry {
             trackWidth: trackWidth,
             wingStretch: wingStretch,
             trackCompression: trackCompression)
+    }
+
+    /// Nil without a notch: a persistent pill floating over a plain menu bar would cover content.
+    static func resolveLive(
+        screen: ScreenMetrics,
+        leftWing: CGFloat,
+        rightWing: CGFloat
+    ) -> Layout? {
+        guard screen.safeAreaTop > 0 else { return nil }
+        let notchHeight = screen.safeAreaTop
+        let (notchMinX, notchMaxX, leftWidth, rightWidth) = notchHorizontalMetrics(for: screen)
+        let leftBudget = min(liveMaxLeftWingWidth, max(leftWidth - menuBarSafetyMargin, 0))
+        let rightBudget = min(liveMaxRightWingWidth, max(rightWidth - menuBarSafetyMargin, 0))
+
+        // Sized for the widest activity once, so swapping activities never resizes the window.
+        let panelMinX = notchMinX - leftBudget - earRadius
+        let panelMaxX = notchMaxX + rightBudget + earRadius
+        let panelFrame = CGRect(
+            x: panelMinX.rounded(.down),
+            y: screen.frame.maxY - notchHeight,
+            width: (panelMaxX - panelMinX).rounded(.up),
+            height: notchHeight)
+
+        return Layout(
+            panelFrame: panelFrame,
+            mode: .notched(
+                notchOriginX: notchMinX - panelFrame.minX,
+                notchWidth: max(notchMaxX - notchMinX, 1),
+                notchHeight: notchHeight,
+                leftWingWidth: min(max(leftWing, 0), leftBudget),
+                rightWingWidth: min(max(rightWing, 0), rightBudget),
+                earRadius: earRadius,
+                innerCornerRadius: innerCornerRadius),
+            trackWidth: 0,
+            wingStretch: 0,
+            trackCompression: 0)
     }
 
     static func sensorFrame(for screen: ScreenMetrics) -> CGRect {

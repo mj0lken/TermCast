@@ -24,6 +24,9 @@ final class NotchOpenTrayState {
     var showsCalendar = true
     var showsBattery = true
     var showsClipboard = true
+    var showsNotes = false
+    var showsTerminal = false
     var hidesAllDayEvents = false
+    var meetingLeadMinutes = 10
     var style = NotchHUDStyle()
 }

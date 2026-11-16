@@ -480,6 +480,36 @@ final class AppCore {
             notchHUD.onOpenClipboard = { [weak self] in
                 self?.paletteCoordinator.showPalette(mode: .clipboard)
             }
+            notchHUD.onOpenNotes = { [weak self] in
+                self?.notesCoordinator.toggle()
+            }
+            notchHUD.terminalSessions = { [weak self] in
+                guard let self, self.settings.terminalEnabled else { return [] }
+                let home = self.terminalStore.homeDirectory
+                return self.terminalStore.tabs.filter(\.isSessionAlive).map { tab in
+                    NotchTerminalSession(
+                        id: tab.id,
+                        title: tab.title(homeDirectory: home),
+                        directory: RecentFolders.displayPath(tab.workingDirectory, homeDirectory: home),
+                        isRunning: tab.isRunning)
+                }
+            }
+            notchHUD.onOpenTerminalSession = { [weak self] id in
+                self?.terminalCoordinator.openSession(id: id)
+            }
+            notchHUD.onOpenTerminal = { [weak self] in
+                self?.terminalCoordinator.showTerminal()
+            }
+            notchHUD.isOwnCameraLive = { CameraSession.liveSessionCount > 0 }
+            notchHUD.meetingLeadMinutes = { [weak self] in
+                self?.settings.joinWindowMinutes.rawValue ?? 10
+            }
+            dictationCoordinator.onListeningChanged = { [weak self] in
+                self?.notchHUD.dictationDidChange(isListening: $0)
+            }
+            dictationCoordinator.onLevels = { [weak self] in
+                self?.notchHUD.dictationLevelsDidChange($0)
+            }
             notchHUD.onOpenSettings = { [weak self] in
                 self?.settingsCoordinator.showSettings(tab: .notch)
             }

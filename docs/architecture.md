@@ -31,6 +31,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ HotKeySpelling · HyperScroll{Zone,Engine} · DisplayDDC ·                   │
 │ NotchHUD{Metric,Geometry} · Notch{Tab,ShelfItem,WeekStrip} ·               │
 │ NowPlaying{Snapshot,RelayMessage} · MediaKeyEvent ·                        │
+│ NotchLiveActivity · NotchMeetingCountdown · NotchTerminalSession ·         │
 │ WindowManagementFileFormat ·                                               │
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft ·                                              │
@@ -50,6 +51,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ ModifierTapMonitor · TrackpadTouchMonitor · MediaKeyPoster ·               │
 │ MediaKeyInterceptorTap · AudioVolumeService · KeyboardBacklightService ·   │
 │ NowPlaying{Service,Monitor} · NotchShelfStore · BatteryStatusService ·     │
+│ MediaCaptureMonitor · InputSourceMonitor · NotchTimer ·                    │
 │ DisplayBrightnessService · SecureInputMonitor · RunningAppsMonitor ·       │
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ AXMenuAccess · WindowZOrder · WindowSwitchSweep ·                          │

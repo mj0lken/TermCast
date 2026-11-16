@@ -593,6 +593,17 @@ final class TerminalCoordinator {
         }
     }
 
+    /// Brings the palette to one live tab, for a surface that lists sessions outside the palette.
+    func openSession(id: UUID) {
+        guard settings.terminalEnabled else { return }
+        store.selectTab(id: id, focus: false)
+        if paletteCoordinator.isVisible, palette.mode == .terminal {
+            palette.focusToken = UUID()
+            return
+        }
+        showTerminal()
+    }
+
     func openFromActiveSessionsBadge() {
         guard settings.terminalEnabled else { return }
         if let selected = store.selectedTab {

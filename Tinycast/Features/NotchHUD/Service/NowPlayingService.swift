@@ -18,12 +18,17 @@ final class NowPlayingService {
     private(set) var appIconImage: NSImage?
     private(set) var sourceName: String?
 
+    /// Fired when playback moves to a different track, never for the track found at launch.
+    @ObservationIgnored var onTrackChanged: ((NowPlayingSnapshot) -> Void)?
+
     @ObservationIgnored private let monitor = NowPlayingMonitor()
     @ObservationIgnored private var isStarted = false
+    @ObservationIgnored private var hasBaseline = false
 
     func start() {
         guard !isStarted else { return }
         isStarted = true
+        hasBaseline = false
         monitor.onMessage = { [weak self] in self?.apply($0) }
         monitor.onExit = { [weak self] in self?.show(nil) }
         monitor.start()
@@ -66,7 +71,14 @@ final class NowPlayingService {
     }
 
     private func apply(_ message: NowPlayingRelayMessage) {
-        show(message.snapshot(carrying: snapshot, receivedAt: Date()))
+        let previous = snapshot
+        let next = message.snapshot(carrying: previous, receivedAt: Date())
+        show(next)
+        defer { hasBaseline = true }
+        guard hasBaseline, let next, next.isPlaying,
+            next.title != previous?.title || next.artist != previous?.artist
+        else { return }
+        onTrackChanged?(next)
     }
 
     private func show(_ next: NowPlayingSnapshot?) {

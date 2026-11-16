@@ -2,7 +2,7 @@ import AppKit
 
 /// Non-activating click-through panel allowed into the physical camera cutout above `.statusBar`.
 final class NotchHUDPanel: NSPanel {
-    init() {
+    init(level: NSWindow.Level = .notchHUD) {
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -11,7 +11,7 @@ final class NotchHUDPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        level = .notchHUD
+        self.level = level
         ignoresMouseEvents = true
         hidesOnDeactivate = false
         animationBehavior = .none

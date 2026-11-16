@@ -26,6 +26,8 @@ enum SettingsBackupCoverage {
         "notchHidesAllDayEvents": .notchHidesAllDayEvents,
         "notchShowsBattery": .notchShowsBattery,
         "notchShowsClipboard": .notchShowsClipboard,
+        "notchShowsLiveActivities": .notchShowsLiveActivities,
+        "notchInputSourceNotifications": .notchInputSourceNotifications,
         "showInMenuBar": .showInMenuBar,
         "automaticallyCheckForUpdates": .automaticallyCheckForUpdates,
         "emojiSkinTone": .emojiSkinTone,

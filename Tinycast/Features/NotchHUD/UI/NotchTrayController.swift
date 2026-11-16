@@ -9,7 +9,12 @@ final class NotchTrayController {
 
     var refreshCalendarState: (() -> (enabled: Bool, hasAccess: Bool, events: [MeetingEvent]))?
     var onOpenClipboard: (() -> Void)?
+    var onOpenNotes: (() -> Void)?
     var onOpenCamera: (() -> Void)?
+    var terminalSessions: (() -> [NotchTerminalSession])?
+    var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
+    var onOpenTerminal: (() -> Void)?
+    var meetingLeadMinutes: (() -> Int)?
     var onOpenSettings: (() -> Void)?
     var onEnableCalendar: (() -> Void)?
     var onJoinMeeting: ((MeetingEvent) -> Void)?
@@ -19,6 +24,7 @@ final class NotchTrayController {
     private let nowPlaying: NowPlayingService
     private let shelfStore: NotchShelfStore
     private let battery: BatteryStatusService
+    private let timer: NotchTimer
 
     private var sensorPanel: NotchSensorPanel?
     private var trayPanel: NotchTrayPanel?
@@ -33,12 +39,14 @@ final class NotchTrayController {
         settings: AppSettings,
         nowPlaying: NowPlayingService,
         shelfStore: NotchShelfStore,
-        battery: BatteryStatusService
+        battery: BatteryStatusService,
+        timer: NotchTimer
     ) {
         self.settings = settings
         self.nowPlaying = nowPlaying
         self.shelfStore = shelfStore
         self.battery = battery
+        self.timer = timer
     }
 
     var isOpen: Bool {
@@ -89,11 +97,15 @@ final class NotchTrayController {
         let metrics = Self.metrics(for: screen)
         let layout = NotchHUDGeometry.resolveOpenTray(screen: metrics)
 
+        state.showsNotes = settings.notesEnabled
+        state.showsTerminal = settings.terminalEnabled
         if let preferredTab {
             state.tab = preferredTab
         } else if !settings.notchRemembersLastTab {
             state.tab = .home
         }
+        if state.tab == .terminal, !state.showsTerminal { state.tab = .home }
+        state.meetingLeadMinutes = meetingLeadMinutes?() ?? state.meetingLeadMinutes
 
         state.showsMedia = settings.notchShowsMedia
         state.showsCalendar = settings.notchShowsCalendar
@@ -226,9 +238,24 @@ final class NotchTrayController {
             nowPlaying: nowPlaying,
             shelfStore: shelfStore,
             battery: battery,
+            timer: timer,
+            terminal: NotchTerminalActions(
+                sessions: { [weak self] in self?.terminalSessions?() ?? [] },
+                open: { [weak self] id in
+                    self?.close()
+                    self?.onOpenTerminalSession?(id)
+                },
+                openTerminal: { [weak self] in
+                    self?.close()
+                    self?.onOpenTerminal?()
+                }),
             onOpenClipboard: { [weak self] in
                 self?.close()
                 self?.onOpenClipboard?()
+            },
+            onOpenNotes: { [weak self] in
+                self?.close()
+                self?.onOpenNotes?()
             },
             onOpenCamera: { [weak self] in
                 self?.close()

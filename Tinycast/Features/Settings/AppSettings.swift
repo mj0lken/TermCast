@@ -280,6 +280,20 @@ final class AppSettings {
         didSet { defaults.set(notchShowsClipboard, forKey: Key.notchShowsClipboard.rawValue) }
     }
 
+    var notchShowsLiveActivities: Bool {
+        didSet {
+            defaults.set(notchShowsLiveActivities, forKey: Key.notchShowsLiveActivities.rawValue)
+        }
+    }
+
+    var notchInputSourceNotifications: Bool {
+        didSet {
+            defaults.set(
+                notchInputSourceNotifications,
+                forKey: Key.notchInputSourceNotifications.rawValue)
+        }
+    }
+
     /// Preferred skin tone applied to modifier-capable emoji at render and copy time.
     var emojiSkinTone: EmojiSkinTone {
         didSet { defaults.set(emojiSkinTone.rawValue, forKey: Key.emojiSkinTone.rawValue) }
@@ -962,6 +976,12 @@ final class AppSettings {
         notchShowsClipboard =
             defaults.object(forKey: Key.notchShowsClipboard.rawValue) == nil
             || defaults.bool(forKey: Key.notchShowsClipboard.rawValue)
+        notchShowsLiveActivities =
+            defaults.object(forKey: Key.notchShowsLiveActivities.rawValue) == nil
+            || defaults.bool(forKey: Key.notchShowsLiveActivities.rawValue)
+        notchInputSourceNotifications =
+            defaults.object(forKey: Key.notchInputSourceNotifications.rawValue) == nil
+            || defaults.bool(forKey: Key.notchInputSourceNotifications.rawValue)
         emojiSkinTone =
             defaults.string(forKey: Key.emojiSkinTone.rawValue).flatMap(EmojiSkinTone.init) ?? .none
         emojiGridColumns =

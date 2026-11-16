@@ -23,7 +23,13 @@ final class NotchHUDManager: HealthCheckable {
     @ObservationIgnored weak var healthTicker: HealthTicker?
     @ObservationIgnored var refreshCalendarState: (() -> (enabled: Bool, hasAccess: Bool, events: [MeetingEvent]))?
     @ObservationIgnored var onOpenClipboard: (() -> Void)?
+    @ObservationIgnored var onOpenNotes: (() -> Void)?
     @ObservationIgnored var onOpenCamera: (() -> Void)?
+    @ObservationIgnored var terminalSessions: (() -> [NotchTerminalSession])?
+    @ObservationIgnored var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
+    @ObservationIgnored var onOpenTerminal: (() -> Void)?
+    @ObservationIgnored var meetingLeadMinutes: (() -> Int)?
+    @ObservationIgnored var isOwnCameraLive: (() -> Bool)?
     @ObservationIgnored var onOpenSettings: (() -> Void)?
     @ObservationIgnored var onEnableCalendar: (() -> Void)?
     @ObservationIgnored var onJoinMeeting: ((MeetingEvent) -> Void)?
@@ -35,6 +41,12 @@ final class NotchHUDManager: HealthCheckable {
     @ObservationIgnored private let nowPlaying = NowPlayingService()
     @ObservationIgnored private let shelfStore = NotchShelfStore()
     @ObservationIgnored private let battery = BatteryStatusService()
+    @ObservationIgnored private let timer = NotchTimer()
+    @ObservationIgnored private let capture = MediaCaptureMonitor()
+    @ObservationIgnored private let inputSource = InputSourceMonitor()
+    @ObservationIgnored private lazy var liveActivity = makeLiveActivityController()
+    @ObservationIgnored private var hasLiveActivity = false
+    @ObservationIgnored private var isDictating = false
     @ObservationIgnored private let tap = MediaKeyInterceptorTap()
     @ObservationIgnored private let controller = NotchHUDController()
     @ObservationIgnored private lazy var trayController = makeTrayController()
@@ -80,6 +92,14 @@ final class NotchHUDManager: HealthCheckable {
                 overshoot: outcome.overshoot,
                 preferredDisplayID: outcome.displayID)
         }
+        nowPlaying.onTrackChanged = { [weak self] in self?.announceTrack($0) }
+        timer.onFinished = { [weak self] in self?.announceTimerFinished() }
+        capture.onMicrophoneStarted = { [weak self] in self?.announceMicrophone(appName: $0) }
+        capture.isOwnCameraLive = { [weak self] in self?.isOwnCameraLive?() ?? false }
+        capture.onCameraStarted = { [weak self] in
+            self?.announce(symbol: "video.fill", text: String(localized: "Camera in use"))
+        }
+        inputSource.onChange = { [weak self] in self?.announce(symbol: "keyboard", text: $0) }
         observeSettings()
         observeSystem()
         apply()
@@ -94,8 +114,21 @@ final class NotchHUDManager: HealthCheckable {
     }
 
     func calendarDidUpdate() {
+        if hasLiveActivity { liveActivity.calendarDidUpdate() }
         guard hasTrayController, trayController.isOpen else { return }
         trayController.syncCalendarData()
+    }
+
+    /// Kept here too: a recording can start before the live wings exist, or outlast a pause.
+    func dictationDidChange(isListening: Bool) {
+        isDictating = isListening
+        guard hasLiveActivity else { return }
+        liveActivity.setDictating(isListening)
+    }
+
+    func dictationLevelsDidChange(_ levels: [Float]) {
+        guard hasLiveActivity else { return }
+        liveActivity.setDictationLevels(levels)
     }
 
     // MARK: - Direct Routing (Hyper Scroll, System Actions & Tray Preview)
@@ -240,6 +273,32 @@ final class NotchHUDManager: HealthCheckable {
                 isPluggedIn: status.isPluggedIn))
     }
 
+    // MARK: - Announcements
+
+    private func announce(symbol: String, text: String) {
+        guard pauseReasons.isEmpty else { return }
+        presentHUD(metric: .notice(symbol: symbol, text: text))
+    }
+
+    /// The open tray already names the track, so only the closed notch peeks.
+    private func announceTrack(_ snapshot: NowPlayingSnapshot) {
+        guard settings.notchShowsLiveActivities, !(hasTrayController && trayController.isOpen) else { return }
+        let text = snapshot.artist.isEmpty ? snapshot.title : "\(snapshot.title) — \(snapshot.artist)"
+        announce(symbol: "music.note", text: text)
+    }
+
+    private func announceTimerFinished() {
+        NSSound(named: "Glass")?.play()
+        announce(symbol: "timer", text: String(localized: "Timer finished"))
+    }
+
+    private func announceMicrophone(appName: String?) {
+        let text =
+            appName.map { String(localized: "\($0) is using the microphone") }
+            ?? String(localized: "Microphone in use")
+        announce(symbol: "mic.fill", text: text)
+    }
+
     // MARK: - Lifecycle Convergence
 
     private func apply() {
@@ -259,9 +318,23 @@ final class NotchHUDManager: HealthCheckable {
         if shelfRequested {
             ensureShelfServicesRunning()
             trayController.startSensor()
-        } else if hasTrayController {
-            trayController.stopAll()
+        } else {
+            if hasTrayController { trayController.stopAll() }
             nowPlaying.stop()
+            timer.cancel()
+        }
+
+        if shelfRequested, settings.notchShowsLiveActivities {
+            capture.start()
+            liveActivity.start()
+        } else {
+            stopLiveActivity()
+        }
+
+        if hudRequested, settings.notchInputSourceNotifications {
+            inputSource.start()
+        } else {
+            inputSource.stop()
         }
 
         if shelfRequested || (hudRequested && settings.notchBatteryNotifications) {
@@ -311,11 +384,18 @@ final class NotchHUDManager: HealthCheckable {
         battery.start()
     }
 
+    private func stopLiveActivity() {
+        capture.stop()
+        if hasLiveActivity { liveActivity.stop() }
+    }
+
     private func pauseActiveSubsystems() {
         tap.tearDown()
         audioVolume.stop()
         nowPlaying.stop()
         battery.stop()
+        stopLiveActivity()
+        inputSource.stop()
         keyboardBacklight.resetGesture()
         displayBrightness.showsSystemOSD = true
         controller.dismissImmediately()
@@ -331,6 +411,9 @@ final class NotchHUDManager: HealthCheckable {
         audioVolume.stop()
         nowPlaying.stop()
         battery.stop()
+        stopLiveActivity()
+        inputSource.stop()
+        timer.cancel()
         keyboardBacklight.resetGesture()
         displayBrightness.showsSystemOSD = true
         controller.dismissImmediately()
@@ -345,15 +428,31 @@ final class NotchHUDManager: HealthCheckable {
             settings: settings,
             nowPlaying: nowPlaying,
             shelfStore: shelfStore,
-            battery: battery)
+            battery: battery,
+            timer: timer)
         created.refreshCalendarState = { [weak self] in
             self?.refreshCalendarState?() ?? (false, false, [])
         }
+        created.terminalSessions = { [weak self] in self?.terminalSessions?() ?? [] }
+        created.onOpenTerminalSession = { [weak self] id in self?.onOpenTerminalSession?(id) }
+        created.onOpenTerminal = { [weak self] in self?.onOpenTerminal?() }
+        created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
+        created.onOpenNotes = { [weak self] in self?.onOpenNotes?() }
         created.onOpenClipboard = { [weak self] in self?.onOpenClipboard?() }
         created.onOpenCamera = { [weak self] in self?.onOpenCamera?() }
         created.onOpenSettings = { [weak self] in self?.onOpenSettings?() }
         created.onEnableCalendar = { [weak self] in self?.onEnableCalendar?() }
         created.onJoinMeeting = { [weak self] meeting in self?.onJoinMeeting?(meeting) }
+        return created
+    }
+
+    private func makeLiveActivityController() -> NotchLiveActivityController {
+        hasLiveActivity = true
+        let created = NotchLiveActivityController(nowPlaying: nowPlaying, timer: timer, capture: capture)
+        created.terminalSessions = { [weak self] in self?.terminalSessions?() ?? [] }
+        created.meetingEvents = { [weak self] in self?.refreshCalendarState?().events ?? [] }
+        created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
+        created.setDictating(isDictating)
         return created
     }
 
@@ -386,6 +485,8 @@ final class NotchHUDManager: HealthCheckable {
             _ = settings.notchShowsBattery
             _ = settings.notchShowsMedia
             _ = settings.notchShowsClipboard
+            _ = settings.notchShowsLiveActivities
+            _ = settings.notchInputSourceNotifications
             _ = settings.clipboardEnabled
         } onChange: { [weak self] in
             Task { @MainActor in

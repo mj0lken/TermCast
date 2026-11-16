@@ -124,6 +124,8 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case notchHidesAllDayEvents = "notch.hidesAllDayEvents"
     case notchShowsBattery = "notch.showsBattery"
     case notchShowsClipboard = "notch.showsClipboard"
+    case notchShowsLiveActivities = "notch.showsLiveActivities"
+    case notchInputSourceNotifications = "notch.inputSourceNotifications"
     case clipboardEnabled = "clipboard.enabled"
     case clipboardRetention = "clipboard.retentionDays"
     case clipboardDefaultAction = "clipboard.defaultAction"

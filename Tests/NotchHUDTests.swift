@@ -38,6 +38,13 @@ struct NotchHUDTests {
         testNowPlayingRelayMessage()
         testNowPlayingRelayArtworkCarryOver()
         testWeekStrip()
+        testNoticeMetric()
+        testLiveActivityPriority()
+        testLiveWingWidths()
+        testLiveGeometry()
+        testMeetingCountdown()
+        testTerminalSessions()
+        testTimerPreset()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -361,5 +368,176 @@ struct NotchHUDTests {
         let built = NotchWeekStrip.build(around: ref, calendar: calendar, locale: locale)
         expect(built.days.count == 6, "week strip builds 6 day slots (-2..+3)")
         expect(built.days[2].isToday, "slot index 2 (offset 0) is marked as today")
+    }
+
+    static func testNoticeMetric() {
+        let notice = NotchHUDMetric.notice(symbol: "globe", text: "Swedish")
+        expect(notice.isToast, "a notice dwells as long as the other toasts")
+        expect(notice.symbol == "globe", "a notice shows the symbol it was given")
+        expect(notice.effectiveLevel, 0, "a notice has no level to draw")
+    }
+
+    static func meeting(
+        _ id: String, startingIn minutes: Double, lasting duration: Double = 30,
+        isAllDay: Bool = false, isDeclined: Bool = false, from now: Date
+    ) -> MeetingEvent {
+        let start = now.addingTimeInterval(minutes * 60)
+        return MeetingEvent(
+            id: id, title: id, start: start, end: start.addingTimeInterval(duration * 60),
+            isAllDay: isAllDay, isDeclined: isDeclined, calendarID: "cal", calendarName: "Work",
+            calendarColor: nil, calendarItemID: id, link: nil)
+    }
+
+    static func testLiveActivityPriority() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let standup = meeting("standup", startingIn: 4, from: now)
+        var inputs = NotchLiveInputs()
+        expect(inputs.presentation(at: now).isEmpty, "nothing ongoing leaves the notch bare")
+
+        inputs.isPlaying = true
+        expect(inputs.presentation(at: now).activity == .nowPlaying, "playback alone shows now playing")
+
+        inputs.runningTerminalCount = 2
+        expect(
+            inputs.presentation(at: now).activity == .terminal(runningCount: 2),
+            "a running command outranks ambient playback")
+        expect(
+            inputs.presentation(at: now).terminalBadgeCount == 0,
+            "the terminal activity does not also badge itself")
+
+        inputs.timerEnd = now.addingTimeInterval(60)
+        let timed = inputs.presentation(at: now)
+        expect(timed.activity == .timer(end: now.addingTimeInterval(60)), "a running timer outranks the terminal")
+        expect(timed.terminalBadgeCount == 2, "running sessions stay counted beside a higher activity")
+
+        inputs.meeting = standup
+        expect(inputs.presentation(at: now).activity == .meeting(standup), "an imminent meeting outranks a timer")
+
+        inputs.isDictating = true
+        expect(inputs.presentation(at: now).activity == .dictation, "dictation outranks everything")
+
+        var expired = NotchLiveInputs()
+        expired.timerEnd = now.addingTimeInterval(-1)
+        expect(expired.presentation(at: now).isEmpty, "a timer that has ended is no longer shown")
+
+        var captureOnly = NotchLiveInputs()
+        captureOnly.capture.microphone = true
+        let dot = captureOnly.presentation(at: now)
+        expect(dot.activity == nil && !dot.isEmpty, "microphone use alone still shows its dot")
+    }
+
+    static func testLiveWingWidths() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        var inputs = NotchLiveInputs()
+        inputs.capture.camera = true
+        let dotOnly = inputs.presentation(at: now)
+        expectCG(dotOnly.leftWingWidth, 0, "a lone capture dot needs no left wing")
+        expectCG(dotOnly.rightWingWidth, NotchLivePresentation.captureDotWidth, "a lone dot is one dot wide")
+
+        inputs.isPlaying = true
+        inputs.runningTerminalCount = 0
+        let playing = inputs.presentation(at: now)
+        expectCG(playing.leftWingWidth, NotchLivePresentation.glyphWidth, "an activity has one glyph on the left")
+        expectCG(
+            playing.rightWingWidth,
+            NotchLiveActivity.nowPlaying.readoutWidth + NotchLivePresentation.captureDotWidth,
+            "the capture dot widens the readout wing")
+
+        inputs.timerEnd = now.addingTimeInterval(60)
+        inputs.runningTerminalCount = 1
+        let badged = inputs.presentation(at: now)
+        expectCG(
+            badged.leftWingWidth,
+            NotchLivePresentation.glyphWidth + NotchLivePresentation.terminalBadgeWidth,
+            "the terminal badge widens the glyph wing")
+    }
+
+    static func testLiveGeometry() {
+        let notched = NotchHUDGeometry.ScreenMetrics(
+            frame: CGRect(x: 0, y: 0, width: 1512, height: 982),
+            safeAreaTop: 38,
+            auxiliaryTopLeft: CGRect(x: 0, y: 944, width: 650, height: 38),
+            auxiliaryTopRight: CGRect(x: 862, y: 944, width: 650, height: 38))
+        let narrow = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 30, rightWing: 30)
+        let wide = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 60, rightWing: 66)
+        expect(narrow != nil, "a notched display hosts live activities")
+        expect(narrow?.panelFrame == wide?.panelFrame, "swapping activities never resizes the window")
+        expect(
+            (narrow?.panelFrame.maxY ?? 0) == notched.frame.maxY,
+            "the live wings sit flush with the top of the display")
+        if case .notched(_, let notchWidth, _, let left, let right, _, _)? = narrow?.mode {
+            expectCG(notchWidth, 212, "the live layout spans the real notch")
+            expectCG(left, 30, "the left wing is as wide as asked")
+            expectCG(right, 30, "the right wing is as wide as asked")
+        } else {
+            expect(false, "the live layout is notched")
+        }
+        let oversized = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 400, rightWing: 400)
+        if case .notched(_, _, _, let left, let right, _, _)? = oversized?.mode {
+            expectCG(left, NotchHUDGeometry.liveMaxLeftWingWidth, "the left wing is capped")
+            expectCG(right, NotchHUDGeometry.liveMaxRightWingWidth, "the right wing is capped")
+        } else {
+            expect(false, "an oversized request still resolves")
+        }
+
+        let plain = NotchHUDGeometry.ScreenMetrics(
+            frame: CGRect(x: 0, y: 0, width: 1920, height: 1080),
+            safeAreaTop: 0, auxiliaryTopLeft: nil, auxiliaryTopRight: nil)
+        expect(
+            NotchHUDGeometry.resolveLive(screen: plain, leftWing: 30, rightWing: 30) == nil,
+            "a display without a notch shows no live activity")
+    }
+
+    static func testMeetingCountdown() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let countdown = NotchMeetingCountdown(leadMinutes: 10)
+        let soon = meeting("soon", startingIn: 4, from: now)
+        let later = meeting("later", startingIn: 90, from: now)
+        let allDay = meeting("allDay", startingIn: -60, lasting: 1440, isAllDay: true, from: now)
+        let declined = meeting("declined", startingIn: 2, isDeclined: true, from: now)
+        let underway = meeting("underway", startingIn: -3, from: now)
+        let stale = meeting("stale", startingIn: -12, from: now)
+        let brief = meeting("brief", startingIn: -2, lasting: 3, from: now)
+
+        expect(countdown.current(from: [later, soon], now: now) == soon, "a meeting inside the lead is shown")
+        expect(countdown.current(from: [later], now: now) == nil, "a meeting beyond the lead is not shown yet")
+        expect(countdown.current(from: [allDay, declined], now: now) == nil, "all-day and declined events never count down")
+        expect(countdown.current(from: [underway], now: now) == underway, "a meeting just started stays for its grace")
+        expect(countdown.current(from: [stale], now: now) == nil, "a meeting past its grace leaves the wings")
+
+        expect(
+            countdown.nextChange(from: [later], now: now) == later.start.addingTimeInterval(-600),
+            "the next wake-up is when the lead window opens")
+        expect(
+            countdown.nextChange(from: [underway], now: now) == underway.start.addingTimeInterval(300),
+            "an underway meeting wakes the notch when its grace ends")
+        expect(
+            countdown.nextChange(from: [brief], now: now) == brief.end,
+            "the grace never outlives a short meeting")
+        expect(countdown.nextChange(from: [], now: now) == nil, "no events schedule no wake-up")
+
+        expect(NotchMeetingCountdown.label(for: soon, now: now, locale: locale) == "4m", "minutes are narrow")
+        expect(
+            NotchMeetingCountdown.label(
+                for: soon, now: now.addingTimeInterval(30), locale: locale) == "4m",
+            "a partial minute rounds up")
+        expect(NotchMeetingCountdown.label(for: underway, now: now, locale: locale) == "Now", "a started meeting reads Now")
+    }
+
+    static func testTerminalSessions() {
+        let idle = NotchTerminalSession(id: UUID(), title: "~", directory: "~", isRunning: false)
+        let build = NotchTerminalSession(id: UUID(), title: "make", directory: "~/app", isRunning: true)
+        expect(NotchTerminalSession.runningCount(in: [idle, build]) == 1, "only running sessions are counted")
+        expect(NotchTerminalSession.ordered([idle, build]) == [build, idle], "running sessions list first")
+    }
+
+    static func testTimerPreset() {
+        let now = Date(timeIntervalSince1970: 500)
+        expect(
+            NotchTimerPreset.end(afterMinutes: 25, from: now) == now.addingTimeInterval(1_500),
+            "a preset ends that many minutes from now")
+        expect(
+            NotchTimerPreset.end(afterMinutes: 0, from: now) == now.addingTimeInterval(60),
+            "a timer is never shorter than a minute")
     }
 }

@@ -83,6 +83,10 @@ final class InputSourceSwitcher {
         if let destination { TISSelectInputSource(destination) }
     }
 
+    static func currentOption() -> Option? {
+        currentSource().flatMap(option(for:))
+    }
+
     private static func currentSource() -> TISInputSource? {
         TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
     }

@@ -7,6 +7,8 @@ enum NotchHUDMetric: Sendable, Equatable {
     case keyboardBacklight(level: Double, suppressed: Bool)
     case audioDeviceConnected(name: String, symbol: String, level: Double, muted: Bool)
     case battery(percentage: Int, isPluggedIn: Bool)
+    /// A one-line announcement whose text the caller has already localized.
+    case notice(symbol: String, text: String)
 
     struct StepResult: Sendable, Equatable {
         let level: Double
@@ -78,6 +80,8 @@ enum NotchHUDMetric: Sendable, Equatable {
             symbol
         case .battery(_, let isPluggedIn):
             isPluggedIn ? "bolt.batteryblock.fill" : "battery.100"
+        case .notice(let symbol, _):
+            symbol
         }
     }
 
@@ -91,12 +95,14 @@ enum NotchHUDMetric: Sendable, Equatable {
             suppressed ? 0 : Self.clamp(level)
         case .battery(let percentage, _):
             Self.clamp(Double(percentage) / 100.0)
+        case .notice:
+            0
         }
     }
 
     var isToast: Bool {
         switch self {
-        case .audioDeviceConnected, .battery:
+        case .audioDeviceConnected, .battery, .notice:
             true
         case .volume, .screenBrightness, .keyboardBacklight:
             false

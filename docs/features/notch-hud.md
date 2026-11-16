@@ -1,6 +1,6 @@
 # Notch HUD & Open Notch Shelf
 
-Hardware-blended inline Notch HUD and interactive Open-Notch tray (`Home` Now Playing + Calendar/Upcoming and `Shelf` AirDrop + File/URL staging) replacing both the stock macOS OSD and third-party notch utilities.
+Hardware-blended inline Notch HUD, persistent closed-notch live activities, and interactive Open-Notch tray (`Home` Now Playing + Calendar/Upcoming, `Shelf` AirDrop + File/URL staging and `Terminal` live sessions) replacing both the stock macOS OSD and third-party notch utilities.
 
 ## Invariants
 
@@ -9,6 +9,10 @@ Hardware-blended inline Notch HUD and interactive Open-Notch tray (`Home` Now Pl
 - **Event-driven Now Playing and Battery.** `NowPlayingMonitor` reads one line per change from the relay and never polls; a 1 Hz `TimelineView` scrubber runs only while the tray is visibly expanded and playing. `BatteryStatusService` listens to `IOPSNotificationCreateRunLoopSource` without polling.
 - **Now Playing is read out of process, through `/usr/bin/osascript`.** macOS answers now-playing queries only for Apple-signed processes, so an in-process `MediaRemote` read returns nothing on every supported release. `NowPlayingMonitor` runs `Resources/NowPlayingRelay.js` under `osascript` instead, and the relay exists only while `notchShelfEnabled` and `notchShowsMedia` are both on. Transport (play/pause, next, previous, seek) is still accepted from Tinycast itself and stays in-process in `NowPlayingService`.
 - **The relay never outlives Tinycast.** It holds the read end of a pipe Tinycast never writes to and exits on end-of-file, so a crash or a force-quit takes it down too. The pipe end Tinycast holds is close-on-exec, so a terminal shell cannot inherit it and keep the relay alive. Each launch is drained by its own task in the order the relay wrote, and that task is cancelled on stop, so output from an earlier launch is never applied.
+- **A live activity never polls and never animates in-process.** `NotchLiveActivityController` re-arms one `withObservationTracking` pass per change and schedules a single sleep per meeting boundary; a meeting hours away costs nothing until its lead window opens. The now-playing equaliser is four `CABasicAnimation`s run by the render server, so playback adds no per-frame work to Tinycast. Text that counts (`Text(timerInterval:)`, a per-minute `TimelineView`) exists only while its activity is on the wings.
+- **Live wings are click-through and sit one window level under the HUD.** `.notchLiveActivity` is below `.notchHUD`, so a volume step, a notice or the open tray always covers them and they reappear on their own. They never take a click from the menu bar, and they exist only on a display with a notch.
+- **The live panel is sized once for the widest activity.** `NotchHUDGeometry.resolveLive` reserves `liveMaxLeftWingWidth` and `liveMaxRightWingWidth`, so swapping activities animates `NotchWingShape` inside a fixed window.
+- **Microphone and camera use is read from property listeners only.** `MediaCaptureMonitor` listens on CoreAudio's process-object list and each process's `IsRunningInput`, and on each CoreMediaIO device's `DeviceIsRunningSomewhere`. Tinycast's own processes are excluded, so dictation is never reported as somebody else's recording; CoreMediaIO names no process, so the camera is not reported at all while `CameraSession.liveSessionCount` says Tinycast holds it. It runs only while `notchShelfEnabled` and `notchShowsLiveActivities` are both on.
 - **Pure optical black (`#000000`) in both Light and Dark appearances.** `NotchHUDPanel` and `NotchTrayPanel` pin their panel `appearance` to `.darkAqua` and fill `NotchWingShape` with `Theme.Colors.notchHardwareBlack` so both inline wings and the expanded tray blend seamlessly into the physical camera housing.
 - **No `NSWindow` resizing during spring overshoot.** `NotchHUDGeometry` reserves overshoot headroom inside `panelFrame` once per presentation so rubber-band stretch animates inside SwiftUI's `NotchWingShape` without reallocating WindowServer backing stores.
 - **Native macOS `⌥` shortcut preservation.** Bare `⌥` + Volume/Brightness passes through `MediaKeyEvent.decode` untouched so macOS continues opening **System Settings → Sound / Displays**.
@@ -20,7 +24,11 @@ Hardware-blended inline Notch HUD and interactive Open-Notch tray (`Home` Now Pl
 | `Features/NotchHUD/Model/NotchHUDMetric.swift` | Pure metric state, `1/16` & `1/64` step math, overshoot calculation and SF Symbol selection |
 | `Features/NotchHUD/Model/NotchHUDGeometry.swift` | Pure inline-wing layout, sensor rect, `OpenTrayLayout` and non-notched fallbacks |
 | `Features/NotchHUD/Model/MediaKeyEvent.swift` | Pure subtype-8 `NX_SYSDEFINED` decoder |
-| `Features/NotchHUD/Model/NotchTab.swift` | Pure page identifier (`home`, `shelf`) |
+| `Features/NotchHUD/Model/NotchTab.swift` | Pure page identifier (`home`, `shelf`, `terminal`) |
+| `Features/NotchHUD/Model/NotchLiveActivity.swift` | Pure live-activity priority (`NotchLiveInputs.presentation`), wing widths and the capture dot |
+| `Features/NotchHUD/Model/NotchMeetingCountdown.swift` | Pure rule for which meeting counts down, its next wake-up and its narrow label |
+| `Features/NotchHUD/Model/NotchTerminalSession.swift` | Pure row for one live Terminal tab, with running count and ordering |
+| `Features/NotchHUD/Model/NotchTimerPreset.swift` | Pure countdown lengths offered from the tray menu |
 | `Features/NotchHUD/Model/NotchShelfItem.swift` | Pure staged file/link/text model, deduplication and middle truncation |
 | `Features/NotchHUD/Model/NowPlayingSnapshot.swift` | Pure playback snapshot, elapsed-time interpolation and seek re-anchoring |
 | `Features/NotchHUD/Model/NowPlayingRelayMessage.swift` | Pure decoder for one relay line, folding it into a snapshot and carrying artwork across lines |
@@ -31,13 +39,19 @@ Hardware-blended inline Notch HUD and interactive Open-Notch tray (`Home` Now Pl
 | `Resources/NowPlayingRelay.js` | JXA script run by `osascript`: an `MRNowPlayingController` delegate printing one JSON line per change |
 | `Features/NotchHUD/Service/NowPlayingMonitor.swift` | Owns the relay process and its line framing; reports each `NowPlayingRelayMessage` |
 | `Features/NotchHUD/Service/NowPlayingService.swift` | Observable track, artwork and source-app state for the tray, plus in-process `MediaRemote` transport |
+| `Features/NotchHUD/Service/NotchTimer.swift` | One observable countdown; a single sleep ends it and nothing ticks in between |
+| `Features/NotchHUD/Service/MediaCaptureMonitor.swift` | Event-driven microphone and camera use by other apps, naming the recording app when macOS reveals it |
+| `Features/NotchHUD/Service/InputSourceMonitor.swift` | Reports a keyboard input source only when it differs from the last one |
 | `Features/NotchHUD/Service/NotchShelfStore.swift` | Persistent `notch-shelf.json` staging store, drop ingestion and native AirDrop sharing |
 | `Features/NotchHUD/Service/NotchSensorPanel.swift` | Passive camera-cutout hover & drag-destination sensor panel |
 | `Features/NotchHUD/Service/MediaKeyInterceptorTap.swift` | Dedicated worker-thread `.cghidEventTap` swallowing intercepted subtype-8 media keys |
 | `Features/NotchHUD/UI/NotchHUDManager.swift` | Unified lifecycle, sleep/lock pause, Accessibility recovery and routing |
 | `Features/NotchHUD/UI/NotchHUDController.swift` | Closed-notch inline HUD presentation, dwell extension and rubber-band snap-back |
 | `Features/NotchHUD/UI/NotchTrayController.swift` | Interactive Open-Notch hover/drag/click expansion, haptic alignment and auto-collapse |
-| `Features/NotchHUD/UI/NotchOpenTrayView.swift` | Expanded `Home` (Now Playing + Calendar/Upcoming), `Shelf` (AirDrop + Staging Tray), and header controls (Clipboard shortcut, Camera Mirror, Termcast menu, Battery) |
+| `Features/NotchHUD/UI/NotchLiveActivityController.swift` | Closed-notch live wings: gathers the inputs, resolves one presentation, shows or retracts the panel |
+| `Features/NotchHUD/UI/NotchLiveActivityView.swift` | Left glyph (artwork, calendar, mic, timer, terminal) and right readout (equaliser, countdown, waveform, count, capture dot) |
+| `Features/NotchHUD/UI/NotchEqualizerView.swift` | Core Animation equaliser bars |
+| `Features/NotchHUD/UI/NotchOpenTrayView.swift` | Expanded `Home` (Now Playing + Calendar/Upcoming), `Shelf` (AirDrop + Staging Tray), `Terminal` (live sessions), and header controls (Clipboard, Notes, Camera Mirror, Termcast menu with timers, Battery) |
 | `Features/NotchHUD/Settings/NotchSettingsView.swift` | **Settings → Features → Notch** controls and live HUD / Tray previews |
 
 ## Now Playing relay
@@ -57,3 +71,36 @@ was true), `isPlaying`, `bundleID`, `parentBundleID`, `appName`, `artworkID` and
   for the run loop to yield, which under `osascript` is never — the callbacks would simply not arrive.
 - **A relay that dies is relaunched once per tray open**, through `NowPlayingService.resume()`, never
   on a timer.
+
+## Live activities
+
+While `notchShelfEnabled` and `notchShowsLiveActivities` are on, the closed notch keeps one ongoing
+activity on its wings: a glyph on the left, a compact readout on the right.
+
+- **One activity at a time, by priority.** `NotchLiveInputs.presentation(at:)` picks dictation, then an
+  imminent meeting, then a running timer, then running Terminal sessions, then playback. What the user is
+  doing outranks what is scheduled, which outranks what is ambient. Running sessions stay counted as a
+  badge beside any activity that outranks them, and microphone or camera use adds a dot (orange for the
+  microphone, green for the camera) beside whatever else is showing, or on its own.
+- **Now Playing** shows the artwork and an equaliser only while something is playing; a pause retracts
+  the wings. A change of track peeks the title through the HUD as a `.notice`, never for the track found
+  at launch and never while the tray is open.
+- **A meeting counts down inside the join window.** `NotchMeetingCountdown` uses `joinWindowMinutes` as
+  its lead and keeps a started meeting for five minutes, never past its end. The same rule shows the
+  green **Join** pill on that meeting's row in the tray, so the pill and the countdown cannot disagree.
+  Events are re-read on a calendar change, at each scheduled boundary and when the day changes.
+- **Dictation** mirrors `DictationCoordinator.onListeningChanged` and `onLevels`; the notch owns none of
+  the recording.
+- **Timers** start from the Termcast menu in the tray header (`NotchTimerPreset.minutes`). One sleep on
+  the continuous clock ends the timer, so a lid-closed timer finishes on wake; it then plays a sound and
+  shows a notice.
+- **Terminal sessions** come from a closure `AppCore` supplies over `TerminalStore`; the `Terminal` tab
+  lists every live tab, running ones first, and a click opens that tab in the palette through
+  `TerminalCoordinator.openSession(id:)`. The tab appears only while `terminalEnabled` is on.
+
+## Notices
+
+`NotchHUDMetric.notice(symbol:text:)` is the one-line toast every announcement shares: a track change, a
+finished timer, an app starting to use the microphone or camera, and a keyboard input-source switch
+(`notchInputSourceNotifications`, which needs `notchHUDEnabled`). The caller localizes the text, so the
+model stays pure. With the tray open a notice becomes the header's inline chip.

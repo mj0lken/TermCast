@@ -44,6 +44,8 @@ struct SettingsBackup: Codable {
         var notchHidesAllDayEvents: Bool?
         var notchShowsBattery: Bool?
         var notchShowsClipboard: Bool?
+        var notchShowsLiveActivities: Bool?
+        var notchInputSourceNotifications: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -186,6 +188,8 @@ extension SettingsBackup {
             notchHidesAllDayEvents: s.notchHidesAllDayEvents,
             notchShowsBattery: s.notchShowsBattery,
             notchShowsClipboard: s.notchShowsClipboard,
+            notchShowsLiveActivities: s.notchShowsLiveActivities,
+            notchInputSourceNotifications: s.notchInputSourceNotifications,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -458,6 +462,14 @@ extension SettingsBackup {
         }
         if let flag = s.notchShowsClipboard {
             settings.notchShowsClipboard = flag
+            count += 1
+        }
+        if let flag = s.notchShowsLiveActivities {
+            settings.notchShowsLiveActivities = flag
+            count += 1
+        }
+        if let flag = s.notchInputSourceNotifications {
+            settings.notchInputSourceNotifications = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {
