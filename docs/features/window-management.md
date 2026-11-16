@@ -55,7 +55,7 @@ entries and a still-registered shortcut moves nothing.
 | `UI/WindowCommandCoordinator.swift`  | AppKit                       | The one funnel from a palette row, menu item or global hotkey       |
 | `UI/WindowSnapPreviewController.swift` | AppKit + SwiftUI           | `@MainActor`. Target-area preview and edge activation-area pills    |
 | `UI/WindowGreenButtonMenuController.swift` | AppKit + SwiftUI       | `@MainActor`. Floating tiling popover under a window's green button |
-| `UI/WindowCommandIcon.swift`         | AppKit + SwiftUI             | Template schematic glyphs for fractional tiles across menus/settings |
+| `UI/WindowCommandIcon.swift`         | AppKit + SwiftUI             | Template wrapper over `WindowTileGlyph` for menus and Settings rows  |
 | `UI/WindowManagementMenu.swift`      | AppKit + Carbon + SwiftUI    | Magnet-style submenu in Tinycast's menu bar while enabled           |
 | `Settings/WindowActivationAreasPicker.swift` | SwiftUI              | Interactive screen-edge diagram for inspecting/toggling snap zones  |
 | `Settings/CustomWindowSizeGridPicker.swift` | SwiftUI               | Interactive fractional matrix (`6×4`/`12×8`/`24×12`) for grid sizes |

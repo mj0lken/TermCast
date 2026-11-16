@@ -98,6 +98,7 @@ struct CustomWindowSize: Codable, Hashable, Identifiable, Sendable {
         var x1: CGFloat { CGFloat(column + columns) / CGFloat(gridColumns) }
         var y0: CGFloat { CGFloat(row) / CGFloat(gridRows) }
         var y1: CGFloat { CGFloat(row + rows) / CGFloat(gridRows) }
+        var unitRect: CGRect { CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0) }
 
         var placementAnchor: WindowPlacementEngine.Anchor {
             let horizontal: WindowPlacementEngine.Anchor.Axis =
@@ -178,6 +179,7 @@ struct CustomWindowSize: Codable, Hashable, Identifiable, Sendable {
     }
 
     var entryID: String { Self.entryIDPrefix + id.uuidString.lowercased() }
+    var tilePreviewRect: CGRect? { gridCell?.unitRect }
 
     var summary: String {
         if let gridCell {

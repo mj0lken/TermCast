@@ -595,3 +595,7 @@ enum WindowPlacementEngine {
         ((value % length) + length) % length
     }
 }
+
+extension WindowCommand {
+    var tilePreviewRect: CGRect? { WindowPlacementEngine.tilePreviewRect(for: id) }
+}

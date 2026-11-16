@@ -30,6 +30,8 @@ struct EntryIconTests {
             .tintedSymbol(name: "star", tint: red),
             .tintedSymbol(name: "star", tint: blue),
             .tintedSymbol(name: "bolt", tint: red),
+            .windowTile(WindowTileIcon(unitRect: CGRect(x: 0, y: 0, width: 0.5, height: 1))),
+            .windowTile(WindowTileIcon(unitRect: CGRect(x: 1.0 / 3, y: 0, width: 1.0 / 3, height: 1))),
             .artwork(path: "/tmp/a.png", extent: 0.76),
             .artwork(path: "/tmp/a.png", extent: 0.83),
             .artwork(path: "/tmp/b.png", extent: 0.76)
@@ -69,7 +71,8 @@ struct EntryIconTests {
         let cases: [(String, EntryIcon)] = [
             ("file", .file(stamp: 0)),
             ("symbol", .symbol("star")),
-            ("tintedSymbol", .tintedSymbol(name: "star", tint: red))
+            ("tintedSymbol", .tintedSymbol(name: "star", tint: red)),
+            ("windowTile", .windowTile(WindowTileIcon(unitRect: CGRect(x: 0, y: 0, width: 0.5, height: 1))))
         ]
         for (label, icon) in cases {
             let image = IconCache.icon(for: icon, fileURL: url)
@@ -212,11 +215,31 @@ struct EntryIconTests {
         return CGFloat(max(maxX - minX + 1, maxY - minY + 1)) / CGFloat(side)
     }
 
+    static func windowTilesDifferAcrossFractions() {
+        let url = URL(fileURLWithPath: "/System/Applications/Calculator.app")
+        let left = EntryIcon.windowTile(
+            WindowTileIcon(unitRect: CGRect(x: 0, y: 0, width: 1.0 / 3, height: 1)))
+        let center = EntryIcon.windowTile(
+            WindowTileIcon(unitRect: CGRect(x: 1.0 / 3, y: 0, width: 1.0 / 3, height: 1)))
+        let middleRow = EntryIcon.windowTile(
+            WindowTileIcon(unitRect: CGRect(x: 0, y: 1.0 / 3, width: 1, height: 1.0 / 3)))
+
+        let leftBits = bitmap(IconCache.icon(for: left, fileURL: url))
+        let centerBits = bitmap(IconCache.icon(for: center, fileURL: url))
+        let middleBits = bitmap(IconCache.icon(for: middleRow, fileURL: url))
+
+        expect(leftBits != nil && centerBits != nil && middleBits != nil, "all window tiles draw")
+        expect(leftBits != centerBits, "first third and center third produce distinct bitmaps")
+        expect(centerBits != middleBits, "horizontal and vertical thirds produce distinct bitmaps")
+        expect(IconCache.cached(center, fileURL: url) != nil, "drawn window tile warms the cache")
+    }
+
     static func main() {
         everyCasePrintsDistinctly()
         hashingSeparatesTheCases()
         everyCaseDraws()
         tintsAndSymbolsDoNotShareABitmap()
+        windowTilesDifferAcrossFractions()
         oneFileAtTwoExtentsDiffers()
         askingTwiceIsStable()
         cacheOnlyLookupMatchesTheDrawnIcon()
