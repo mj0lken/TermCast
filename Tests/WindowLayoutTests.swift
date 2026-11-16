@@ -294,6 +294,10 @@ struct WindowLayoutTests {
         // Capped at a tenth of the shorter side, so a huge gap can't produce a zero-size box.
         let huge = WindowLayoutGeometry.box(mainScreen, gap: 100_000)
         expect(huge.width > 0 && huge.height > 0, "an absurd gap still leaves a usable box")
+        expect(
+            WindowLayoutGeometry.box(mainScreen, gap: 16, fitTightlyToEdges: true)
+                == mainScreen.visibleFrame,
+            "fitting tightly to screen edges suppresses outer canvas inset")
     }
 
     // MARK: - Capture
@@ -477,6 +481,13 @@ struct WindowLayoutTests {
         expect(
             plan.placements.first?.canvas == WindowLayoutGeometry.box(mainScreen, gap: 16),
             "a placement carries the box the runner re-clamps into")
+
+        let tightPlan = WindowLayoutPlan.make(
+            layout: value, screens: [target(mainScreen, 1)], windows: [], preferredGap: 16,
+            fitTightlyToEdges: true)
+        expect(
+            tightPlan.placements.first?.frame == mainScreen.visibleFrame,
+            "fitting tightly to edges expands layout canvas to visibleFrame")
 
         let gapless = layout(entries: [entry(display: 1)], gap: false)
         let ignored = WindowLayoutPlan.make(
@@ -859,6 +870,12 @@ struct WindowLayoutTests {
             CGRect(x: 720, y: 450, width: 710, height: 440),
             "the gap insets the box before the percent is taken")
         expectRect(
+            customSize(
+                width: .init(50, .percent), height: .init(50, .percent), anchor: .bottomRight
+            ).frame(in: visible, gap: 10, fitTightlyToEdges: true),
+            CGRect(x: 720, y: 450, width: 720, height: 450),
+            "fitting tightly to screen edges leaves outer custom-size edges flush")
+        expectRect(
             customSize(width: .init(1000, .points), height: .init(500, .points), anchor: .right)
                 .frame(in: rightScreen.visibleFrame, gap: 0),
             CGRect(x: 3000, y: 183, width: 1000, height: 500),
@@ -990,5 +1007,19 @@ struct WindowLayoutTests {
             expect(reopened.sizes.count == 1, "a reopened store finds its custom sizes")
             expect(reopened.sizes.first == stored, "every field survives persistence")
         }
+
+        let gridSize = CustomWindowSize(
+            name: "Left Two Sixths",
+            gridCell: CustomWindowSize.GridCell(
+                column: 0, columns: 4, row: 0, rows: 4, gridColumns: 12, gridRows: 8))
+        expect(gridSize.summary == "1/3 × 1/2 · Top Left", "grid summary reduces fractions")
+        expectRect(
+            gridSize.frame(in: mainScreen.visibleFrame, gap: 0),
+            CGRect(x: 0, y: 0, width: 480, height: 450),
+            "grid cell resolves exact fractional tile bounds")
+        expectRect(
+            gridSize.frame(in: mainScreen.visibleFrame, gap: 12, fitTightlyToEdges: true),
+            CGRect(x: 0, y: 0, width: 474, height: 444),
+            "grid cell honours inner half-gap and tight outer edges")
     }
 }

@@ -70,7 +70,7 @@ struct WindowActionMemory<Key: Hashable> {
         // Against the observed frame, never the requested one. docs/features/window-management.md
         let untouched =
             isFullScreen
-            ? record.appliedFullScreen : approximatelyEqual(currentFrame, record.appliedFrame)
+            ? record.appliedFullScreen : Self.approximatelyEqual(currentFrame, record.appliedFrame)
         guard untouched else {
             return Decision(
                 step: 0, originScreenID: currentScreenID, restoreFrame: currentFrame,
@@ -135,7 +135,7 @@ struct WindowActionMemory<Key: Hashable> {
         }
     }
 
-    private func approximatelyEqual(_ a: CGRect, _ b: CGRect) -> Bool {
+    static func approximatelyEqual(_ a: CGRect, _ b: CGRect) -> Bool {
         let tolerance = Self.tolerance
         return abs(a.minX - b.minX) <= tolerance && abs(a.minY - b.minY) <= tolerance
             && abs(a.width - b.width) <= tolerance && abs(a.height - b.height) <= tolerance

@@ -1,9 +1,9 @@
 # Window Management
 
-Rectangle-style window actions — halves, quarters, fourths, thirds, sizing, nudging, edge moves,
-display moves, native fullscreen and Space switching — searchable in the palette and bindable to
-global shortcuts. 39 commands, plus any number of user-defined [custom sizes](#custom-sizes), no new
-dependencies and no new permission: they reuse the Accessibility grant clipboard paste already needs.
+Rectangle-style window actions — halves, quarters, fourths, horizontal and vertical thirds, sizing,
+nudging, edge moves, display moves, native fullscreen and Space switching — searchable in the palette
+and bindable to global shortcuts. 45 commands, plus any number of user-defined [custom sizes](#custom-sizes),
+no new dependencies and no new permission: they reuse the Accessibility grant clipboard paste already needs.
 
 Ships **off**. Settings › Window Management is the switch, and while it is off there are no launcher
 entries and a still-registered shortcut moves nothing.
@@ -16,10 +16,11 @@ entries and a still-registered shortcut moves nothing.
   every mixed-size setup.
 - **Nothing in this feature touches `backingScaleFactor`.** All three of `NSScreen.frame`, `visibleFrame`
   and AX coordinates are in points, so mixed-DPI correctness is automatic.
-- **`WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift` and `SpaceGesture.swift`
-  stay Foundation + CoreGraphics and pure** — no AX, no `NSScreen`, no clock (`WindowActionMemory`
-  takes `now` as a parameter, `SpaceGesture` takes `timestamp`). Every `AXUIElement` call and the
-  Cocoa↔AX flip live in `Service/`; every `CGEvent` call lives in `SpaceSwitcher.swift`.
+- **`WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift`,
+  `WindowDragSnap.swift` and `SpaceGesture.swift` stay Foundation + CoreGraphics and pure** — no AX, no
+  `NSScreen`, no clock (`WindowActionMemory` takes `now` as a parameter, `SpaceGesture` takes
+  `timestamp`). Every `AXUIElement` call and the Cocoa↔AX flip live in `Service/`; every `CGEvent` call
+  lives in `SpaceSwitcher.swift` or `WindowDragMonitor.swift`.
 - **`AXWindowAccess` is the one AX layer**, shared by the mover, the layout runner and
   [Navigation](navigation.md)'s window switcher. Its `write` is the size → position → size sequence:
   two copies of it would land a stubborn app two ways.
@@ -39,15 +40,25 @@ entries and a still-registered shortcut moves nothing.
 | `Model/WindowCycle.swift`            | Foundation                   | The three cycling modes a repeat press can run                      |
 | `Model/WindowPlacementEngine.swift`  | Foundation + CoreGraphics    | **Pure.** Every frame the commands produce                          |
 | `Model/WindowActionMemory.swift`     | Foundation + CoreGraphics    | **Pure.** Per-window cycle position and restore point               |
+| `Model/WindowDragSnap.swift`         | Foundation + CoreGraphics    | **Pure.** Edge/corner snap zones and drag-away unsnap geometry      |
+| `Model/WindowTrafficLightButton.swift` | Foundation                 | **Pure.** Green/yellow button choice and hover-delay bounds         |
 | `Model/SpaceGesture.swift`           | Foundation                   | **Pure.** The Dock-swipe field tables and the IOHID payload bytes   |
 | `Service/AXWindowAccess.swift`       | AppKit + ApplicationServices | `@MainActor`. Every `AXUIElement` call, and the one write sequence  |
 | `Service/AXScreens.swift`            | AppKit + ColorSync           | `@MainActor`. `AXGeometry`, the one coordinate flip                 |
-| `Service/WindowMover.swift`          | AppKit + ApplicationServices | `@MainActor`. Command policy: cycle, restore, fullscreen            |
+| `Service/WindowMover.swift`          | AppKit + ApplicationServices | `@MainActor`. Command policy: cycle, restore, fullscreen, drag      |
+| `Service/WindowDragMonitor.swift`    | AppKit + Carbon + os         | `@MainActor`. Listen-only mouse tap for drag-to-snap and unsnap     |
+| `Service/WindowGreenButtonMonitor.swift` | AppKit + Carbon          | `@MainActor`. Pointer hover monitor for traffic-light buttons       |
 | `Service/SpaceSwitcher.swift`        | CoreGraphics                 | `@MainActor`. Every `CGEvent` call and the payload splice           |
 | `Service/WindowTarget.swift`         | AppKit                       | `@MainActor`. Which window a command acts on                        |
-| `Model/CustomWindowSize.swift`       | Foundation + CoreGraphics    | **Pure.** A custom size, its units and the frame it resolves to     |
+| `Model/CustomWindowSize.swift`       | Foundation + CoreGraphics    | **Pure.** Custom size (pt/% or fractional grid cell) and geometry   |
 | `Model/CustomWindowSizeStore.swift`  | Foundation                   | The custom-size library, as JSON in `UserDefaults`                  |
-| `UI/WindowCommandCoordinator.swift`  | AppKit                       | The one funnel from a palette row or a global hotkey                |
+| `UI/WindowCommandCoordinator.swift`  | AppKit                       | The one funnel from a palette row, menu item or global hotkey       |
+| `UI/WindowSnapPreviewController.swift` | AppKit + SwiftUI           | `@MainActor`. Target-area preview and edge activation-area pills    |
+| `UI/WindowGreenButtonMenuController.swift` | AppKit + SwiftUI       | `@MainActor`. Floating tiling popover under a window's green button |
+| `UI/WindowCommandIcon.swift`         | AppKit + SwiftUI             | Template schematic glyphs for fractional tiles across menus/settings |
+| `UI/WindowManagementMenu.swift`      | AppKit + Carbon + SwiftUI    | Magnet-style submenu in Tinycast's menu bar while enabled           |
+| `Settings/WindowActivationAreasPicker.swift` | SwiftUI              | Interactive screen-edge diagram for inspecting/toggling snap zones  |
+| `Settings/CustomWindowSizeGridPicker.swift` | SwiftUI               | Interactive fractional matrix (`6×4`/`12×8`/`24×12`) for grid sizes |
 | `UI/CustomWindowSizeCoordinator.swift` | Foundation                 | Custom sizes' launcher presence, edits and a deletion's cleanup     |
 | `Model/WindowShortcutPreset.swift`   | Foundation + Carbon          | **Pure.** Rectangle / Magnet and Spectacle tables, and the apply plan |
 | `UI/WindowShortcutPresetCoordinator.swift` | Foundation             | Applies a preset, confirming first when it replaces a user's key   |
@@ -57,7 +68,7 @@ applied in one pass — and **[Rooms](window-rooms.md)**, named sets of windows 
 display you are on while everything else steps back. Both share this feature's switch, its
 Accessibility grant and its gap setting.
 
-The first four compile into `Tests/WindowCommandTests.swift` and `SpaceGesture.swift` compiles into
+The first six compile into `Tests/WindowCommandTests.swift` and `SpaceGesture.swift` compiles into
 `Tests/SpaceGestureTests.swift`, so none of them may gain an AppKit, SwiftUI or `NSScreen`
 dependency, and all must stay pure — `WindowActionMemory` takes `now` as a parameter rather than
 reading a clock. CoreGraphics is needed only because `CGRect`'s `Equatable` conformance lives in that
@@ -65,7 +76,7 @@ overlay rather than in Foundation.
 
 Adding a command is four edits in `WindowCommand.swift` (a case in `ID`, plus `name`, `symbol` and
 `group` arms), an arm in `WindowPlacementEngine.placement` or `tileFractions`, and bumping
-`commands.count == 39` and its group count in the harness. A command opening a new family also needs
+`commands.count == 45` and its group count in the harness. A command opening a new family also needs
 a `Group` case and its `title` arm; `ID.allCases` stays in group order.
 
 ## Coordinate space
@@ -91,15 +102,16 @@ in this feature is a bug. `visibleFrame` already excludes the menu bar, the Dock
 ## Geometry
 
 **Tiles** come from fractional bounds of `visibleFrame`. Gaps use one rule that composes across every
-family: an edge sitting on the screen boundary takes the full gap, an interior edge takes half. Two
-adjacent tiles therefore leave exactly `gap` between them and every screen edge is inset by `gap`, with
-no per-family special cases. Rects are rounded on their four **edges**, not origin + size, so two tiles
-sharing a fractional boundary (480.333 for thirds of 1441) round it identically — no overlaps, no
-one-point seams.
+family: an edge sitting on the screen boundary takes the full gap (or `0` when **Fit tightly to screen
+edges** is on), and an interior edge takes half. Two adjacent tiles therefore leave exactly `gap`
+between them, with no per-family special cases. Rects are rounded on their four **edges**, not
+origin + size, so two tiles sharing a fractional boundary (480.333 for thirds of 1441) round it
+identically — no overlaps, no one-point seams.
 
 **Free-floating commands** (Maximize, Almost Maximize, Reasonable Size, Center, Make Larger/Smaller,
-the nudges and edge moves) work in
-`canvas = visibleFrame.insetBy(gap)` instead: a centred window has no neighbour to gutter against.
+the nudges and edge moves), custom sizes, layouts and rooms work in `canvas = visibleFrame.insetBy(gap)`
+instead, or `visibleFrame` directly when **Fit tightly to screen edges** is on (rooms still keep the
+full gap between adjacent windows).
 
 **Next / Previous Display** re-derive a window a tile placed, so it lands as the same tile. Any other
 window keeps its position and size as fractions of the canvas, each display applying its own gap: the
@@ -132,11 +144,14 @@ full-height and still off-screen.
 
 ## Custom sizes
 
-A **custom size** is a user-defined command: a name, a width and a height — each in points or as a
-percentage — a position on the 3×3 grid [Window Layouts](window-layouts.md) uses, and an optional
-offset in points on top of that position. It acts on the focused window exactly as a built-in
-command does, and is the answer for a display where Reasonable Size is wrong: no single built-in
-size suits every screen, so the size is the user's.
+A **custom size** is a user-defined command: either an exact fractional region on a Magnet-style cell
+matrix (`CustomWindowSize.GridCell`, offered in `6×4`, `12×8` and `24×12` densities via
+`CustomWindowSizeGridPicker`, routed through `WindowPlacementEngine.tile` so adjacent grid tiles share
+inner half-gaps cleanly), or a width and a height — each in points or as a percentage — a position on
+the 3×3 grid [Window Layouts](window-layouts.md) uses, and an optional offset in points on top of that
+position. It acts on the focused window exactly as a built-in command does, and is the answer for a
+display where Reasonable Size is wrong: no single built-in size suits every screen, so the size is the
+user's.
 
 - **It stays on the window's display.** A custom size never names a display; it resolves on the one
   the window already sits on, so one shortcut works on the laptop and at the desk.
@@ -196,10 +211,9 @@ the window is still in it. `WindowMover` leaves `cycleTimeout` unset, so waiting
 **Cycling covers the four halves and Center Half only**, and `WindowCycle` picks one of three modes,
 `.off` by default so a repeat press stays idempotent unless asked otherwise:
 
-- **`.sizes`** — ½ → ⅓ → ⅔ in place. Top and Bottom Half cycle through _vertical_ thirds, which have no
-  commands of their own (the Thirds group is horizontal), so they are expressed as fractions rather
-  than as other command IDs. Center Half keeps its width centred, so its steps land on Center Third
-  and Center Two Thirds.
+- **`.sizes`** — ½ → ⅓ → ⅔ in place. Top and Bottom Half cycle through vertical thirds (`Top Third` /
+  `Top Two Thirds`, `Bottom Third` / `Bottom Two Thirds`), expressed directly as fractions. Center Half
+  keeps its width centred, so its steps land on Center Third and Center Two Thirds.
 - **`.displays`** — every display contributes two half-slots to one strip, ordered left-to-right by
   `ordered(_:)`. Left and Top walk it backwards, Right and Bottom forwards, both wrapping, so one
   shortcut sweeps the whole desktop in one direction: on two displays, Left Half gives
@@ -367,6 +381,58 @@ than posting a corrupt event. The payload itself is packed little-endian with 16
 scalars, which is why `SpaceGesture.fixed1616` floors to ±1 — the tiny progress value would otherwise
 quantize to zero and the gesture would do nothing.
 
+## Mouse drag-to-snap and unsnap
+
+`WindowDragMonitor` installs a `.listenOnly` annotated session `CGEventTap` (falling back to a
+session tap or global/local `NSEvent` mouse monitors) while `windowManagementEnabled` and either
+**Snap windows by dragging** (`windowSnapByDragging`, default on) or **Restore windows to original
+size** (`windowRestoreOnDrag`, default on) is active. `AppCore` prompts for Accessibility when drag
+snapping is enabled, `WindowManagementSettingsView` surfaces an inline permission warning while untrusted,
+and `HealthTicker` picks up a later TCC grant or recovers a timed-out tap.
+
+- **Zero AX work on plain clicks, accurate window hit-testing on drag.** `leftMouseDown` only records the
+  cursor point and fallback target. AX resolution runs after 6 pt of drag with a 150 ms messaging
+  timeout, resolving the movable window directly under the mouse-down cursor via
+  `AXWindowAccess.windowAtPosition(_:)` (or our own `NSApp.orderedWindows`) before falling back to
+  `WindowTarget`, and probes at 60 Hz until the window's origin moves ≥ 2 pt without resizing — rejecting
+  text selections, slider drags and edge resizes.
+- **Fourteen Magnet activation areas per display** (`WindowActivationZone` / `WindowDragSnap`): the four
+  corners (`topLeftQuarter`, `topRightQuarter`, `bottomLeftQuarter`, `bottomRightQuarter`), top edge
+  (`maximize`), upper left/right side edges (`topHalf` in landscape, `topThird` on portrait displays),
+  middle left/right side edges (`leftHalf` / `rightHalf` in landscape, `middleThird` on portrait
+  displays), lower left/right side edges (`bottomHalf` in landscape, `bottomThird` on portrait
+  displays), and bottom edge thirds (`firstThird`, `centerThird`, `lastThird`). Users can tune
+  **Screen edge width** (`1…30 pt`, default `14 pt`), **Activation area scale** (`15…50%`, default
+  `30%`) and toggle individual zones on or off in `WindowActivationAreasPicker`. Shared multi-monitor
+  seams narrow the trigger margin to `min(edgeWidth, 4)` so dragging across displays never traps early.
+- **Activation area edge pills, preview and cancel.** When **Highlight activation areas when dragging**
+  (`windowHighlightActivationAreas`, default on) is enabled, `WindowSnapPreviewController` renders
+  click-through, non-activating per-display overlay `NSPanel`s showing translucent screen-edge capsules
+  for every enabled activation zone, lighting up the armed capsule alongside the target-area preview.
+  Pressing `Escape` or right-clicking cancels snapping for the remainder of the drag.
+- **Unsnap restore.** Dragging a window whose frame still matches `WindowActionMemory`'s `appliedFrame`
+  restores its pre-snap `restoreFrame.size` proportionally under the cursor along the titlebar, and
+  forgets the memory record unless a new edge snap commits on `leftMouseUp` (which preserves the
+  original pre-snap `restoreFrame` across consecutive drag-snaps).
+
+## Menu bar submenu
+
+When `windowManagementEnabled` is on, Tinycast's menu-bar dropdown includes a **Window Management**
+submenu (`WindowManagementMenu`) starting with a quick **Snap windows by dragging** toggle, followed by
+halves, quarters, horizontal and vertical thirds, two-thirds/three-fourths, display moves and
+sizing/restore with SF Symbols and live global keyboard shortcuts, any saved custom sizes, layouts and
+rooms, and **Window Management Settings…**.
+
+## Green button hover menu
+
+When **Show green button menu** (`windowGreenButtonMenu`, default off) is enabled in Settings › Window
+Management › Green Button, `WindowGreenButtonMonitor` watches `mouseMoved` events and checks whether the
+pointer rests over the chosen traffic-light button (`windowGreenButtonTarget`: `.green` zoom/fullscreen
+or `.yellow` minimize) for `windowGreenButtonHoverDelay` (`50…1000 ms`, default `150 ms`). It presents
+`WindowGreenButtonMenuController` at `.popUpMenu` level with an invisible hit-test shield covering the
+hovered button so AppKit cancels macOS's native ~500 ms "Move & Resize" popover while forwarding direct
+clicks through AX.
+
 ## Shortcut presets
 
 Settings › Window Management › Options › **Shortcut preset**, a pop-up and an Apply button, fills
@@ -411,9 +477,14 @@ and every shortcut stays editable afterwards.
   `WindowCommandCoordinator.runCustomWindowSize(id:)`, the same funnel and the same feature gate.
 - **`AppIndex.setCustomWindowSizes(_:)`** publishes the custom-size slice immediately after the
   window commands, inside the same section. Custom sizes and their bindings ride in settings backups.
-- **Settings** — `windowManagementEnabled` (off), `windowManagementShowInLauncher` (on), `windowGap`
-  (0), `windowCycle` (`.off`), `windowWrapsDisplays` (on) and `windowKeepsProportions` (on). All six
-  ride in settings backups: unlike `snippetsEnabled` they grant no permission class of their own.
+- **Settings** — `windowManagementEnabled` (off), `windowManagementShowInLauncher` (on),
+  `windowSnapByDragging` (on), `windowRestoreOnDrag` (on), `windowHighlightActivationAreas` (on),
+  `windowActivationEdgeWidth` (14), `windowActivationAreaScale` (30), `windowDisabledActivationAreas`
+  (`[]`), `windowGreenButtonMenu` (off), `windowGreenButtonTarget` (`.green`),
+  `windowGreenButtonHoverDelay` (150), `windowGap` (0),
+  `windowFitTightlyToEdges` (off), `windowCycle` (`.off`), `windowWrapsDisplays` (on) and
+  `windowKeepsProportions` (on). All sixteen ride in settings backups and `settings.json`: unlike
+  `snippetsEnabled` they grant no permission class of their own.
 - **Per-command visibility** reuses `VisibilityStore` as-is; clearing a recorded shortcut is how a
   hotkey is disabled, so there is no separate per-command enabled flag. Each command and custom-size
   row carries an alias field, dimmed while its entry is hidden from the launcher. Window commands

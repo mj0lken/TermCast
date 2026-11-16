@@ -16,7 +16,14 @@ struct WindowCommand: Identifiable, Hashable, Sendable {
         case centerThird = "center-third"
         case lastThird = "last-third"
         case firstTwoThirds = "first-two-thirds"
+        case centerTwoThirds = "center-two-thirds"
         case lastTwoThirds = "last-two-thirds"
+        case topThird = "top-third"
+        case middleThird = "middle-third"
+        case bottomThird = "bottom-third"
+        case topTwoThirds = "top-two-thirds"
+        case middleTwoThirds = "middle-two-thirds"
+        case bottomTwoThirds = "bottom-two-thirds"
         case maximize
         case almostMaximize = "almost-maximize"
         case reasonableSize = "reasonable-size"
@@ -24,7 +31,6 @@ struct WindowCommand: Identifiable, Hashable, Sendable {
         case maximizeWidth = "maximize-width"
         case center
         case centerHalf = "center-half"
-        case centerTwoThirds = "center-two-thirds"
         case makeLarger = "make-larger"
         case makeSmaller = "make-smaller"
         case restore
@@ -60,6 +66,7 @@ struct WindowCommand: Identifiable, Hashable, Sendable {
         case quarters
         case fourths
         case thirds
+        case verticalThirds
         case sizing
         case moving
         case fullscreen
@@ -71,6 +78,7 @@ struct WindowCommand: Identifiable, Hashable, Sendable {
             case .quarters: return String(localized: "Quarters")
             case .fourths: return String(localized: "Fourths")
             case .thirds: return String(localized: "Thirds")
+            case .verticalThirds: return String(localized: "Vertical Thirds")
             case .sizing: return String(localized: "Sizing")
             case .moving: return String(localized: "Moving")
             case .fullscreen: return String(localized: "Fullscreen")
@@ -142,6 +150,12 @@ enum WindowCommandCatalog {
         case .lastThird: return "Last Third"
         case .firstTwoThirds: return "First Two Thirds"
         case .lastTwoThirds: return "Last Two Thirds"
+        case .topThird: return "Top Third"
+        case .middleThird: return "Middle Third"
+        case .bottomThird: return "Bottom Third"
+        case .topTwoThirds: return "Top Two Thirds"
+        case .middleTwoThirds: return "Middle Two Thirds"
+        case .bottomTwoThirds: return "Bottom Two Thirds"
         case .maximize: return "Maximize"
         case .almostMaximize: return "Almost Maximize"
         case .reasonableSize: return "Reasonable Size"
@@ -182,8 +196,13 @@ enum WindowCommandCatalog {
         case .firstThreeFourths: return "rectangle.lefthalf.inset.filled"
         case .lastThreeFourths: return "rectangle.righthalf.inset.filled"
         case .firstThird, .firstTwoThirds: return "rectangle.leadingthird.inset.filled"
-        case .centerThird: return "rectangle.center.inset.filled"
+        case .centerThird: return "rectangle.split.3x1"
+        case .centerTwoThirds: return "rectangle.split.3x1.fill"
         case .lastThird, .lastTwoThirds: return "rectangle.trailingthird.inset.filled"
+        case .topThird, .topTwoThirds: return "rectangle.topthird.inset.filled"
+        case .middleThird: return "rectangle.grid.1x3"
+        case .bottomThird, .bottomTwoThirds: return "rectangle.bottomthird.inset.filled"
+        case .middleTwoThirds: return "rectangle.grid.1x3.fill"
         case .maximize: return "arrow.up.left.and.arrow.down.right"
         case .almostMaximize: return "rectangle.inset.filled"
         case .reasonableSize: return "macwindow"
@@ -191,7 +210,6 @@ enum WindowCommandCatalog {
         case .maximizeWidth: return "arrow.left.and.right"
         case .center: return "rectangle.center.inset.filled"
         case .centerHalf: return "rectangle.split.3x1"
-        case .centerTwoThirds: return "rectangle.split.3x1.fill"
         case .makeLarger: return "plus.magnifyingglass"
         case .makeSmaller: return "minus.magnifyingglass"
         case .restore: return "arrow.uturn.backward"
@@ -228,10 +246,14 @@ enum WindowCommandCatalog {
             return .quarters
         case .firstThreeFourths, .lastThreeFourths:
             return .fourths
-        case .firstThird, .centerThird, .lastThird, .firstTwoThirds, .lastTwoThirds:
+        case .firstThird, .centerThird, .lastThird, .firstTwoThirds, .centerTwoThirds,
+            .lastTwoThirds:
             return .thirds
+        case .topThird, .middleThird, .bottomThird, .topTwoThirds, .middleTwoThirds,
+            .bottomTwoThirds:
+            return .verticalThirds
         case .maximize, .almostMaximize, .reasonableSize, .maximizeHeight, .maximizeWidth, .center,
-            .centerHalf, .centerTwoThirds, .makeLarger, .makeSmaller, .restore:
+            .centerHalf, .makeLarger, .makeSmaller, .restore:
             return .sizing
         case .moveLeft, .moveRight, .moveUp, .moveDown, .moveToLeftEdge, .moveToRightEdge,
             .moveToTopEdge, .moveToBottomEdge, .nextDisplay, .previousDisplay:

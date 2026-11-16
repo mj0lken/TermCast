@@ -125,10 +125,33 @@ enum SettingsFileSchema {
         case .windowManagementEnabled: return bind(settings, \.windowManagementEnabled)
         case .windowManagementShowInLauncher:
             return bind(settings, \.windowManagementShowInLauncher)
+        case .windowSnapByDragging: return bind(settings, \.windowSnapByDragging)
+        case .windowRestoreOnDrag: return bind(settings, \.windowRestoreOnDrag)
+        case .windowHighlightActivationAreas:
+            return bind(settings, \.windowHighlightActivationAreas)
+        case .windowActivationEdgeWidth:
+            return bind(settings, \.windowActivationEdgeWidth) {
+                WindowDragSnap.edgeWidthRange.contains($0) ? $0 : nil
+            }
+        case .windowActivationAreaScale:
+            return bind(settings, \.windowActivationAreaScale) {
+                WindowDragSnap.areaScaleRange.contains($0) ? $0 : nil
+            }
+        case .windowDisabledActivationAreas:
+            return bind(settings, \.windowDisabledActivationAreas) {
+                WindowDragSnap.normalizedDisabledZones($0)
+            }
+        case .windowGreenButtonMenu: return bind(settings, \.windowGreenButtonMenu)
+        case .windowGreenButtonTarget: return bind(settings, \.windowGreenButtonTarget)
+        case .windowGreenButtonHoverDelay:
+            return bind(settings, \.windowGreenButtonHoverDelay) {
+                WindowTrafficLightButton.hoverDelayRange.contains($0) ? $0 : nil
+            }
         case .windowGap:
             return bind(settings, \.windowGap) {
                 WindowPlacementEngine.gapRange.contains($0) ? $0 : nil
             }
+        case .windowFitTightlyToEdges: return bind(settings, \.windowFitTightlyToEdges)
         case .windowCycle: return bind(settings, \.windowCycle)
         case .windowWrapsDisplays: return bind(settings, \.windowWrapsDisplays)
         case .windowKeepsProportions: return bind(settings, \.windowKeepsProportions)
@@ -191,6 +214,7 @@ extension HyperKeyQuickPress: SettingsFileRawValue {}
 extension CalcNumberStyle: SettingsFileRawValue {}
 extension SearchSensitivity: SettingsFileRawValue {}
 extension WindowCycle: SettingsFileRawValue {}
+extension WindowTrafficLightButton: SettingsFileRawValue {}
 extension ClipboardDefaultAction: SettingsFileRawValue {}
 extension SnippetDefaultAction: SettingsFileRawValue {}
 extension EmojiSkinTone: SettingsFileRawValue {}

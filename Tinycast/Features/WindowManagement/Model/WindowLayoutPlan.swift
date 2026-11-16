@@ -83,9 +83,10 @@ struct WindowLayoutPlan: Equatable, Sendable {
     /// Deliberately blind to `isEnabled`: that guard lives in the coordinator, and only there.
     static func make(
         layout: WindowLayout, screens: [WindowLayoutScreen], windows: [WindowLayoutWindow],
-        preferredGap: CGFloat
+        preferredGap: CGFloat, fitTightlyToEdges: Bool = false
     ) -> WindowLayoutPlan {
         let gap = layout.usesPreferredGap ? preferredGap : 0
+        let tightEdges = layout.usesPreferredGap && fitTightlyToEdges
         var screensByUUID: [String: WindowLayoutScreen] = [:]
         for screen in screens where screensByUUID[screen.display.uuid.lowercased()] == nil {
             screensByUUID[screen.display.uuid.lowercased()] = screen
@@ -103,7 +104,8 @@ struct WindowLayoutPlan: Equatable, Sendable {
                 continue
             }
             guard
-                let frame = WindowLayoutGeometry.resolve(entry, on: target.screen, gap: gap)
+                let frame = WindowLayoutGeometry.resolve(
+                    entry, on: target.screen, gap: gap, fitTightlyToEdges: tightEdges)
             else {
                 skipped.append(Skipped(entryID: entry.id, reason: .unresolvableGeometry))
                 continue
@@ -128,7 +130,8 @@ struct WindowLayoutPlan: Equatable, Sendable {
                 Placement(
                     entryID: entry.id, bundleID: entry.bundleID, argument: entry.argument,
                     source: source, frame: frame, screenID: target.screen.id, anchor: entry.anchor,
-                    canvas: WindowLayoutGeometry.box(target.screen, gap: gap)))
+                    canvas: WindowLayoutGeometry.box(
+                        target.screen, gap: gap, fitTightlyToEdges: tightEdges)))
         }
         let frontmost = placements.first { $0.entryID == layout.frontmostEntryID }?.entryID
         return WindowLayoutPlan(

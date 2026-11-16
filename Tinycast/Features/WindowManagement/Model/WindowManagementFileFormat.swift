@@ -67,15 +67,30 @@ enum WindowManagementFileFormat {
     // MARK: - Custom sizes
 
     static func json(_ size: CustomWindowSize, shortcut: String?, alias: String?) -> SettingsFileJSON {
+        var members: [SettingsFileJSON.Member] = [
+            .init(key: "id", value: .string(size.id.uuidString.lowercased())),
+            .init(key: "name", value: .string(size.name)),
+            .init(key: "width", value: .string(spelled(size.width))),
+            .init(key: "height", value: .string(spelled(size.height))),
+            .init(key: "position", value: .string(size.anchor.rawValue)),
+            .init(key: "offset", value: offset(x: Double(size.offset.x), y: Double(size.offset.y)))
+        ]
+        if let grid = size.gridCell {
+            members.append(.init(key: "grid", value: json(grid)))
+        }
+        members.append(.init(key: "shortcut", value: text(shortcut)))
+        members.append(.init(key: "alias", value: text(alias)))
+        return .object(members)
+    }
+
+    private static func json(_ grid: CustomWindowSize.GridCell) -> SettingsFileJSON {
         .object([
-            "id": .string(size.id.uuidString.lowercased()),
-            "name": .string(size.name),
-            "width": .string(spelled(size.width)),
-            "height": .string(spelled(size.height)),
-            "position": .string(size.anchor.rawValue),
-            "offset": offset(x: Double(size.offset.x), y: Double(size.offset.y)),
-            "shortcut": text(shortcut),
-            "alias": text(alias)
+            "column": .number(Double(grid.column)),
+            "columns": .number(Double(grid.columns)),
+            "row": .number(Double(grid.row)),
+            "rows": .number(Double(grid.rows)),
+            "gridColumns": .number(Double(grid.gridColumns)),
+            "gridRows": .number(Double(grid.gridRows))
         ])
     }
 
@@ -88,7 +103,10 @@ enum WindowManagementFileFormat {
                 continue
             }
             let label = String(localized: "custom size “\(name)”")
-            guard let width = dimension(item["width"]), let height = dimension(item["height"]) else {
+            let grid = gridCell(item["grid"])
+            let parsedWidth = dimension(item["width"])
+            let parsedHeight = dimension(item["height"])
+            guard grid != nil || (parsedWidth != nil && parsedHeight != nil) else {
                 decoded.problems.append(
                     String(
                         localized: """
@@ -99,13 +117,23 @@ enum WindowManagementFileFormat {
             }
             let id = identity(of: item, kind: "custom-size", name: name, label: label, into: &decoded)
             let offset = point(item["offset"], label: label, into: &decoded)
+            let fallbackWidth = grid.map {
+                CustomWindowSize.Dimension(
+                    Int((Double($0.columns) / Double($0.gridColumns) * 100).rounded()), .percent)
+            } ?? .init(60, .percent)
+            let fallbackHeight = grid.map {
+                CustomWindowSize.Dimension(
+                    Int((Double($0.rows) / Double($0.gridRows) * 100).rounded()), .percent)
+            } ?? .init(60, .percent)
             decoded.records.append(
                 CustomWindowSize(
-                    id: id, name: name, width: width, height: height,
+                    id: id, name: name, width: parsedWidth ?? fallbackWidth,
+                    height: parsedHeight ?? fallbackHeight,
                     anchor: anchor(item["position"], label: label, into: &decoded),
                     offset: CustomWindowSize.Offset(
                         x: Int(exactly: offset.x.rounded()) ?? 0,
-                        y: Int(exactly: offset.y.rounded()) ?? 0)))
+                        y: Int(exactly: offset.y.rounded()) ?? 0),
+                    gridCell: grid))
             texts(of: item, id: id, label: label, into: &decoded)
         }
         return decoded
@@ -372,5 +400,15 @@ enum WindowManagementFileFormat {
             let row = json["row"]?.int, let rows = json["rows"]?.int
         else { return nil }
         return RoomGrid.Cell(column: column, columns: columns, row: row, rows: rows)
+    }
+
+    private static func gridCell(_ json: SettingsFileJSON?) -> CustomWindowSize.GridCell? {
+        guard let json, let column = json["column"]?.int, let columns = json["columns"]?.int,
+            let row = json["row"]?.int, let rows = json["rows"]?.int,
+            let gridColumns = json["gridColumns"]?.int, let gridRows = json["gridRows"]?.int
+        else { return nil }
+        return CustomWindowSize.GridCell(
+            column: column, columns: columns, row: row, rows: rows,
+            gridColumns: gridColumns, gridRows: gridRows)
     }
 }

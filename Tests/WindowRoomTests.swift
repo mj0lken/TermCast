@@ -347,6 +347,18 @@ struct WindowRoomTests {
             "the edges take the full gap")
         expect(gapped[1].minX - gapped[0].maxX == 24, "neighbours sit exactly one gap apart")
 
+        let tight = RoomLayoutEngine.frames(
+            count: 2, kind: .columns, in: area, gap: 24, fitTightlyToEdges: true)
+        expect(
+            tight[0].minX == area.minX && tight[1].maxX == area.maxX,
+            "tight edges sit flush against outer screen bounds")
+        expect(
+            tight[0].minY == area.minY && tight[0].maxY == area.maxY,
+            "tight edges span full visible height")
+        expect(
+            tight[1].minX - tight[0].maxX == 24,
+            "tight edges preserve the full gap between adjacent windows")
+
         let absurd = RoomLayoutEngine.frames(count: 2, kind: .columns, in: area, gap: 10_000)
         expect(absurd.allSatisfy { $0.width > 0 && area.contains($0) }, "an absurd gap is capped, not obeyed")
         let invalid = RoomLayoutEngine.frames(count: 2, kind: .columns, in: area, gap: .nan)

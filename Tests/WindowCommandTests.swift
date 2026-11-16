@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -37,26 +38,28 @@ struct WindowCommandTests {
     static func placement(
         _ command: WindowCommand.ID, on screen: WindowPlacementEngine.Screen = mainScreen,
         window: CGRect = CGRect(x: 100, y: 100, width: 600, height: 400), gap: CGFloat = 0,
-        step: Int = 0, cycle: WindowCycle = .off, restore: CGRect? = nil,
-        lastTile: WindowCommand.ID? = nil,
+        fitTightlyToEdges: Bool = false, step: Int = 0, cycle: WindowCycle = .off,
+        restore: CGRect? = nil, lastTile: WindowCommand.ID? = nil,
         allScreens: [WindowPlacementEngine.Screen]? = nil
     ) -> WindowPlacementEngine.Placement? {
         WindowPlacementEngine.placement(
             for: WindowPlacementEngine.Input(
                 command: command, windowFrame: window, screens: allScreens ?? [screen], gap: gap,
-                step: step, cycle: cycle, restoreFrame: restore, lastTileCommand: lastTile))
+                step: step, cycle: cycle, restoreFrame: restore, lastTileCommand: lastTile,
+                fitTightlyToEdges: fitTightlyToEdges))
     }
 
     static func frame(
         _ command: WindowCommand.ID, on screen: WindowPlacementEngine.Screen = mainScreen,
         window: CGRect = CGRect(x: 100, y: 100, width: 600, height: 400), gap: CGFloat = 0,
-        step: Int = 0, cycle: WindowCycle = .off, restore: CGRect? = nil,
-        lastTile: WindowCommand.ID? = nil,
+        fitTightlyToEdges: Bool = false, step: Int = 0, cycle: WindowCycle = .off,
+        restore: CGRect? = nil, lastTile: WindowCommand.ID? = nil,
         allScreens: [WindowPlacementEngine.Screen]? = nil
     ) -> CGRect? {
         placement(
-            command, on: screen, window: window, gap: gap, step: step, cycle: cycle,
-            restore: restore, lastTile: lastTile, allScreens: allScreens)?.frame
+            command, on: screen, window: window, gap: gap, fitTightlyToEdges: fitTightlyToEdges,
+            step: step, cycle: cycle, restore: restore, lastTile: lastTile, allScreens: allScreens
+        )?.frame
     }
 
     /// Presses `command` like `WindowMover`: each press starts from where the last one landed.
@@ -100,6 +103,7 @@ struct WindowCommandTests {
         testNonDivisible()
         testOffOriginScreens()
         testGaps()
+        testFitTightlyToEdges()
         testSizing()
         testLargerSmaller()
         testNudges()
@@ -108,6 +112,7 @@ struct WindowCommandTests {
         testDisplayCycle()
         testRestore()
         testMemory()
+        testDragSnap()
         testFuzz()
 
         print("\(passes) passed, \(failures) failed")
@@ -118,7 +123,7 @@ struct WindowCommandTests {
 
     static func testCatalog() {
         let commands = WindowCommandCatalog.all
-        expect(commands.count == 39, "catalog contains all 39 agreed commands")
+        expect(commands.count == 45, "catalog contains all 45 agreed commands")
         expect(commands.map(\.id) == WindowCommand.ID.allCases, "catalog covers every ID once")
         expect(
             Set(commands.map { $0.name.lowercased() }).count == commands.count, "names are unique")
@@ -175,17 +180,33 @@ struct WindowCommandTests {
         // Grouping drives the Settings list; every command must land in exactly one group.
         let grouped = WindowCommandCatalog.grouped()
         expect(
-            grouped.flatMap(\.commands).count == commands.count, "grouping loses no command")
+            grouped.flatMap(\.commands).map(\.id) == WindowCommand.ID.allCases,
+            "ID.allCases stays in group order")
         expect(
             grouped.map(\.group) == WindowCommand.Group.allCases,
             "every group is represented, in declaration order")
         expect(grouped.first { $0.group == .halves }?.commands.count == 4, "four halves")
         expect(grouped.first { $0.group == .quarters }?.commands.count == 4, "four quarters")
         expect(grouped.first { $0.group == .fourths }?.commands.count == 2, "two fourths")
-        expect(grouped.first { $0.group == .thirds }?.commands.count == 5, "five thirds")
-        expect(grouped.first { $0.group == .sizing }?.commands.count == 11, "eleven sizing commands")
+        expect(
+            grouped.first { $0.group == .thirds }?.commands.map(\.id) == [
+                .firstThird, .centerThird, .lastThird,
+                .firstTwoThirds, .centerTwoThirds, .lastTwoThirds
+            ],
+            "six horizontal thirds including Center Two Thirds")
+        expect(
+            grouped.first { $0.group == .verticalThirds }?.commands.count == 6,
+            "six vertical thirds")
+        expect(grouped.first { $0.group == .sizing }?.commands.count == 10, "ten sizing commands")
         expect(grouped.first { $0.group == .moving }?.commands.count == 10, "ten moving commands")
         expect(grouped.first { $0.group == .spaces }?.commands.count == 2, "two space commands")
+
+        let missingSymbols = commands.filter {
+            NSImage(systemSymbolName: $0.sfSymbol, accessibilityDescription: nil) == nil
+        }
+        expect(
+            missingSymbols.isEmpty,
+            "every window command sfSymbol resolves: \(missingSymbols.map(\.sfSymbol))")
 
         expect(
             WindowPlacementEngine.isTileCommand(.leftHalf)
@@ -195,6 +216,25 @@ struct WindowCommandTests {
             !WindowPlacementEngine.isTileCommand(.maximize)
                 && !WindowPlacementEngine.isTileCommand(.moveLeft),
             "free-floating commands are not tiles")
+        expect(
+            WindowPlacementEngine.tilePreviewRect(for: .centerThird)
+                == CGRect(x: 1.0 / 3, y: 0, width: 1.0 / 3, height: 1),
+            "Center Third preview spans full height at the middle third")
+        expect(
+            WindowPlacementEngine.tilePreviewRect(for: .centerTwoThirds)
+                == CGRect(x: 1.0 / 6, y: 0, width: 1 - 1.0 / 3, height: 1),
+            "Center Two Thirds preview spans full height at centered 2/3 width")
+        expect(
+            WindowPlacementEngine.tilePreviewRect(for: .middleThird)
+                == CGRect(x: 0, y: 1.0 / 3, width: 1, height: 1.0 / 3),
+            "Middle Third preview spans full width at the middle third")
+        expect(
+            WindowPlacementEngine.tilePreviewRect(for: .middleTwoThirds)
+                == CGRect(x: 0, y: 1.0 / 6, width: 1, height: 1 - 1.0 / 3),
+            "Middle Two Thirds preview spans full width at centered 2/3 height")
+        expect(
+            WindowPlacementEngine.tilePreviewRect(for: .center) == nil,
+            "Center is free-floating rather than a fractional tile")
 
         // Fullscreen has no geometry: the mover branches before asking for a placement.
         expect(frame(.toggleFullscreen) == nil, "Toggle Fullscreen produces no placement")
@@ -279,6 +319,26 @@ struct WindowCommandTests {
         expect(
             frame(.firstTwoThirds)!.union(frame(.lastThird)!) == mainScreen.visibleFrame,
             "first two thirds and last third partition the screen")
+
+        expectRect(frame(.topThird)!, CGRect(x: 0, y: 0, width: 1440, height: 300), "top third")
+        expectRect(
+            frame(.middleThird)!, CGRect(x: 0, y: 300, width: 1440, height: 300), "middle third")
+        expectRect(
+            frame(.bottomThird)!, CGRect(x: 0, y: 600, width: 1440, height: 300), "bottom third")
+        expectRect(
+            frame(.topTwoThirds)!, CGRect(x: 0, y: 0, width: 1440, height: 600), "top two thirds")
+        expectRect(
+            frame(.middleTwoThirds)!, CGRect(x: 0, y: 150, width: 1440, height: 600),
+            "middle two thirds")
+        expectRect(
+            frame(.bottomTwoThirds)!, CGRect(x: 0, y: 300, width: 1440, height: 600),
+            "bottom two thirds")
+        expect(
+            frame(.topThird)!.union(frame(.bottomTwoThirds)!) == mainScreen.visibleFrame,
+            "top third and bottom two thirds partition the screen vertically")
+        expect(
+            frame(.topTwoThirds)!.union(frame(.bottomThird)!) == mainScreen.visibleFrame,
+            "top two thirds and bottom third partition the screen vertically")
 
         // Size cycling: the five halves only, ½ → ⅓ → ⅔, wrapping.
         expectRect(
@@ -1328,5 +1388,208 @@ struct WindowCommandTests {
         expect(checked > 1000, "the fuzz sweep exercised a meaningful number of placements")
         expect(problems.isEmpty, "fuzz sweep found no violations")
         for problem in problems.prefix(10) { print("      \(problem)") }
+    }
+
+    // MARK: - Fit tightly to screen edges
+
+    static func testFitTightlyToEdges() {
+        let gap: CGFloat = 12
+
+        let left = frame(.leftHalf, gap: gap, fitTightlyToEdges: true)!
+        let right = frame(.rightHalf, gap: gap, fitTightlyToEdges: true)!
+        expectRect(left, CGRect(x: 0, y: 0, width: 714, height: 900), "tight left half touches outer edges")
+        expectRect(right, CGRect(x: 726, y: 0, width: 714, height: 900), "tight right half touches outer edges")
+        expect(right.minX - left.maxX == gap, "tight halves keep one inner gap")
+
+        let top = frame(.topHalf, gap: gap, fitTightlyToEdges: true)!
+        let bottom = frame(.bottomHalf, gap: gap, fitTightlyToEdges: true)!
+        expectRect(top, CGRect(x: 0, y: 0, width: 1440, height: 444), "tight top half touches outer edges")
+        expectRect(bottom, CGRect(x: 0, y: 456, width: 1440, height: 444), "tight bottom half touches outer edges")
+        expect(bottom.minY - top.maxY == gap, "tight vertical halves keep one inner gap")
+
+        let tl = frame(.topLeftQuarter, gap: gap, fitTightlyToEdges: true)!
+        let br = frame(.bottomRightQuarter, gap: gap, fitTightlyToEdges: true)!
+        expectRect(tl, CGRect(x: 0, y: 0, width: 714, height: 444), "tight top-left quarter flush on outer edges")
+        expectRect(br, CGRect(x: 726, y: 456, width: 714, height: 444), "tight bottom-right quarter flush on outer edges")
+        expect(br.minX - tl.maxX == gap && br.minY - tl.maxY == gap, "tight quarters keep inner gaps on both axes")
+
+        let first = frame(.firstThird, gap: gap, fitTightlyToEdges: true)!
+        let center = frame(.centerThird, gap: gap, fitTightlyToEdges: true)!
+        let last = frame(.lastThird, gap: gap, fitTightlyToEdges: true)!
+        expect(first.minX == 0 && last.maxX == 1440, "tight outer thirds sit flush against screen edges")
+        expect(first.minY == 0 && first.maxY == 900, "tight thirds span full visible height")
+        expect(center.minX - first.maxX == gap && last.minX - center.maxX == gap, "tight thirds keep inner gaps")
+
+        expectRect(
+            frame(.maximize, gap: gap, fitTightlyToEdges: true)!,
+            CGRect(x: 0, y: 0, width: 1440, height: 900),
+            "tight maximize fills visibleFrame without outer inset")
+        expectRect(
+            frame(.moveToLeftEdge, window: CGRect(x: 200, y: 100, width: 500, height: 400), gap: gap, fitTightlyToEdges: true)!,
+            CGRect(x: 0, y: 100, width: 500, height: 400),
+            "tight move to left edge sits flush at 0")
+        expectRect(
+            frame(.moveToRightEdge, window: CGRect(x: 200, y: 100, width: 500, height: 400), gap: gap, fitTightlyToEdges: true)!,
+            CGRect(x: 940, y: 100, width: 500, height: 400),
+            "tight move to right edge sits flush at visibleFrame.maxX")
+
+        let secondary = WindowPlacementEngine.Screen(
+            id: 2, frame: CGRect(x: 1440, y: 0, width: 2000, height: 1000),
+            visibleFrame: CGRect(x: 1440, y: 0, width: 2000, height: 1000))
+        expectRect(
+            frame(
+                .nextDisplay, window: CGRect(x: 0, y: 0, width: 714, height: 900), gap: gap,
+                fitTightlyToEdges: true, lastTile: .leftHalf, allScreens: [mainScreen, secondary])!,
+            CGRect(x: 1440, y: 0, width: 994, height: 1000),
+            "moving a tight tile to the next display preserves tight outer edges")
+    }
+
+    // MARK: - Drag to snap and unsnap
+
+    static func testDragSnap() {
+        let screens = [mainScreen]
+        func snap(
+            _ x: CGFloat, _ y: CGFloat, options: WindowDragSnap.Options = .init()
+        ) -> WindowCommand.ID? {
+            WindowDragSnap.target(
+                at: CGPoint(x: x, y: y), in: screens, gap: 0, fitTightlyToEdges: false,
+                options: options)?.command
+        }
+
+        expect(snap(6, 6) == .topLeftQuarter, "top-left corner snaps to top-left quarter")
+        expect(snap(1436, 6) == .topRightQuarter, "top-right corner snaps to top-right quarter")
+        expect(snap(6, 896) == .bottomLeftQuarter, "bottom-left corner snaps to bottom-left quarter")
+        expect(snap(1436, 896) == .bottomRightQuarter, "bottom-right corner snaps to bottom-right quarter")
+        expect(snap(720, 4) == .maximize, "top edge snaps to maximize")
+        expect(snap(4, 220) == .topHalf, "upper-left edge snaps to top half")
+        expect(snap(1436, 220) == .topHalf, "upper-right edge snaps to top half")
+        expect(snap(4, 450) == .leftHalf, "middle-left edge snaps to left half")
+        expect(snap(1436, 450) == .rightHalf, "middle-right edge snaps to right half")
+        expect(snap(4, 680) == .bottomHalf, "lower-left edge snaps to bottom half")
+        expect(snap(1436, 680) == .bottomHalf, "lower-right edge snaps to bottom half")
+        expect(snap(350, 896) == .firstThird, "bottom-left third snaps to first third")
+        expect(snap(720, 896) == .centerThird, "bottom-center third snaps to center third")
+        expect(snap(1100, 896) == .lastThird, "bottom-right third snaps to last third")
+        expect(snap(720, 450) == nil, "display interior triggers no snap")
+        expect(snap(18, 450) == nil, "18pt from edge misses default 14pt edge width")
+        expect(
+            snap(18, 450, options: .init(edgeWidth: 24)) == .leftHalf,
+            "widened edgeWidth expands snap trigger distance")
+
+        let disabledTop = WindowDragSnap.Options(disabledZones: [.top, .leftUpper])
+        expect(snap(720, 4, options: disabledTop) == nil, "disabled top zone triggers no snap")
+        expect(snap(4, 220, options: disabledTop) == nil, "disabled upper-left zone triggers no snap")
+        expect(
+            snap(1436, 220, options: disabledTop) == .topHalf,
+            "upper-right zone stays active when only upper-left is disabled")
+
+        let allPills = WindowDragSnap.activationPills(in: screens)
+        expect(allPills.count == WindowActivationZone.allCases.count, "all 14 activation pills render")
+        let filteredPills = WindowDragSnap.activationPills(in: screens, options: disabledTop)
+        expect(
+            filteredPills.count == WindowActivationZone.allCases.count - 2,
+            "disabled zones omit their activation pills")
+
+        let portrait = WindowPlacementEngine.Screen(
+            id: 9, frame: CGRect(x: 0, y: 0, width: 900, height: 1440),
+            visibleFrame: CGRect(x: 0, y: 0, width: 900, height: 1440))
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 4, y: 320), in: [portrait], gap: 0, fitTightlyToEdges: false)?.command
+                == .topThird,
+            "portrait upper-side zone adapts to top third")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 4, y: 720), in: [portrait], gap: 0, fitTightlyToEdges: false)?.command
+                == .middleThird,
+            "portrait middle-side zone adapts to middle third")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 4, y: 1120), in: [portrait], gap: 0, fitTightlyToEdges: false)?.command
+                == .bottomThird,
+            "portrait lower-side zone adapts to bottom third")
+
+        let tightTarget = WindowDragSnap.target(
+            at: CGPoint(x: 4, y: 450), in: screens, gap: 12, fitTightlyToEdges: true)
+        expectRect(
+            tightTarget!.placement.frame, CGRect(x: 0, y: 0, width: 714, height: 900),
+            "drag snap placement respects gap and fitTightlyToEdges")
+
+        let docked = WindowPlacementEngine.Screen(
+            id: 1, frame: CGRect(x: 0, y: 0, width: 1440, height: 900),
+            visibleFrame: CGRect(x: 0, y: 25, width: 1440, height: 815))
+        expect(
+            WindowDragSnap.zone(at: CGPoint(x: 720, y: 30), on: docked, among: [docked])?.command
+                == .maximize,
+            "menu-bar bottom triggers top maximize zone")
+        expect(
+            WindowDragSnap.zone(at: CGPoint(x: 720, y: 835), on: docked, among: [docked])?.command
+                == .centerThird,
+            "dock top triggers bottom third zone")
+
+        let rightDisplay = WindowPlacementEngine.Screen(
+            id: 2, frame: CGRect(x: 1440, y: 0, width: 2560, height: 1440),
+            visibleFrame: CGRect(x: 1440, y: 25, width: 2560, height: 1415))
+        let pair = [mainScreen, rightDisplay]
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 1434, y: 450), in: pair, gap: 0, fitTightlyToEdges: false) == nil,
+            "multi-monitor seam uses narrow margin so crossing displays does not trap at 6pt")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 1446, y: 450), in: pair, gap: 0, fitTightlyToEdges: false) == nil,
+            "multi-monitor seam right side ignores 6pt margin")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 1437, y: 450), in: pair, gap: 0, fitTightlyToEdges: false)?.command
+                == .rightHalf,
+            "parking directly on left side of seam triggers right half")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 1443, y: 450), in: pair, gap: 0, fitTightlyToEdges: false)?.command
+                == .leftHalf,
+            "parking directly on right side of seam triggers left half")
+        expect(
+            WindowDragSnap.target(
+                at: CGPoint(x: 3994, y: 650), in: pair, gap: 0, fitTightlyToEdges: false)?.command
+                == .rightHalf,
+            "outermost display edge keeps full 8pt margin")
+
+        let tiled = CGRect(x: 0, y: 25, width: 1440, height: 875)
+        let restoreSize = CGSize(width: 800, height: 500)
+        let movedWindow = CGRect(x: 0, y: 55, width: 1440, height: 875)
+        let unsnapped = WindowDragSnap.unsnapFrame(
+            initialWindowFrame: tiled, initialCursor: CGPoint(x: 720, y: 40),
+            currentWindowFrame: movedWindow, currentCursor: CGPoint(x: 720, y: 70),
+            restoreSize: restoreSize, in: [docked])
+        expectRect(
+            unsnapped!, CGRect(x: 320, y: 55, width: 800, height: 500),
+            "dragging a maximized window restores its original size centred proportionally under cursor")
+
+        let resized = CGRect(x: 0, y: 45, width: 1420, height: 855)
+        expect(
+            WindowDragSnap.unsnapFrame(
+                initialWindowFrame: tiled, initialCursor: CGPoint(x: 1438, y: 898),
+                currentWindowFrame: resized, currentCursor: CGPoint(x: 1418, y: 878),
+                restoreSize: restoreSize, in: [docked]) == nil,
+            "resizing a tiled window edge does not trigger unsnap")
+        expect(
+            WindowDragSnap.unsnapFrame(
+                initialWindowFrame: tiled, initialCursor: CGPoint(x: 720, y: 40),
+                currentWindowFrame: CGRect(x: 2, y: 27, width: 1440, height: 875),
+                currentCursor: CGPoint(x: 722, y: 42), restoreSize: restoreSize, in: [docked]) == nil,
+            "micro-movements below threshold do not unsnap")
+        expect(
+            WindowDragSnap.unsnapFrame(
+                initialWindowFrame: tiled, initialCursor: CGPoint(x: 720, y: 40),
+                currentWindowFrame: movedWindow, currentCursor: CGPoint(x: 720, y: 70),
+                restoreSize: tiled.size, in: [docked]) == nil,
+            "matching restore size needs no unsnap")
+
+        expect(
+            WindowTrafficLightButton.sanitizedHoverDelay(10) == 50
+                && WindowTrafficLightButton.sanitizedHoverDelay(150) == 150
+                && WindowTrafficLightButton.sanitizedHoverDelay(5000) == 1000,
+            "traffic-light hover delay clamps into 50...1000 ms")
     }
 }

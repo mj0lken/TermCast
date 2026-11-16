@@ -8,6 +8,13 @@ struct CustomWindowSizeEditRequest: Identifiable {
 }
 
 struct CustomWindowSizeEditorPanel: View {
+    private enum Mode: Int, CaseIterable, Identifiable {
+        case grid
+        case dimensions
+
+        var id: Int { rawValue }
+    }
+
     private let isNew: Bool
     /// What a unit switch converts against; a run measures the window's own display.
     private let reference: CGSize
@@ -15,12 +22,20 @@ struct CustomWindowSizeEditorPanel: View {
     @Environment(\.settingsEditorDismiss) private var dismiss
     @Environment(CustomWindowSizeCoordinator.self) private var coordinator
     @State private var size: CustomWindowSize
+    @State private var mode: Mode
+    @State private var draftGrid: CustomWindowSize.GridCell
     @State private var errorMessage: String?
 
     init(request: CustomWindowSizeEditRequest) {
         isNew = request.size == nil
         reference = NSScreen.main?.visibleFrame.size ?? .zero
-        _size = State(initialValue: request.size ?? CustomWindowSize(name: ""))
+        let initial = request.size ?? CustomWindowSize(name: "")
+        _size = State(initialValue: initial)
+        _mode = State(initialValue: initial.gridCell != nil ? .grid : .dimensions)
+        _draftGrid = State(
+            initialValue: initial.gridCell
+                ?? CustomWindowSize.GridCell(
+                    column: 0, columns: 6, row: 0, rows: 8, gridColumns: 12, gridRows: 8))
     }
 
     var body: some View {
@@ -34,28 +49,44 @@ struct CustomWindowSizeEditorPanel: View {
                     .settingsEditorTextField()
             }
 
-            field("Size") {
-                HStack(spacing: Theme.Spacing.lg) {
-                    dimensionField(
-                        label: String(localized: "W"), name: String(localized: "Width"),
-                        dimension: $size.width,
-                        available: reference.width)
-                    dimensionField(
-                        label: String(localized: "H"), name: String(localized: "Height"),
-                        dimension: $size.height,
-                        available: reference.height)
-                }
+            Picker("Sizing mode", selection: $mode) {
+                Text("Visual Grid").tag(Mode.grid)
+                Text("Dimensions").tag(Mode.dimensions)
             }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .controlSize(.regular)
 
-            field("Offset") {
-                HStack(spacing: Theme.Spacing.lg) {
-                    offsetField(label: "X", name: String(localized: "Horizontal offset"), value: \.x)
-                    offsetField(label: "Y", name: String(localized: "Vertical offset"), value: \.y)
+            if mode == .grid {
+                field("Intended window size and position") {
+                    CustomWindowSizeGridPicker(selection: $draftGrid)
                 }
-            }
+            } else {
+                field("Size") {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        dimensionField(
+                            label: String(localized: "W"), name: String(localized: "Width"),
+                            dimension: $size.width,
+                            available: reference.width)
+                        dimensionField(
+                            label: String(localized: "H"), name: String(localized: "Height"),
+                            dimension: $size.height,
+                            available: reference.height)
+                    }
+                }
 
-            field("Position") {
-                WindowLayoutPositionGrid(selection: size.anchor) { size.anchor = $0 }
+                field("Offset") {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        offsetField(
+                            label: "X", name: String(localized: "Horizontal offset"), value: \.x)
+                        offsetField(
+                            label: "Y", name: String(localized: "Vertical offset"), value: \.y)
+                    }
+                }
+
+                field("Position") {
+                    WindowLayoutPositionGrid(selection: size.anchor) { size.anchor = $0 }
+                }
             }
 
             if let errorMessage {
@@ -135,8 +166,24 @@ struct CustomWindowSizeEditorPanel: View {
 
     private func save() {
         guard canSave else { return }
+        var edited = size
+        if mode == .grid {
+            edited.gridCell = draftGrid
+            edited.width = CustomWindowSize.Dimension(
+                Int((Double(draftGrid.columns) / Double(draftGrid.gridColumns) * 100).rounded()),
+                .percent)
+            edited.height = CustomWindowSize.Dimension(
+                Int((Double(draftGrid.rows) / Double(draftGrid.gridRows) * 100).rounded()),
+                .percent)
+            edited.anchor = WindowLayoutAnchor.named(
+                horizontal: draftGrid.placementAnchor.horizontal,
+                vertical: draftGrid.placementAnchor.vertical)
+            edited.offset = .zero
+        } else {
+            edited.gridCell = nil
+        }
         do {
-            try coordinator.saveCustomWindowSize(size)
+            try coordinator.saveCustomWindowSize(edited)
             dismiss()
         } catch {
             errorMessage = error.errorDescription

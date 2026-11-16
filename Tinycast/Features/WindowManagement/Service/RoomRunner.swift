@@ -26,6 +26,7 @@ enum RoomRunner {
 
     struct Context {
         let gap: CGFloat
+        let fitTightlyToEdges: Bool
         /// Where the room lands; its first connected display when that one is gone.
         let displayUUID: String?
         let claimed: Set<UInt32>
@@ -124,7 +125,8 @@ enum RoomRunner {
         guard let screen = snapshot.screen(uuid: context.displayUUID) else { return nil }
         return RoomPlan.make(
             room, windows: snapshot.windows, on: screen, gap: context.gap,
-            minimums: context.minimums.sizes, claimed: context.claimed)
+            minimums: context.minimums.sizes, claimed: context.claimed,
+            fitTightlyToEdges: context.fitTightlyToEdges)
     }
 
     private static func appsInOrder(of room: Room) -> [String] {

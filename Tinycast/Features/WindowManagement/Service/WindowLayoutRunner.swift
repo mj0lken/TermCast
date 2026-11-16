@@ -24,7 +24,9 @@ enum WindowLayoutRunner {
     }
 
     /// The one entry point. `gap` is the preferred gap; the layout decides whether to use it.
-    static func run(_ layout: WindowLayout, gap: CGFloat) async -> Outcome {
+    static func run(
+        _ layout: WindowLayout, gap: CGFloat, fitTightlyToEdges: Bool = false
+    ) async -> Outcome {
         // An explicit user gesture, so prompting for the grant is appropriate here.
         guard Permissions.ensureAccessibility() else {
             return Outcome(isBlockedOnPermission: true)
@@ -33,7 +35,7 @@ enum WindowLayoutRunner {
         let snapshot = WindowInventory.snapshot()
         let plan = WindowLayoutPlan.make(
             layout: layout, screens: snapshot.screens, windows: snapshot.windows,
-            preferredGap: gap)
+            preferredGap: gap, fitTightlyToEdges: fitTightlyToEdges)
         var outcome = Outcome(skipped: plan.skipped)
         guard !plan.placements.isEmpty else { return outcome }
 

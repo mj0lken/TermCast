@@ -18,7 +18,8 @@ enum RoomArrangement {
     static let tolerance: CGFloat = 40
 
     static func read(
-        _ frames: [CGRect], in visible: CGRect, gap: CGFloat, minimums: [CGSize] = []
+        _ frames: [CGRect], in visible: CGRect, gap: CGFloat, minimums: [CGSize] = [],
+        fitTightlyToEdges: Bool = false
     ) -> Reading {
         let count = frames.count
         guard count > 1 else {
@@ -27,7 +28,8 @@ enum RoomArrangement {
         var best = Reading(kind: .saved, order: Array(0..<count), distance: .infinity)
         for kind in [RoomLayoutKind.focus, .stack, .columns, .grid] {
             let spots = RoomLayoutEngine.frames(
-                count: count, kind: kind, in: visible, gap: gap, minimums: minimums)
+                count: count, kind: kind, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
             var used = Set<Int>()
             var order: [Int] = []
             var worst: CGFloat = 0
@@ -45,7 +47,9 @@ enum RoomArrangement {
             if worst < best.distance { best = Reading(kind: kind, order: order, distance: worst) }
         }
         if best.distance <= tolerance { return best }
-        if let cells = RoomGrid.cells(for: frames, in: visible, gap: gap) {
+        if let cells = RoomGrid.cells(
+            for: frames, in: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
+        {
             return Reading(
                 kind: .custom, order: Array(0..<count), distance: best.distance, cells: cells)
         }
@@ -56,10 +60,12 @@ enum RoomArrangement {
     static func learn(
         _ room: Room, from windows: [RoomLiveWindow], keeping kept: [RoomWindow] = [],
         on screen: WindowLayoutScreen, spansDisplays: Bool, gap: CGFloat, minimums: [CGSize],
-        keepsOrder: Bool
+        keepsOrder: Bool, fitTightlyToEdges: Bool = false
     ) -> (room: Room, reading: Reading) {
         let visible = screen.screen.visibleFrame
-        var reading = read(windows.map(\.frame), in: visible, gap: gap, minimums: minimums)
+        var reading = read(
+            windows.map(\.frame), in: visible, gap: gap, minimums: minimums,
+            fitTightlyToEdges: fitTightlyToEdges)
         // Windows from several displays have no arrangement to read; the room lands on one.
         if spansDisplays || (keepsOrder && reading.kind == .saved) {
             reading = Reading(

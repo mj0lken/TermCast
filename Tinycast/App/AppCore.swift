@@ -32,6 +32,11 @@ final class AppCore {
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     let windowMover = WindowMover()
+    @ObservationIgnored private(set) lazy var windowDragMonitor = WindowDragMonitor(
+        settings: settings, windowMover: windowMover)
+    @ObservationIgnored private(set) lazy var windowGreenButtonMonitor = WindowGreenButtonMonitor(
+        settings: settings, windowMover: windowMover, customSizes: customWindowSizes,
+        hotKeys: hotKeys)
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
     let settings: AppSettings
@@ -365,6 +370,8 @@ final class AppCore {
             hyperKey.healthTicker = healthTicker
             dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
+            windowDragMonitor.healthTicker = healthTicker
+            windowGreenButtonMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
 
             hotKeys.onTogglePalette = { [weak self] in self?.paletteCoordinator.togglePalette() }
@@ -439,6 +446,8 @@ final class AppCore {
             hyperKey.start()
             dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             dictationKey.start()
+            windowDragMonitor.start()
+            windowGreenButtonMonitor.start()
 
             snippetsStore.onSnapshot = { [weak self] snapshot in
                 guard let self else { return }
@@ -615,6 +624,8 @@ final class AppCore {
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
         dictationKey.prepareForTermination()
+        windowDragMonitor.prepareForTermination()
+        windowGreenButtonMonitor.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         roomCoordinator.prepareForTermination()
         terminalCoordinator.prepareForTermination()
@@ -707,6 +718,23 @@ final class AppCore {
                 _ = $0.windowManagementEnabled
                 _ = $0.windowRoomsShowInLauncher
             }, reproject: { $0.roomCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.windowManagementEnabled
+                _ = $0.windowSnapByDragging
+                _ = $0.windowRestoreOnDrag
+                _ = $0.windowGreenButtonMenu
+            },
+            reproject: {
+                if $0.settings.windowManagementEnabled,
+                    $0.settings.windowSnapByDragging || $0.settings.windowRestoreOnDrag
+                        || $0.settings.windowGreenButtonMenu
+                {
+                    _ = Permissions.ensureAccessibility()
+                }
+                $0.windowDragMonitor.sync()
+                $0.windowGreenButtonMonitor.sync()
+            })
         track(
             {
                 _ = $0.customCommandsEnabled

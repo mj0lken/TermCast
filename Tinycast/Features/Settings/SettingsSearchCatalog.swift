@@ -467,11 +467,45 @@ enum SettingsSearchCatalog {
             .windowManagementWindowManagement, "Enable window management",
             keywords: ["tile", "accessibility"]),
         .init(
+            .windowManagementMouse, "Snap windows by dragging",
+            keywords: ["mouse", "drag", "edges", "corners", "magnet", "preview", "tile"]),
+        .init(
+            .windowManagementMouse, "Restore windows to original size",
+            keywords: ["mouse", "drag", "unsnap", "restore", "resize", "original"]),
+        .init(
+            .windowManagementMouse, "Highlight activation areas when dragging",
+            keywords: ["mouse", "drag", "activation", "zones", "edges", "pills", "magnet"]),
+        .init(
+            .windowManagementMouse, "Screen edge width",
+            keywords: ["mouse", "drag", "activation", "margin", "sensitivity", "edges", "magnet"]),
+        .init(
+            .windowManagementMouse, "Activation area scale",
+            keywords: ["mouse", "drag", "activation", "corners", "zones", "scale", "magnet"]),
+        .init(
+            .windowManagementMouse, "Activation areas",
+            keywords: [
+                "mouse", "drag", "zones", "corners", "thirds", "quarters", "halves", "magnet"
+            ]),
+        .init(
+            .windowManagementGreenButton, "Show green button menu",
+            keywords: [
+                "zoom", "traffic light", "fullscreen button", "hover", "dropdown", "magnet"
+            ]),
+        .init(
+            .windowManagementGreenButton, "Hover button",
+            keywords: ["green", "yellow", "zoom", "minimize", "traffic light", "magnet"]),
+        .init(
+            .windowManagementGreenButton, "Green button hover delay",
+            keywords: ["zoom", "traffic light", "hover", "delay", "milliseconds", "magnet"]),
+        .init(
             .windowManagementOptions, "Cycling",
             keywords: ["repeat", "thirds", "halves", "displays", "monitor", "screens"]),
         .init(
             .windowManagementOptions, "Gap between windows",
             keywords: ["padding", "spacing", "margin", "points"]),
+        .init(
+            .windowManagementOptions, "Fit tightly to screen edges",
+            keywords: ["gap", "outer", "margins", "padding", "edges", "inner", "magnet"]),
         .init(
             .windowManagementOptions, "Wrap around displays",
             keywords: ["next display", "previous display", "monitor", "screens", "loop"]),

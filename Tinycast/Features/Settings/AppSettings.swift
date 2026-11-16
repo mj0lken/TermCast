@@ -644,9 +644,77 @@ final class AppSettings {
         }
     }
 
+    var windowSnapByDragging: Bool {
+        didSet {
+            defaults.set(windowSnapByDragging, forKey: Key.windowSnapByDragging.rawValue)
+        }
+    }
+
+    var windowRestoreOnDrag: Bool {
+        didSet {
+            defaults.set(windowRestoreOnDrag, forKey: Key.windowRestoreOnDrag.rawValue)
+        }
+    }
+
+    var windowHighlightActivationAreas: Bool {
+        didSet {
+            defaults.set(
+                windowHighlightActivationAreas,
+                forKey: Key.windowHighlightActivationAreas.rawValue)
+        }
+    }
+
+    var windowActivationEdgeWidth: Int {
+        didSet {
+            defaults.set(
+                windowActivationEdgeWidth, forKey: Key.windowActivationEdgeWidth.rawValue)
+        }
+    }
+
+    var windowActivationAreaScale: Int {
+        didSet {
+            defaults.set(
+                windowActivationAreaScale, forKey: Key.windowActivationAreaScale.rawValue)
+        }
+    }
+
+    var windowDisabledActivationAreas: [String] {
+        didSet {
+            defaults.set(
+                windowDisabledActivationAreas,
+                forKey: Key.windowDisabledActivationAreas.rawValue)
+        }
+    }
+
+    var windowGreenButtonMenu: Bool {
+        didSet {
+            defaults.set(windowGreenButtonMenu, forKey: Key.windowGreenButtonMenu.rawValue)
+        }
+    }
+
+    var windowGreenButtonTarget: WindowTrafficLightButton {
+        didSet {
+            defaults.set(
+                windowGreenButtonTarget.rawValue, forKey: Key.windowGreenButtonTarget.rawValue)
+        }
+    }
+
+    var windowGreenButtonHoverDelay: Int {
+        didSet {
+            defaults.set(
+                windowGreenButtonHoverDelay, forKey: Key.windowGreenButtonHoverDelay.rawValue)
+        }
+    }
+
     /// Points between tiled windows and the screen edge; `WindowPlacementEngine` caps it.
     var windowGap: Int {
         didSet { defaults.set(windowGap, forKey: Key.windowGap.rawValue) }
+    }
+
+    var windowFitTightlyToEdges: Bool {
+        didSet {
+            defaults.set(windowFitTightlyToEdges, forKey: Key.windowFitTightlyToEdges.rawValue)
+        }
     }
 
     /// Its own flag: hiding 34 command rows must not also hide the layouts you wrote.
@@ -959,8 +1027,39 @@ final class AppSettings {
         windowManagementShowInLauncher =
             defaults.object(forKey: Key.windowManagementShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.windowManagementShowInLauncher.rawValue)
+        windowSnapByDragging =
+            defaults.object(forKey: Key.windowSnapByDragging.rawValue) == nil
+            || defaults.bool(forKey: Key.windowSnapByDragging.rawValue)
+        windowRestoreOnDrag =
+            defaults.object(forKey: Key.windowRestoreOnDrag.rawValue) == nil
+            || defaults.bool(forKey: Key.windowRestoreOnDrag.rawValue)
+        windowHighlightActivationAreas =
+            defaults.object(forKey: Key.windowHighlightActivationAreas.rawValue) == nil
+            || defaults.bool(forKey: Key.windowHighlightActivationAreas.rawValue)
+        windowActivationEdgeWidth =
+            defaults.object(forKey: Key.windowActivationEdgeWidth.rawValue)
+            .flatMap { $0 as? Int }
+            .map(WindowDragSnap.sanitizedEdgeWidth) ?? WindowDragSnap.defaultEdgeWidth
+        windowActivationAreaScale =
+            defaults.object(forKey: Key.windowActivationAreaScale.rawValue)
+            .flatMap { $0 as? Int }
+            .map(WindowDragSnap.sanitizedAreaScale) ?? WindowDragSnap.defaultAreaScale
+        windowDisabledActivationAreas =
+            (defaults.stringArray(forKey: Key.windowDisabledActivationAreas.rawValue) ?? [])
+            .compactMap(WindowActivationZone.init(rawValue:))
+            .map(\.rawValue)
+        windowGreenButtonMenu = defaults.bool(forKey: Key.windowGreenButtonMenu.rawValue)
+        windowGreenButtonTarget =
+            defaults.string(forKey: Key.windowGreenButtonTarget.rawValue)
+            .flatMap(WindowTrafficLightButton.init(rawValue:)) ?? .green
+        windowGreenButtonHoverDelay =
+            defaults.object(forKey: Key.windowGreenButtonHoverDelay.rawValue)
+            .flatMap { $0 as? Int }
+            .map(WindowTrafficLightButton.sanitizedHoverDelay)
+            ?? WindowTrafficLightButton.defaultHoverDelay
         // Unset reads as 0, which is the intended default anyway — no gap.
         windowGap = defaults.integer(forKey: Key.windowGap.rawValue)
+        windowFitTightlyToEdges = defaults.bool(forKey: Key.windowFitTightlyToEdges.rawValue)
         windowCycle =
             defaults.string(forKey: Key.windowCycle.rawValue).flatMap(WindowCycle.init) ?? .off
         windowWrapsDisplays =

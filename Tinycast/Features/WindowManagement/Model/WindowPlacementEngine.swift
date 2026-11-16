@@ -60,12 +60,14 @@ enum WindowPlacementEngine {
         var wrapsDisplays: Bool
         /// Off, a display move keeps the window's size in points.
         var keepsProportions: Bool
+        var fitTightlyToEdges: Bool
 
         init(
             command: WindowCommand.ID, windowFrame: CGRect, screens: [Screen], gap: CGFloat = 0,
             step: Int = 0, cycle: WindowCycle = .off, originScreenID: Int? = nil,
             restoreFrame: CGRect? = nil, lastTileCommand: WindowCommand.ID? = nil,
-            wrapsDisplays: Bool = true, keepsProportions: Bool = true
+            wrapsDisplays: Bool = true, keepsProportions: Bool = true,
+            fitTightlyToEdges: Bool = false
         ) {
             self.command = command
             self.windowFrame = windowFrame
@@ -78,6 +80,7 @@ enum WindowPlacementEngine {
             self.lastTileCommand = lastTileCommand
             self.wrapsDisplays = wrapsDisplays
             self.keepsProportions = keepsProportions
+            self.fitTightlyToEdges = fitTightlyToEdges
         }
     }
 
@@ -130,13 +133,17 @@ enum WindowPlacementEngine {
             return halfPlacement(input, half: half, host: host, step: step)
         }
         if input.command == .centerHalf {
-            return tilePlacement(centeredFractions(sizeCycle[step]), on: host, gap: gap)
+            return tilePlacement(
+                centeredFractions(sizeCycle[step]), on: host, gap: gap,
+                fitTightlyToEdges: input.fitTightlyToEdges)
         }
         if let fractions = tileFractions(input.command) {
-            return tilePlacement(fractions, on: host, gap: gap)
+            return tilePlacement(
+                fractions, on: host, gap: gap, fitTightlyToEdges: input.fitTightlyToEdges)
         }
 
-        let canvas = canvas(host.visibleFrame, gap: gap)
+        let canvas = canvas(
+            host.visibleFrame, gap: gap, fitTightlyToEdges: input.fitTightlyToEdges)
         guard canvas.width > 0, canvas.height > 0 else { return nil }
         let current = input.windowFrame
 
@@ -241,8 +248,11 @@ enum WindowPlacementEngine {
     private static func moved(_ input: Input, from: Screen, to: Screen) -> CGRect {
         let frame = input.windowFrame
         let targetGap = sanitizedGap(input.gap, in: to.visibleFrame)
-        let source = canvas(from.visibleFrame, gap: sanitizedGap(input.gap, in: from.visibleFrame))
-        let target = canvas(to.visibleFrame, gap: targetGap)
+        let source = canvas(
+            from.visibleFrame, gap: sanitizedGap(input.gap, in: from.visibleFrame),
+            fitTightlyToEdges: input.fitTightlyToEdges)
+        let target = canvas(
+            to.visibleFrame, gap: targetGap, fitTightlyToEdges: input.fitTightlyToEdges)
         guard input.keepsProportions else {
             let kept = CGRect(
                 x: target.minX + frame.minX - source.minX,
@@ -255,7 +265,7 @@ enum WindowPlacementEngine {
         if let lastTile = input.lastTileCommand, let fractions = tileFractions(lastTile) {
             return tile(
                 to.visibleFrame, x0: fractions.x0, x1: fractions.x1, y0: fractions.y0,
-                y1: fractions.y1, gap: targetGap)
+                y1: fractions.y1, gap: targetGap, fitTightlyToEdges: input.fitTightlyToEdges)
         }
         guard source.width > 0, source.height > 0 else { return frame }
         let relativeX = (frame.minX - source.minX) / source.width
@@ -355,7 +365,9 @@ enum WindowPlacementEngine {
         _ input: Input, half: Half, host: Screen, step: Int
     ) -> Placement {
         guard input.cycle == .displays else {
-            return tilePlacement(half.fractions(sizeCycle[step]), on: host, gap: input.gap)
+            return tilePlacement(
+                half.fractions(sizeCycle[step]), on: host, gap: input.gap,
+                fitTightlyToEdges: input.fitTightlyToEdges)
         }
         let strip = ordered(input.screens)
         // Mid-chain the window sits on another display, so counting from it would overshoot.
@@ -363,7 +375,9 @@ enum WindowPlacementEngine {
             let originIndex = strip.firstIndex(where: { $0.id == input.originScreenID })
                 ?? strip.firstIndex(where: { $0.id == host.id })
         else {
-            return tilePlacement(half.fractions(0.5), on: host, gap: input.gap)
+            return tilePlacement(
+                half.fractions(0.5), on: host, gap: input.gap,
+                fitTightlyToEdges: input.fitTightlyToEdges)
         }
         // Left and Top walk backwards, so one shortcut sweeps the whole desktop in one direction.
         let leads = half.edge == .leading
@@ -371,15 +385,17 @@ enum WindowPlacementEngine {
             originIndex * 2 + (leads ? 0 : 1) + (leads ? -step : step), into: strip.count * 2)
         let edge: Half.Edge = slot.isMultiple(of: 2) ? .leading : .trailing
         return tilePlacement(
-            Half(axis: half.axis, edge: edge).fractions(0.5), on: strip[slot / 2], gap: input.gap)
+            Half(axis: half.axis, edge: edge).fractions(0.5), on: strip[slot / 2], gap: input.gap,
+            fitTightlyToEdges: input.fitTightlyToEdges)
     }
 
     private static func tilePlacement(
-        _ fractions: Fractions, on screen: Screen, gap: CGFloat
+        _ fractions: Fractions, on screen: Screen, gap: CGFloat, fitTightlyToEdges: Bool
     ) -> Placement {
         let frame = tile(
             screen.visibleFrame, x0: fractions.x0, x1: fractions.x1, y0: fractions.y0,
-            y1: fractions.y1, gap: sanitizedGap(gap, in: screen.visibleFrame))
+            y1: fractions.y1, gap: sanitizedGap(gap, in: screen.visibleFrame),
+            fitTightlyToEdges: fitTightlyToEdges)
         return Placement(
             frame: frame, screenID: screen.id, anchor: fractions.anchor, resizes: true)
     }
@@ -429,6 +445,27 @@ enum WindowPlacementEngine {
                 x0: oneThird, x1: 1, y0: 0, y1: 1,
                 anchor: Anchor(horizontal: .max, vertical: .min))
 
+        case .topThird:
+            return Fractions(x0: 0, x1: 1, y0: 0, y1: oneThird, anchor: .topLeading)
+        case .middleThird:
+            return Fractions(
+                x0: 0, x1: 1, y0: oneThird, y1: twoThirds,
+                anchor: Anchor(horizontal: .min, vertical: .center))
+        case .bottomThird:
+            return Fractions(
+                x0: 0, x1: 1, y0: twoThirds, y1: 1,
+                anchor: Anchor(horizontal: .min, vertical: .max))
+        case .topTwoThirds:
+            return Fractions(x0: 0, x1: 1, y0: 0, y1: twoThirds, anchor: .topLeading)
+        case .middleTwoThirds:
+            return Fractions(
+                x0: 0, x1: 1, y0: oneThird / 2, y1: 1 - oneThird / 2,
+                anchor: Anchor(horizontal: .min, vertical: .center))
+        case .bottomTwoThirds:
+            return Fractions(
+                x0: 0, x1: 1, y0: oneThird, y1: 1,
+                anchor: Anchor(horizontal: .min, vertical: .max))
+
         // Half the screen's area, so it reads as the family sibling of Center Third.
         case .centerHalf:
             return centeredFractions(0.5)
@@ -447,22 +484,33 @@ enum WindowPlacementEngine {
         tileFractions(command) != nil
     }
 
+    /// Unit-square bounds of a tile command (`0...1` in AX space), or `nil` if it isn't one.
+    static func tilePreviewRect(for command: WindowCommand.ID) -> CGRect? {
+        guard let fractions = tileFractions(command) else { return nil }
+        return CGRect(
+            x: fractions.x0, y: fractions.y0,
+            width: fractions.x1 - fractions.x0, height: fractions.y1 - fractions.y0)
+    }
+
     /// A tile from fractional bounds of `visible`. See docs/features/window-management.md#geometry.
     static func tile(
-        _ visible: CGRect, x0: CGFloat, x1: CGFloat, y0: CGFloat, y1: CGFloat, gap: CGFloat
+        _ visible: CGRect, x0: CGFloat, x1: CGFloat, y0: CGFloat, y1: CGFloat, gap: CGFloat,
+        fitTightlyToEdges: Bool = false
     ) -> CGRect {
-        let left = visible.minX + x0 * visible.width + (x0 == 0 ? gap : gap / 2)
-        let right = visible.minX + x1 * visible.width - (x1 == 1 ? gap : gap / 2)
-        let top = visible.minY + y0 * visible.height + (y0 == 0 ? gap : gap / 2)
-        let bottom = visible.minY + y1 * visible.height - (y1 == 1 ? gap : gap / 2)
+        let outerGap = fitTightlyToEdges ? 0 : gap
+        let left = visible.minX + x0 * visible.width + (x0 == 0 ? outerGap : gap / 2)
+        let right = visible.minX + x1 * visible.width - (x1 == 1 ? outerGap : gap / 2)
+        let top = visible.minY + y0 * visible.height + (y0 == 0 ? outerGap : gap / 2)
+        let bottom = visible.minY + y1 * visible.height - (y1 == 1 ? outerGap : gap / 2)
         return rounded(
             CGRect(
                 x: left, y: top, width: max(1, right - left), height: max(1, bottom - top)))
     }
 
-    /// The box free-floating commands work in: full gap on every side, not the grid's halves.
-    static func canvas(_ visible: CGRect, gap: CGFloat) -> CGRect {
-        rounded(visible.insetBy(dx: gap, dy: gap))
+    /// Free-floating commands' box: full gap on every side, unless outer edges sit flush.
+    static func canvas(_ visible: CGRect, gap: CGFloat, fitTightlyToEdges: Bool = false) -> CGRect {
+        let inset = fitTightlyToEdges ? 0 : gap
+        return rounded(visible.insetBy(dx: inset, dy: inset))
     }
 
     // MARK: - Sizing

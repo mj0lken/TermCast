@@ -38,14 +38,15 @@ struct RoomPlan: Equatable, Sendable {
     /// Deliberately blind to the feature switch: that guard lives in the coordinator.
     static func make(
         _ room: Room, windows: [RoomLiveWindow], on screen: WindowLayoutScreen, gap: CGFloat,
-        minimums: [String: CGSize], claimed: Set<UInt32> = []
+        minimums: [String: CGSize], claimed: Set<UInt32> = [], fitTightlyToEdges: Bool = false
     ) -> RoomPlan {
         let assignment = RoomWindowMatcher.assign(room.windows, to: windows, claimed: claimed)
         let found = room.windows.indices.filter { assignment[$0] != nil }
         let frames = frames(
             for: room, indices: found, kind: room.layout(onDisplay: screen.display.uuid),
             in: screen.screen.visibleFrame, gap: gap,
-            minimums: found.map { minimums[room.windows[$0].bundleID] ?? .zero })
+            minimums: found.map { minimums[room.windows[$0].bundleID] ?? .zero },
+            fitTightlyToEdges: fitTightlyToEdges)
         let placements = zip(found, frames).compactMap { index, frame -> Placement? in
             assignment[index].map { Placement(index: index, handle: windows[$0].handle, frame: frame) }
         }
@@ -64,12 +65,13 @@ struct RoomPlan: Equatable, Sendable {
     /// Where the windows at `indices` go; a layout that no longer fits falls back to Auto.
     static func frames(
         for room: Room, indices: [Int], kind: RoomLayoutKind, in visible: CGRect, gap: CGFloat,
-        minimums: [CGSize]
+        minimums: [CGSize], fitTightlyToEdges: Bool = false
     ) -> [CGRect] {
         let count = indices.count
         let auto = {
             RoomLayoutEngine.frames(
-                count: count, kind: .auto, in: visible, gap: gap, minimums: minimums)
+                count: count, kind: .auto, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
         }
         switch kind {
         case .saved:
@@ -83,27 +85,34 @@ struct RoomPlan: Equatable, Sendable {
         case .custom:
             let cells = indices.compactMap { room.windows[$0].cell }
             guard cells.count == count, count == room.windows.count,
-                let rects = RoomGrid.frames(cells, in: visible, gap: gap, minimums: minimums)
+                let rects = RoomGrid.frames(
+                    cells, in: visible, gap: gap, minimums: minimums,
+                    fitTightlyToEdges: fitTightlyToEdges)
             else { return auto() }
-            let box = RoomLayoutEngine.Area(visible: visible, gap: gap).canvas
+            let box = RoomLayoutEngine.Area(
+                visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges
+            ).canvas
             return RoomLayoutEngine.isClean(rects, in: box.insetBy(dx: -1, dy: -1)) ? rects : auto()
         case .focus, .columns, .grid:
             guard
                 RoomLayoutEngine.fits(
-                    count: count, kind: kind, in: visible, gap: gap, minimums: minimums)
+                    count: count, kind: kind, in: visible, gap: gap, minimums: minimums,
+                    fitTightlyToEdges: fitTightlyToEdges)
             else { return auto() }
             return RoomLayoutEngine.frames(
-                count: count, kind: kind, in: visible, gap: gap, minimums: minimums)
+                count: count, kind: kind, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
         case .auto, .stack:
             return RoomLayoutEngine.frames(
-                count: count, kind: kind, in: visible, gap: gap, minimums: minimums)
+                count: count, kind: kind, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
         }
     }
 
     /// What Tab steps through here: every layout that fits and looks unlike the others.
     static func layoutChoices(
         for room: Room, windows: [RoomLiveWindow], on screen: WindowLayoutScreen, gap: CGFloat,
-        minimums: [String: CGSize], claimed: Set<UInt32> = []
+        minimums: [String: CGSize], claimed: Set<UInt32> = [], fitTightlyToEdges: Bool = false
     ) -> [RoomLayoutKind] {
         let visible = screen.screen.visibleFrame
         let assignment = RoomWindowMatcher.assign(room.windows, to: windows, claimed: claimed)
@@ -113,7 +122,8 @@ struct RoomPlan: Equatable, Sendable {
         guard count > 1 else { return current == .auto ? [.auto] : [.auto, current] }
         let sizes = present.map { minimums[room.windows[$0].bundleID] ?? .zero }
         let auto = RoomLayoutEngine.frames(
-            count: count, kind: .auto, in: visible, gap: gap, minimums: sizes)
+            count: count, kind: .auto, in: visible, gap: gap, minimums: sizes,
+            fitTightlyToEdges: fitTightlyToEdges)
         var seen: [[CGRect]] = []
         var choices: [RoomLayoutKind] = []
         for kind in RoomLayoutKind.allCases {
@@ -125,7 +135,7 @@ struct RoomPlan: Equatable, Sendable {
                 if complete,
                     frames(
                         for: room, indices: present, kind: .custom, in: visible, gap: gap,
-                        minimums: sizes) != auto
+                        minimums: sizes, fitTightlyToEdges: fitTightlyToEdges) != auto
                 {
                     choices.append(kind)
                 }
@@ -135,10 +145,12 @@ struct RoomPlan: Equatable, Sendable {
             case .auto, .focus, .stack, .columns, .grid:
                 guard
                     RoomLayoutEngine.fits(
-                        count: count, kind: kind, in: visible, gap: gap, minimums: sizes)
+                        count: count, kind: kind, in: visible, gap: gap, minimums: sizes,
+                        fitTightlyToEdges: fitTightlyToEdges)
                 else { continue }
                 let rects = RoomLayoutEngine.frames(
-                    count: count, kind: kind, in: visible, gap: gap, minimums: sizes)
+                    count: count, kind: kind, in: visible, gap: gap, minimums: sizes,
+                    fitTightlyToEdges: fitTightlyToEdges)
                 if kind != .auto, seen.contains(rects) { continue }
                 seen.append(rects)
                 choices.append(kind)

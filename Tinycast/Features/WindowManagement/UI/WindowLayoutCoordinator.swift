@@ -55,9 +55,11 @@ final class WindowLayoutCoordinator {
         // Never restoreFocus: an opened app activates itself, and handing focus back races that.
         if paletteCoordinator.isVisible { paletteCoordinator.hidePalette(restoreFocus: false) }
         let gap = CGFloat(settings.windowGap)
+        let fitTightlyToEdges = settings.windowFitTightlyToEdges
         run?.cancel()
         run = Task { [weak self] in
-            let outcome = await WindowLayoutRunner.run(layout, gap: gap)
+            let outcome = await WindowLayoutRunner.run(
+                layout, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
             await self?.report(outcome, for: layout)
         }
     }

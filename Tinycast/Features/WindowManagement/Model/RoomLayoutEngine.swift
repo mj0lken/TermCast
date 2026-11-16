@@ -13,25 +13,30 @@ enum RoomLayoutEngine {
         let canvas: CGRect
         let gap: CGFloat
 
-        init(visible: CGRect, gap: CGFloat) {
+        init(visible: CGRect, gap: CGFloat, fitTightlyToEdges: Bool = false) {
             self.gap = WindowPlacementEngine.sanitizedGap(gap, in: visible)
-            canvas = WindowPlacementEngine.canvas(visible, gap: self.gap)
+            canvas = WindowPlacementEngine.canvas(
+                visible, gap: self.gap, fitTightlyToEdges: fitTightlyToEdges)
         }
     }
 
     /// `minimums` holds one size per window, or none; no app is asked to go below its own.
     static func frames(
         count: Int, kind: RoomLayoutKind, in visible: CGRect, gap: CGFloat,
-        minimums: [CGSize] = []
+        minimums: [CGSize] = [], fitTightlyToEdges: Bool = false
     ) -> [CGRect] {
         guard count > 0 else { return [] }
-        let area = Area(visible: visible, gap: gap)
+        let area = Area(visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
         let minimums = padded(minimums, to: count)
         switch kind {
         // The room's own record resolves `.custom` and `.saved`; here they mean Auto.
         case .auto, .custom, .saved:
-            let tidy = autoKind(count: count, in: visible, gap: gap, minimums: minimums)
-            return frames(count: count, kind: tidy, in: visible, gap: gap, minimums: minimums)
+            let tidy = autoKind(
+                count: count, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
+            return frames(
+                count: count, kind: tidy, in: visible, gap: gap, minimums: minimums,
+                fitTightlyToEdges: fitTightlyToEdges)
         case .stack:
             return stack(count, in: area, minimums: minimums).map {
                 WindowPlacementEngine.clamped($0, into: area.canvas)
@@ -50,14 +55,14 @@ enum RoomLayoutEngine {
     /// Whether `kind` places every window without overlap. Stack overlaps on purpose, so it fits.
     static func fits(
         count: Int, kind: RoomLayoutKind, in visible: CGRect, gap: CGFloat,
-        minimums: [CGSize] = []
+        minimums: [CGSize] = [], fitTightlyToEdges: Bool = false
     ) -> Bool {
         guard count > 0 else { return false }
         switch kind {
         case .auto, .stack, .custom, .saved:
             return true
         case .focus, .columns, .grid:
-            let area = Area(visible: visible, gap: gap)
+            let area = Area(visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
             return arrangements(
                 count, kind: kind, in: area, minimums: padded(minimums, to: count)
             ).contains { works($0, in: area.canvas) }
@@ -66,10 +71,11 @@ enum RoomLayoutEngine {
 
     /// What Auto means here: the first tidy layout where every side window is comfortable.
     static func autoKind(
-        count: Int, in visible: CGRect, gap: CGFloat, minimums: [CGSize] = []
+        count: Int, in visible: CGRect, gap: CGFloat, minimums: [CGSize] = [],
+        fitTightlyToEdges: Bool = false
     ) -> RoomLayoutKind {
         guard count > 1 else { return .focus }
-        let area = Area(visible: visible, gap: gap)
+        let area = Area(visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
         let minimums = padded(minimums, to: count)
         let order: [RoomLayoutKind] = count <= 4 ? [.focus, .columns, .grid] : [.grid, .columns, .focus]
         for kind in order {

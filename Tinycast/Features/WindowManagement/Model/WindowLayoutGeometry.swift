@@ -7,17 +7,21 @@ enum WindowLayoutGeometry {
     static let minimumLength: CGFloat = 1
 
     /// The box an entry's fractions are of. A zero gap makes this the plain visible frame.
-    static func box(_ screen: WindowPlacementEngine.Screen, gap: CGFloat) -> CGRect {
+    static func box(
+        _ screen: WindowPlacementEngine.Screen, gap: CGFloat, fitTightlyToEdges: Bool = false
+    ) -> CGRect {
         WindowPlacementEngine.canvas(
             screen.visibleFrame,
-            gap: WindowPlacementEngine.sanitizedGap(gap, in: screen.visibleFrame))
+            gap: WindowPlacementEngine.sanitizedGap(gap, in: screen.visibleFrame),
+            fitTightlyToEdges: fitTightlyToEdges)
     }
 
     /// The frame an entry asks for, or nil when the display has no usable visible frame.
     static func resolve(
-        _ entry: WindowLayoutEntry, on screen: WindowPlacementEngine.Screen, gap: CGFloat
+        _ entry: WindowLayoutEntry, on screen: WindowPlacementEngine.Screen, gap: CGFloat,
+        fitTightlyToEdges: Bool = false
     ) -> CGRect? {
-        let box = box(screen, gap: gap)
+        let box = box(screen, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
         guard box.width > 0, box.height > 0 else { return nil }
 
         let size = CGSize(

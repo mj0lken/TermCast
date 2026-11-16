@@ -19,8 +19,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ FileSearch{Query,Result,Scope} ·                                           │
 │ Calculator/* · EmojiCatalog · EmojiGridGeometry · SystemAction ·            │
 │ VolumeLevel ·                                                              │
-│ WindowCommand · WindowPlacementEngine · WindowActionMemory · WindowLayout/* ·      │
-│ CustomWindowSize{,Store} · Room/* ·                                        │
+│ WindowCommand · WindowPlacementEngine · WindowActionMemory · WindowDragSnap │
+│ WindowLayout/* · CustomWindowSize{,Store} · Room/* ·                       │
 │ PaletteRowIndex ·                                                          │
 │ Uninstall{Target,SearchRoot,Rules,Protection,Plan} ·                       │
 │ Quicklink{,Destination,Store,Archive} · AppleShortcut · Notes/Model/* ·    │
@@ -39,7 +39,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ All platform I/O, one folder per feature.                                  │
 │ AppIndex · FileIndexer · SettingsPaneScanner ·                             │
 │ AXWindowAccess · AXScreens · WindowInventory · WindowLayoutRunner ·        │
-│ RoomWindowSweep · RoomRunner ·                                             │
+│ RoomWindowSweep · RoomRunner · WindowDragMonitor · WindowGreenButtonMonitor│
 │ IconCache · WindowMover · UninstallScanner · UninstallRunner ·             │
 │ SystemActionRunner · QuicklinkLauncher · TextInjector ·             │
 │ SnippetKeywordListener · NotesRepository · CurrencyRateStore · Paster ·    │
@@ -94,7 +94,7 @@ app: the stores (`AppIndex`, `ClipboardStore`, `SnippetsStore`, `QuicklinkStore`
 `CurrencyRateStore`, `FrequentEmojiStore`, `CalendarStore`), the managers, monitors and clocks
 (`ClipboardManager`, the opt-in `ClipboardTextIndexer`, the opt-in `SettingsFileRepository`,
 `HotKeyManager`, `HyperKeyManager`, `DictationKeyManager`, `RunningAppsMonitor`,
-`SnippetKeywordListener`), the shared state
+`SnippetKeywordListener`, `WindowDragMonitor`, `WindowGreenButtonMonitor`), the shared state
 (`AppSettings`, `PaletteState`, `FileSearchSession`, `MenuSearchSession`, `UninstallSession`,
 `MeetingClock`), `NotesStore`, the twenty-one feature coordinators, and the
 window controllers.

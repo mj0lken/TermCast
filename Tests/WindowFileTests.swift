@@ -88,6 +88,14 @@ struct WindowFileTests {
         check(
             "an unknown position falls back to the centre and is reported",
             first?.records.last?.anchor == .center && first?.problems.count == 2)
+
+        let gridSize = CustomWindowSize(
+            name: "Grid Tile",
+            gridCell: CustomWindowSize.GridCell(
+                column: 3, columns: 6, row: 0, rows: 8, gridColumns: 12, gridRows: 8))
+        let gridJSON = WindowManagementFileFormat.json(gridSize, shortcut: nil, alias: nil)
+        let decodedGrid = WindowManagementFileFormat.customSizes(from: .array([gridJSON]))
+        check("a grid custom size round-trips through settings.json", decodedGrid?.records == [gridSize])
     }
 
     private static func testLayouts() {
