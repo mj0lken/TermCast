@@ -138,6 +138,7 @@ final class HyperKeyManager: HealthCheckable {
     private func stop(_ status: Status, retrying: Bool = false) {
         setRoute(nil)
         tap.tearDown()
+        if hasScrollRunner { scrollRunner.cancelPendingWork() }
         remapper.apply(nil)
         instanceLock.release()
         if retrying { healthTicker?.subscribe(self) } else { healthTicker?.unsubscribe(self) }

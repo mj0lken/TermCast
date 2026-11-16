@@ -415,10 +415,20 @@ idle Hyper key adds zero background touch callbacks.
   through untouched.
 
 `HyperScrollRunner` (`HotKeys/Service/HyperScrollRunner.swift`) converts live scroll deltas (`384 pt`
-full sweep) directly into isolated `.privateState` `NSSystemDefined` media-key events through
-`MediaKeyPoster` (`Platform/MediaKeyPoster.swift`) — `1/64` (`⇧⌥`) fine steps on local outputs and
-`45 ms`-paced `1/16` steps on Bluetooth AVRCP outputs so `bluetoothaudiod` never queues lagging
-packets, with immediate carry clearing on trackpad liftoff.
+full sweep) into target-specific updates, clearing buffered carry immediately on trackpad liftoff:
+
+- **Screen brightness targets only `NSScreen.underCursor`:** the cursor's `CGDirectDisplayID` is locked
+  at gesture start and passed to `DisplayBrightnessService` (`Platform/DisplayBrightnessService.swift`),
+  never posted as a blind brightness media key (which macOS otherwise routes to the built-in display).
+  Apple and `DisplayServices`-capable displays step smoothly via `DisplayServicesSetBrightnessSmooth`
+  and render macOS's native HUD on that exact `displayID` via `OSDManager`; non-Apple external monitors
+  matched by EDID (`DisplayDDC` in `HotKeys/Model/DisplayDDC.swift`) write VCP `0x10` over Apple
+  Silicon `IOAVService` I²C off-main (`50 ms`-coalesced) with the same per-display native HUD, and
+  unsupported virtual displays no-op without touching another screen.
+- **Keyboard backlight and volume:** posted as isolated `.privateState` `NSSystemDefined` media keys
+  through `MediaKeyPoster` (`Platform/MediaKeyPoster.swift`) — `1/64` (`⇧⌥`) fine steps on local
+  outputs and `45 ms`-paced `1/16` steps on Bluetooth AVRCP outputs so `bluetoothaudiod` never queues
+  lagging packets.
 
 ### Lifecycle
 

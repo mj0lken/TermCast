@@ -28,7 +28,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ ShellCommandRunner · DoubleTap{Modifier,Detector} · ClipboardStore ·       │
 │ RaycastDecoder · Scrypt · AppSettingsKey · SettingsBackupCoverage          │
 │ SettingsFile{JSON,Key,Value,Format,Binding,Issue,Identity} ·               │
-│ HotKeySpelling · HyperScroll{Zone,Engine} · WindowManagementFileFormat ·   │
+│ HotKeySpelling · HyperScroll{Zone,Engine} · DisplayDDC ·                   │
+│ WindowManagementFileFormat ·                                               │
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft ·                                              │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
@@ -45,7 +46,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ SnippetKeywordListener · NotesRepository · CurrencyRateStore · Paster ·    │
 │ HotKeyCenter · HyperKeyTap · HyperScrollRunner · KeyboardRemapper ·        │
 │ ModifierTapMonitor · TrackpadTouchMonitor · MediaKeyPoster ·               │
-│ SecureInputMonitor · RunningAppsMonitor ·                                  │
+│ DisplayBrightnessService · SecureInputMonitor · RunningAppsMonitor ·       │
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ AXMenuAccess · WindowZOrder · WindowSwitchSweep ·                          │
 │ AppleShortcutRunner · SettingsFileRepository · SettingsFileMonitor ·       │

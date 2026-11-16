@@ -1,7 +1,9 @@
+import AppKit
 import CoreAudio
+import CoreGraphics
 import Foundation
 
-/// Converts live scroll deltas directly into HID media keys, pacing Bluetooth AVRCP outputs.
+/// Routes live scroll deltas to cursor-display brightness or HID media keys, pacing Bluetooth AVRCP.
 @MainActor
 final class HyperScrollRunner {
     private static let localStepInterval: TimeInterval = 0.012
@@ -9,50 +11,107 @@ final class HyperScrollRunner {
     private static let bluetoothStepInterval: TimeInterval = 0.045
     private static let gestureExpiry: TimeInterval = 0.25
 
+    private let now: () -> TimeInterval
+    private let cursorDisplayID: () -> CGDirectDisplayID?
+    private let stepDisplayBrightness: (CGDirectDisplayID, Double) -> Void
+    private let resetDisplayBrightness: () -> Void
+    private let stopDisplayBrightness: () -> Void
+    private let postMediaKey: (MediaKeyPoster.Key, Bool) -> Void
+    private let isBluetoothAudio: () -> Bool
+
     private var activeZone: HyperScrollZone?
+    private var activeDisplayID: CGDirectDisplayID?
     private var pendingDelta: Double = 0
     private var isBluetoothOutput = false
     private var lastEventAt: TimeInterval = 0
     private var lastPostedAt: TimeInterval = 0
 
+    convenience init() {
+        let brightness = DisplayBrightnessService()
+        self.init(
+            now: { ProcessInfo.processInfo.systemUptime },
+            cursorDisplayID: { NSScreen.underCursor?.displayID },
+            stepDisplayBrightness: { displayID, delta in
+                brightness.step(on: displayID, delta: delta)
+            },
+            resetDisplayBrightness: { brightness.resetGesture() },
+            stopDisplayBrightness: { brightness.cancelPendingWork() },
+            postMediaKey: { key, fine in MediaKeyPoster.post(key, fineStep: fine) },
+            isBluetoothAudio: { Self.defaultOutputUsesBluetooth() })
+    }
+
+    init(
+        now: @escaping () -> TimeInterval,
+        cursorDisplayID: @escaping () -> CGDirectDisplayID?,
+        stepDisplayBrightness: @escaping (CGDirectDisplayID, Double) -> Void,
+        resetDisplayBrightness: @escaping () -> Void = {},
+        stopDisplayBrightness: @escaping () -> Void = {},
+        postMediaKey: @escaping (MediaKeyPoster.Key, Bool) -> Void,
+        isBluetoothAudio: @escaping () -> Bool = { false }
+    ) {
+        self.now = now
+        self.cursorDisplayID = cursorDisplayID
+        self.stepDisplayBrightness = stepDisplayBrightness
+        self.resetDisplayBrightness = resetDisplayBrightness
+        self.stopDisplayBrightness = stopDisplayBrightness
+        self.postMediaKey = postMediaKey
+        self.isBluetoothAudio = isBluetoothAudio
+    }
+
     func resetGesture() {
         activeZone = nil
+        activeDisplayID = nil
         pendingDelta = 0
+        resetDisplayBrightness()
+    }
+
+    func cancelPendingWork() {
+        activeZone = nil
+        activeDisplayID = nil
+        pendingDelta = 0
+        stopDisplayBrightness()
     }
 
     func apply(_ adjustment: HyperScrollEngine.Adjustment) {
-        let now = ProcessInfo.processInfo.systemUptime
-        if activeZone != adjustment.zone || now - lastEventAt > Self.gestureExpiry {
+        let timestamp = now()
+        if activeZone != adjustment.zone || timestamp - lastEventAt > Self.gestureExpiry {
             activeZone = adjustment.zone
             pendingDelta = 0
-            if adjustment.zone == .volume {
-                isBluetoothOutput = Self.defaultOutputUsesBluetooth()
+            resetDisplayBrightness()
+            switch adjustment.zone {
+            case .screenBrightness:
+                activeDisplayID = cursorDisplayID()
+            case .keyboardBrightness:
+                activeDisplayID = nil
+            case .volume:
+                activeDisplayID = nil
+                isBluetoothOutput = isBluetoothAudio()
             }
         }
-        lastEventAt = now
+        lastEventAt = timestamp
         HyperScrollEngine.accumulate(adjustment.delta, into: &pendingDelta)
 
         let useBluetoothStepping = adjustment.zone == .volume && isBluetoothOutput
         let interval = useBluetoothStepping ? Self.bluetoothStepInterval : Self.localStepInterval
-        guard now - lastPostedAt >= interval,
+        guard timestamp - lastPostedAt >= interval,
             let step = HyperScrollEngine.popMediaStep(
                 from: &pendingDelta, allowFineSteps: !useBluetoothStepping)
         else { return }
-        lastPostedAt = now
-        post(step, for: adjustment.zone)
+        lastPostedAt = timestamp
+        dispatch(step, for: adjustment.zone)
     }
 
-    private func post(_ step: HyperScrollEngine.MediaStep, for zone: HyperScrollZone) {
-        let key: MediaKeyPoster.Key
-        switch (zone, step.up) {
-        case (.screenBrightness, true): key = .brightnessUp
-        case (.screenBrightness, false): key = .brightnessDown
-        case (.keyboardBrightness, true): key = .illuminationUp
-        case (.keyboardBrightness, false): key = .illuminationDown
-        case (.volume, true): key = .soundUp
-        case (.volume, false): key = .soundDown
+    private func dispatch(_ step: HyperScrollEngine.MediaStep, for zone: HyperScrollZone) {
+        switch zone {
+        case .screenBrightness:
+            guard let displayID = activeDisplayID else { return }
+            let magnitude = step.fine ? HyperScrollEngine.fineStep : HyperScrollEngine.coarseStep
+            stepDisplayBrightness(displayID, step.up ? magnitude : -magnitude)
+        case .keyboardBrightness:
+            postMediaKey(step.up ? .illuminationUp : .illuminationDown, step.fine)
+        case .volume:
+            postMediaKey(step.up ? .soundUp : .soundDown, step.fine)
         }
-        MediaKeyPoster.post(key, fineStep: step.fine)
     }
 
     private static func defaultOutputUsesBluetooth() -> Bool {

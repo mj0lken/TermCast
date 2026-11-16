@@ -22,6 +22,8 @@ struct HyperScrollTests {
         deferredTouchBeforeFirstDelta()
         momentumIsolation()
         cancelsQuickPressOnScroll()
+        cursorDisplayBrightnessIsolation()
+        edidAndDDCPackets()
 
         print("Hyper scroll: \(failures) failures")
         if failures != 0 { exit(1) }
@@ -227,5 +229,83 @@ struct HyperScrollTests {
         hyper.markUsed()
         let release = hyper.handle(type: .keyUp, keyCode: route.tapKeyCode, flags: 0, at: 0.12)
         check("scrolling during Hyper hold suppresses Quick Press on release", release.effect == nil)
+    }
+
+    static func cursorDisplayBrightnessIsolation() {
+        var clock: TimeInterval = 1.0
+        var hoveredDisplay: CGDirectDisplayID? = 10
+        var displaySteps: [(CGDirectDisplayID, Double)] = []
+        var postedKeys: [MediaKeyPoster.Key] = []
+
+        let runner = HyperScrollRunner(
+            now: { clock },
+            cursorDisplayID: { hoveredDisplay },
+            stepDisplayBrightness: { id, delta in displaySteps.append((id, delta)) },
+            postMediaKey: { key, _ in postedKeys.append(key) })
+
+        runner.apply(HyperScrollEngine.Adjustment(zone: .screenBrightness, delta: 0.02))
+        check(
+            "brightness scroll targets display under cursor without posting media keys",
+            displaySteps.count == 1 && displaySteps[0].0 == 10 && postedKeys.isEmpty)
+
+        // Mid-gesture cursor drift must keep targeting the display locked at gesture start.
+        hoveredDisplay = 20
+        clock += 0.02
+        runner.apply(HyperScrollEngine.Adjustment(zone: .screenBrightness, delta: 0.02))
+        check(
+            "brightness scroll stays locked to initial cursor display mid-gesture",
+            displaySteps.count == 2 && displaySteps[1].0 == 10)
+
+        // Lifting fingers resets the lock so the next scroll targets the new cursor display.
+        runner.resetGesture()
+        clock += 0.02
+        runner.apply(HyperScrollEngine.Adjustment(zone: .screenBrightness, delta: -0.02))
+        check(
+            "new gesture targets the updated display under cursor",
+            displaySteps.count == 3 && displaySteps[2].0 == 20 && displaySteps[2].1 < 0)
+    }
+
+    static func edidAndDDCPackets() {
+        var edid = [UInt8](repeating: 0, count: 128)
+        edid[0...7] = [0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]
+        edid[8] = 0x10
+        edid[9] = 0xAC
+        edid[10] = 0xD0
+        edid[11] = 0xA0
+        edid[12] = 0x78
+        edid[13] = 0x56
+        edid[14] = 0x34
+        edid[15] = 0x12
+
+        let parsed = DisplayDDC.parseEDID(Data(edid))
+        check(
+            "EDID parses big-endian vendor and little-endian model/serial",
+            parsed == DisplayDDC.Identity(
+                vendorID: 0x10AC, modelID: 0xA0D0, serialNumber: 0x1234_5678))
+
+        let monitorA = DisplayDDC.Identity(vendorID: 0x10AC, modelID: 0xA0D0, serialNumber: 100)
+        let monitorB = DisplayDDC.Identity(vendorID: 0x10AC, modelID: 0xA0D0, serialNumber: 200)
+        let targetB = DisplayDDC.Target(identity: monitorB, allowsSingleExternalFallback: false)
+        check(
+            "DDC matches exact serial among identical external monitor models",
+            DisplayDDC.matchIndex(for: targetB, in: [monitorA, monitorB]) == 1)
+
+        let zeroSerialMonitor = DisplayDDC.Identity(vendorID: 0x1E6D, modelID: 0x5B11, serialNumber: 0)
+        let cgTarget = DisplayDDC.Target(
+            identity: DisplayDDC.Identity(vendorID: 0x1E6D, modelID: 0x5B11, serialNumber: 99),
+            allowsSingleExternalFallback: false)
+        check(
+            "DDC matches vendor+model when EDID numeric serial is zero",
+            DisplayDDC.matchIndex(for: cgTarget, in: [monitorA, zeroSerialMonitor]) == 1)
+
+        let write50 = DisplayDDC.makeBrightnessWritePacket(level: 0.5)
+        check(
+            "DDC write packet sets VCP 0x10 to 50% with valid XOR checksum",
+            write50 == [0x84, 0x03, 0x10, 0x00, 50, 0x84 ^ 0x03 ^ 0x10 ^ 50 ^ 0x6E ^ 0x51])
+
+        let reply: [UInt8] = [0x6E, 0x88, 0x02, 0x00, 0x10, 0x00, 0x00, 0x64, 0x00, 0x4B, 0x00]
+        check(
+            "DDC VCP reply parses 75/100 brightness",
+            DisplayDDC.parseBrightnessReply(reply) == 0.75)
     }
 }

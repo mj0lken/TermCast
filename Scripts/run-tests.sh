@@ -674,13 +674,18 @@ run HyperKeyEngineTests    Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift 
                            Tinycast/Platform/ASCIIKeyboardLayout.swift
 run HyperScrollTests       Tinycast/Features/HotKeys/Model/HyperScrollZone.swift \
                            Tinycast/Features/HotKeys/Model/HyperScrollEngine.swift \
+                           Tinycast/Features/HotKeys/Model/DisplayDDC.swift \
                            Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift \
                            Tinycast/Features/HotKeys/Model/HyperKey.swift \
                            Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Tinycast/Features/HotKeys/Model/ModifierKey.swift \
                            Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Tinycast/Features/HotKeys/Service/HyperScrollRunner.swift \
                            Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Tinycast/Platform/DisplayBrightnessService.swift \
+                           Tinycast/Platform/MediaKeyPoster.swift \
+                           Tinycast/Platform/ScreenTarget.swift \
                            Tinycast/Platform/ASCIIKeyboardLayout.swift
 run HyperKeyTests          Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Tinycast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \

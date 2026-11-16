@@ -1,6 +1,11 @@
 import AppKit
+import CoreGraphics
 
 extension NSScreen {
+    var displayID: CGDirectDisplayID? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    }
+
     /// The display in use; `NSScreen.main` is the key window's, which we rarely have.
     static var underCursor: NSScreen? {
         let mouse = NSEvent.mouseLocation

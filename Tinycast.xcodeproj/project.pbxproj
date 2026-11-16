@@ -207,6 +207,7 @@
 		3A22313E903883E55046F207 /* AppSettingsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384485BD1794D25503534525 /* AppSettingsKey.swift */; };
 		3A2B91CE53DD84DE9EF5ECB8 /* UpcomingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F97240A718D95DFD9343DB /* UpcomingWindow.swift */; };
 		3A7F96CFC0967AD3988285DA /* FormRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADA31FFE27C333DDAF33F9D /* FormRow.swift */; };
+		3A8127A507E19A0C4F52594B /* DisplayDDC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F3C6A0B767A5B302C7EED36 /* DisplayDDC.swift */; };
 		3AACAA1D21E9DB4C4A76C9E3 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 38BFF5870110FAA6C85E34D9 /* InfoPlist.xcstrings */; };
 		3B02D6CE68E0E488955A19B5 /* SnippetTemplateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F58E564E6181EB15497E51CD /* SnippetTemplateEngine.swift */; };
 		3B0A75B76B65E651BCB97D71 /* CameraPreviewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEBAA9641BC6C279DB0123C /* CameraPreviewController.swift */; };
@@ -793,6 +794,7 @@
 		DDFA439EA7942183414375DC /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A96350EBE68EC79497FA2D /* AppPaths.swift */; };
 		DDFF8A9F420A4733DFA32A07 /* ReleaseFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28281DFC434C75F8A594635 /* ReleaseFeed.swift */; };
 		DE6513E6953A635887D292F8 /* ExternalTerminalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0AAD61BC587AC2D471CFE0 /* ExternalTerminalApp.swift */; };
+		DE68764E50A277A7A9C8B75D /* DisplayBrightnessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2924F77046DBB7A87133F63 /* DisplayBrightnessService.swift */; };
 		DE758DAC622ED85257335805 /* WindowLayoutEditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17C22B5CE1449E12331FA94 /* WindowLayoutEditorPanel.swift */; };
 		DEBA3D842236875993867A25 /* AIConnectionKeyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A93BF11B823786E8B468B05 /* AIConnectionKeyPolicy.swift */; };
 		DEBCF434AB244DAD43DB8A6A /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA9F5F7226AD5A91835AF5C /* LaunchAtLogin.swift */; };
@@ -1576,6 +1578,7 @@
 		9E9A5FCC71B2F8BB491FDF45 /* NoteLayoutFragmentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteLayoutFragmentProvider.swift; sourceTree = "<group>"; };
 		9EB4EA7F440DD25F425110E8 /* WindowLayoutDisplayTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutDisplayTabs.swift; sourceTree = "<group>"; };
 		9F1798C6CF803D5E1BB2FFE4 /* ChatTranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTranscriptView.swift; sourceTree = "<group>"; };
+		9F3C6A0B767A5B302C7EED36 /* DisplayDDC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayDDC.swift; sourceTree = "<group>"; };
 		9F9A0A3867D1B8E1D3284471 /* ExtensionNodeShims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionNodeShims.swift; sourceTree = "<group>"; };
 		A022043AE60501848E0C5026 /* AIModelChecklist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelChecklist.swift; sourceTree = "<group>"; };
 		A061D1B64684905BA0E998C5 /* ChatHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryScreen.swift; sourceTree = "<group>"; };
@@ -1586,6 +1589,7 @@
 		A178C17DB989B6D2D71C021E /* ExtensionActionsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionActionsPanel.swift; sourceTree = "<group>"; };
 		A17C22B5CE1449E12331FA94 /* WindowLayoutEditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutEditorPanel.swift; sourceTree = "<group>"; };
 		A25FA208C0AA74234DEC73F0 /* OpenCodeMCPBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCodeMCPBridge.swift; sourceTree = "<group>"; };
+		A2924F77046DBB7A87133F63 /* DisplayBrightnessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayBrightnessService.swift; sourceTree = "<group>"; };
 		A2BB93BC8E1694F14B0194AA /* HyperKeySettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKeySettingsSection.swift; sourceTree = "<group>"; };
 		A379CB384B76FF70AC72E235 /* AppleShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleShortcut.swift; sourceTree = "<group>"; };
 		A3873052B25A123BCA5A6DA9 /* NotesMenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesMenuBarController.swift; sourceTree = "<group>"; };
@@ -1949,6 +1953,7 @@
 				D3F82845FDA307DF71676352 /* CalendarAccess.swift */,
 				5DD86B3ABBB71BC6EA116D85 /* CameraAccess.swift */,
 				5DEE02FD2AA017A2F2D14729 /* DarwinNotificationToken.swift */,
+				A2924F77046DBB7A87133F63 /* DisplayBrightnessService.swift */,
 				2438C33DEAF16B26E4F195EB /* ExecutableLocator.swift */,
 				0DE505A8B3E665C2C1382B48 /* ExecutablePicker.swift */,
 				236934966557373B61455B3C /* FolderPicker.swift */,
@@ -3451,6 +3456,7 @@
 		A4EF9B5FDF7432E13D31FB87 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				9F3C6A0B767A5B302C7EED36 /* DisplayDDC.swift */,
 				83C54F3A609CD1C2CDF304FB /* DoubleTapDetector.swift */,
 				72F0F0DDA5FC1F6ED59E73E9 /* DoubleTapModifier.swift */,
 				AAB5B3B85E8B34DB3CF9EA70 /* HIDKeyMapping.swift */,
@@ -4597,6 +4603,8 @@
 				05A237890B4BD21EE91D8090 /* DictionaryService.swift in Sources */,
 				BD0C138940A1B20828610D05 /* DictionarySession.swift in Sources */,
 				48F5623110FDD1FC69CEAF7A /* DisabledApplicationsSection.swift in Sources */,
+				DE68764E50A277A7A9C8B75D /* DisplayBrightnessService.swift in Sources */,
+				3A8127A507E19A0C4F52594B /* DisplayDDC.swift in Sources */,
 				A1F267E9D9914DB60DEEE0AD /* DoubleTapDetector.swift in Sources */,
 				DFB25A4CDD35071B745F2EF9 /* DoubleTapModifier.swift in Sources */,
 				364CB97064000DC67178DDE8 /* EdgeDissolve.swift in Sources */,

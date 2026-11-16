@@ -7,8 +7,6 @@ enum MediaKeyPoster {
     enum Key: Int32, Sendable {
         case soundUp = 0
         case soundDown = 1
-        case brightnessUp = 2
-        case brightnessDown = 3
         case mute = 7
         case playPause = 16
         case nextTrack = 17
