@@ -279,7 +279,8 @@ final class DeepLinkCoordinator {
             return createQuicklinks(from: input)
         case .createSnippet:
             return createSnippets(from: input)
-        case .createNote:
+        // Notebook given text starts a new note with it; without any it runs as the plain command.
+        case .showNotes:
             guard let text = input.contextFields?["text"] ?? input.fallbackText else { return false }
             hidePalette()
             core.notesCoordinator.createNote(text: text)

@@ -87,6 +87,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
                 preferredInputSourceID: core.settings.autoSwitchInputSourceID)
             // Events go stale while the palette is closed, and the countdown only ticks while up.
             core.calendarCoordinator.paletteDidShow()
+            if core.palette.mode == .notes { core.notesCoordinator.screenDidOpen() }
             core.palette.noteVisible(true)
             core.clipboardStore.setTextSearchActive(true)
             // Non-activating, so summoning never raises our own aux windows behind it.
@@ -149,12 +150,11 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     }
 
     func hide(restoreFocus: Bool) {
-        NotesPanel.refusesInheritedKey = previousOwnWindow?.isVisible != true
         panel?.orderOut(nil)
-        NotesPanel.refusesInheritedKey = false
         commandEscapeTap.disable()
         core.inputSourceSwitcher.endSession()
         core.calendarCoordinator.paletteDidHide()
+        if core.palette.mode == .notes { core.notesCoordinator.screenDidClose() }
         core.roomCoordinator.paletteDidHide()
         core.palette.noteVisible(false)
         core.clipboardStore.setTextSearchActive(false)
@@ -402,6 +402,12 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         installPasteMonitor()
         panel.onEscape = { [weak self] in
             guard let self else { return false }
+            // A focused note is left for its list first; only then is Escape the palette's back step.
+            if core.palette.mode == .notes, !core.palette.isComposing,
+                core.notesCoordinator.handlePaletteEscape()
+            {
+                return true
+            }
             if core.palette.mode == .customCommandEditor, !core.palette.isComposing {
                 core.customCommandCoordinator.cancelCustomCommandEditing()
                 return true
@@ -455,6 +461,11 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
                 return true
             }
             guard let character = Self.commandCharacter(from: event) else { return false }
+            // Here rather than in a key handler: it has to work from the note and from the field.
+            if character == "l", self.core.palette.mode == .notes {
+                self.core.notesCoordinator.toggleEditorFocus()
+                return true
+            }
             switch character {
             case ",":
                 self.core.settingsCoordinator.showSettings()

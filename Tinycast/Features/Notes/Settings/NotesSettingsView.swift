@@ -11,7 +11,7 @@ struct NotesSettingsView: View {
                 Toggle(isOn: $settings.notesEnabled) {
                     SettingsFeatureToggleLabel(
                         anchor: .notesNotes, title: "Enable Notes",
-                        subtitle: "Plain Markdown in a floating editor.")
+                        subtitle: "Plain Markdown notes, written and searched in the launcher.")
                 }
             }
             .settingsAnchor(.notesNotes)
@@ -28,7 +28,7 @@ struct NotesSettingsView: View {
                 .settingsEnabled(settings.notesEnabled && settings.notesRendersMarkdown)
                 Toggle(isOn: $settings.notesShowsInMenuBar) {
                     SettingsRowTitle(.notesOptions, "Show in Menu Bar")
-                    Text("Right-click the icon to create or search notes.")
+                    Text("Click the icon to open Notebook, or right-click it for a new note.")
                 }
                 .settingsEnabled(settings.notesEnabled)
                 LabeledContent {

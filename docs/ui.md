@@ -76,8 +76,9 @@ Add a token rather than a magic number when introducing a new value.
 ### Interface Size (`InterfaceMetrics`)
 
 `AppSettings.interfaceSize` scales the palette and the surfaces that float with it — the ⌘K menu, the
-extension list panel, Quick Actions, dialogs and HUDs. Settings, Onboarding,
-About and Notes never scale.
+extension list panel, Quick Actions, dialogs and HUDs. Settings, Onboarding and
+About never scale. The Notes screen scales with the palette around it — its list, rows, header
+controls and info card — but the note's own type and its formatting bar do not.
 
 `DesignSystem/InterfaceMetrics.swift` stores **only a scale** and derives every value from the `Theme`
 literal, so `Theme` stays the one place a number is written down. **In any view a scaled surface can
@@ -130,8 +131,6 @@ action, and the pill is the affordance saying so; squaring it off reads as a too
 also keeps the pair concentric for free — a capsule's radius is half its height, so the inner
 buttons land exactly `Spacing.xs` inside the wrapper without either radius being written down.
 
-Notes has no corner of its own: it clips to `panel`, so the two floating surfaces read as siblings.
-
 `dialog` sits between `menuPanel` and `panel` so a dialog reads as a smaller sibling of the palette, not a second palette.
 
 `menu` is the shared small-control corner (sidebar tiles, About link pills); `menuRow` is the slightly rounder hover highlight behind popover-menu rows.
@@ -165,7 +164,7 @@ round every row to 18 for no reason.
 If a pair ever does need closing, **move the gap, not the curve** — but only once you have checked
 what else is anchored to that gap. A radius is shared by surfaces across several features, a
 placement constant is not: `Radius.menuPanel` alone dresses the ⌘K menu, the extensions actions
-panel, the shortcut-recorder callout and the Notes switcher, and `menuRow` is deliberately equal to
+panel, the shortcut-recorder callout and the Notes heading menu, and `menuRow` is deliberately equal to
 `row` so a row pill is one shape everywhere.
 
 ### Size (`Theme.Size`)
@@ -184,9 +183,12 @@ panel, the shortcut-recorder callout and the Notes switcher, and `menuRow` is de
 
 The opt-in Dictation capsule adds `dictationPanel 144×44`, with 2pt waveform bars separated by 3pt.
 
-Notes adds `noteWindow 440×180` (opening size on a first run, and the floor), `noteWindowMaxHeight 860`,
-`noteTitlebar 44`, `noteTitleInset 120`, `noteEditorInset 16`, `noteSearchHeight 34`,
-`noteFooterHeight 28`, `noteGlyph 16`, `noteEmptyGlyph 28`, and `noteHeadingMenu 220×159`.
+Notes adds `noteListWidth 218` (the list's opening width, a quarter narrower than the clipboard's),
+`noteListMinWidth 150` and `noteListMaxWidth 340` (the range its hairline drags between; the ceiling leaves the editor pane room for the whole formatting bar),
+`noteSplitHandleWidth 10` (the hit strip over that hairline), `noteInfoCardWidth 240`,
+`noteEditorInset 16`, `noteEditorTopInset 6`, `noteGlyph 16` and `noteHeadingMenu 220×159`.
+`noteWindowMaxHeight 860` is a leftover of the Notes window: only the editor harnesses read it, as
+the limit they measure text height to.
 
 AI Chat adds `aiChatWindow 960×660` (opening size), `aiChatWindowMinimum 680×440`, a sidebar of
 `aiChatSidebarMinimum 240`–`aiChatSidebarMaximum 340`, `aiChatDetailMinimum 440`,
@@ -276,42 +278,55 @@ Source: `Palette/PalettePanel.swift`, `Palette/RootPaletteView.swift`.
 
 ---
 
-## Notes panel
+## Notes screen
 
 Source: `Features/Notes/UI/`.
 
-Notes is a sibling surface, not a palette mode. `NotesPanel` is a **titled**, resizable,
-non-activating panel — AppKit draws the traffic lights, the drag and the resize — but it keeps the
-palette's transparent recipe and deliberately does not dismiss on resign-key. `NotesView`'s root
-applies `panelScrim` → `GlassEffectView()` → one continuous **`panel`** corner clip, so
-Notes and the palette round identically. The clip is larger than the theme frame's own corner, so it
-is what shows; `invalidateShadow()` on every show recuts the shadow to match.
+Notes is a palette screen, `PaletteMode.notes`, not a surface of its own: the panel, its position and
+width, the glass, the header search field, the back chevron and the floating bottom bar are all the
+palette's. There is no Notes window, title bar or traffic light, and the screen leaves when the
+palette does. `NotesPanel` is only the borderless child window the heading menu is drawn in. Behaviour
+is in [features/notes.md](features/notes.md).
 
-The title bar is a 44-point band, and both halves of it are deliberate. `titleVisibility` is
-`.hidden` and `NotesView` draws the title itself, centred on the **window**: a titlebar accessory
-drops `NSThemeFrame` off its centred-title layout, so the native title would sit beside the traffic
-lights. The drawn title is not hit-testable, so clicks fall through to the real title bar and drag
-the window. The three actions cannot do that, so they live in an `NSTitlebarAccessoryViewController`
-at `.trailing` — `NoteTitlebarActions`, the launcher's footer capsule (`BarButton` in a
-`frosted(in: Capsule())`) with glyphs in place of pills. Its 44-point height is what sizes the band.
+`NotesHeaderControls` sits at the header's trailing end, where other screens put their filter button:
+up to three `BarButton(chrome: .rounded, isCompact: true)` glyphs, `xs` apart, each in a
+`chatAttachmentGlyph` frame in `textSecondary`. Create Note (`plus`, ⌘N) is always there; Formatting
+(`paintbrush`, ⌥⌘T) and Note Info (`info.circle`) only while a note is open, Formatting also needing
+Render Markdown and Show Formatting Bar on. Formatting and a pinned Note Info use
+`BarButton.isSelected` and draw their glyph in `textPrimary`. The buttons never take focus. Tooltips
+hang below, on `edge: .bottom`; Note Info has none, because hovering it is what shows the card.
 
-`NotesWindowController` fits the height to the editor on every edit and AppKit autosaves the frame
-under `"Notes Window"`; only a title-bar double-click computes a top-right target. The window shows exactly
-one surface at a time — editor, switcher, or the "No Notes" empty state — and the character count is
-part of the editor surface, so it never appears without a note.
+The body is `NotesList`, one vertical hairline of `separator`, and the editor pane. The list opens
+`noteListWidth` wide, scaled with Interface Size. A `noteSplitHandleWidth` strip over the hairline
+drags it between `noteListMinWidth` and `noteListMaxWidth`; the strip is an AppKit view marked
+`PaletteResizeHandleView`, because the panel would hand a SwiftUI drag to its own window drag, and
+that marker is how `PalettePanel` knows to show the left-right resize cursor over it. With no rows
+the body is the shared `EmptyResults` with the `text.book.closed` glyph.
 
-The header keeps a fixed slot for status so Saving, Saved, failure, and conflict symbols cannot move
-the controls. Failure and conflict symbols can be clicked to reopen their recovery report after a
-dismissal. A title click opens the in-window note switcher; dragging the title, note icon, or otherwise
-empty header moves the panel after a three-point threshold. Create, Reveal, Hide, and actionable status
-remain click-only controls. Escape closes the switcher before hiding, while Command-W and the hide
-control order the panel out. Show Notes only shows or focuses; focus loss leaves the panel visible.
+A row follows the palette's row grammar: `lg` between a `resultRowIcon` slot holding the `note.text`
+symbol icon and the text, `md` horizontal and `sm` vertical insets, and a `Radius.row` background
+filled `selection` for the open note, `rowHover` under the pointer and clear otherwise. The title is
+`menuRow` in `textPrimary` on one line; under it, when the note has any, one line of preview in
+`caption2` and `textTertiary`, read from the first 4 KB of the note's file. No separators part the
+rows, and a row carries no buttons: its actions are in the palette's ⌘K menu, which a right-click
+also opens, and Rename edits the title in an inline field in the row. The list uses
+`.edgeDissolve()` and `.thinScrollbar()` like every other palette list. To VoiceOver a row is one
+element reading its title, selected when it is the open note.
+
+`NoteInfoCard` is an overlay at the body's top-trailing corner, `xl` in from the edge and
+`noteInfoCardWidth` wide: label and value rows for Words, Characters and Created, in `keyCap` type
+with `textSecondary` labels and `textPrimary`, monospaced-digit values. It is the one opaque surface
+on the screen, the tooltip's recipe (`windowBackgroundColor` under `controlSurface`, `Radius.row`
+corners, `tooltipShadow`), because it hangs over the note's text. It fades over `Duration.tooltip`
+and is not hit-testable.
 
 The editor is one native TextKit 2 surface. Its string is the canonical Markdown source, and Render
 Markdown styles it in place with no new tokens. Notes type sits one system text style above the rest
 of the app, because a note is for reading: body text is the title3 size in `noteText`, and headings 1
 to 3 use the largeTitle, title1 and title2 sizes (bold, bold, semibold). Interface Size does not scale
-it. Inline code is monospaced on `controlSurface`, and links use the system link colour. Quotes and
+it. While Render Markdown is on, an unnamed note's first line is drawn as its title, bold and two
+points over the title1 size; a named note keeps its filename as its title. Inline code is monospaced
+on `controlSurface`, and links use the system link colour. Quotes and
 checked tasks dim to `textSecondary`, and a checked task is struck through. Most markers show in
 `textTertiary` on the caret's line and are hidden elsewhere. Bullets keep their rendered dot even under
 the caret; revealed list markers stay `textSecondary`. Revealed non-bullet list and quote markers hang
@@ -327,33 +342,20 @@ space above, the rest `md`, and `xs` below; every list item gets `md` below. A t
 source in the code-block font, and a wrapped row hangs `lg` under its first line. AppKit owns editing,
 undo, selection, Find, and marked text.
 
-Under the editor, the formatting bar takes a `bottomBarHeight` band while Render Markdown and Show
-Formatting Bar are on, in place of the 28-point count footer. It is one row, not a capsule hugging the
-window: the count is plain text at the leading edge and the buttons sit in glass at the trailing edge,
-the same split as the palette's own bottom bar. The capsule is the title bar's recipe (`BarButton`s in
-`frosted(in: Capsule())`), inset `md` from the trailing edge as the title capsule is, with `xxs`
-between buttons and `sm` between groups. Each button is a compact 28-point square
-around a `noteGlyph` frame, so the capsule is 36 points wide collapsed and 397 expanded, and the count
-gives way from 524 points down. Collapsing and expanding grows the buttons out of the round button on
-`MenuMotion.chevronAnimation`, wrapped in an explicit `withAnimation` in the coordinator because the
-chord changes that state outside any view's transaction, and skips the animation under Reduce Motion. The band takes only the width it is offered, so the bar can never widen the note; past that,
-only the capsule's leading end clips. Lit buttons
-use `BarButton.isSelected`; hovering shows a `Tooltip` with the name and shortcut, because an AppKit
-tooltip does not appear while the app is inactive behind this non-activating panel. The glass is a
-`background`, never a wrapper, and nothing clips the row, because either one swallows that tooltip. The
-round button aligns its tooltip trailing and the heading button leading, so neither runs past the
-window edge. The heading menu is a borderless child window like the switcher, `noteHeadingMenu` in
-size, hung off the heading button's own reported frame and `xs` above it, drawn with
-`PopoverMenuRow`'s metrics on `menuPanel` glass.
-
-The switcher is its own glass panel over the editor, sized to its list up to a 240-point ceiling and
-never resizing the note window. Its plain search field and
-keyboard-navigable rows use the shared selection/hover ramp; rename and Trash remain row actions rather
-than adding another toolbar or window.
-
-The switcher exposes activation, Rename, and Move to Trash as VoiceOver actions with the actual note
-title. Its hover buttons are hidden from accessibility so those actions are announced once. See
-[features/notes.md](features/notes.md).
+Under the editor, the formatting bar takes a `bottomBarHeight` band while it is out, and no space at
+all while it is not: the header's `paintbrush` button shows and hides it, fading it on
+`MenuMotion.chevronAnimation` through an explicit `withAnimation` in the coordinator, because the
+chord changes that state outside any view's transaction, and without animation under Reduce Motion.
+The bar is one capsule at the band's trailing edge, `md` in: `BarButton`s over
+`frosted(in: Capsule())`, with `xxs` between buttons and `sm` between groups. Each button is a compact
+28-point square around a `noteGlyph` frame. It is `fixedSize`, so it never squeezes, and the band
+takes only the width the editor pane offers. Lit buttons use `BarButton.isSelected`; hovering shows a
+`Tooltip` with the name and shortcut, because an AppKit tooltip does not appear while the app is
+inactive behind a non-activating panel. The glass is a `background`, never a wrapper, and nothing
+clips the row, because either one swallows that tooltip. The heading button aligns its tooltip
+leading, so it does not run past the pane's edge. The heading menu is a borderless child window of
+the palette, `noteHeadingMenu` in size, hung off the heading button's own reported frame and `xs`
+above it, drawn with `PopoverMenuRow`'s metrics on `menuPanel` glass.
 
 ---
 
@@ -361,7 +363,7 @@ title. Its hover buttons are hidden from accessibility so those actions are anno
 
 Source: `Features/AI/UI/AIChatSplitViewController.swift`, `AIChatDetailView.swift`.
 
-AI Chat is a titled window built the way Settings is, not a palette sibling like Notes: a real
+AI Chat is a titled window built the way Settings is, not a palette screen like Notes: a real
 `NSSplitViewController` whose sidebar item takes the system sidebar material, a unified toolbar with
 an inline title, and native `List`, `Menu` and context menus. Nothing about it scales with Interface
 Size. The composer is untinted Liquid Glass at `Radius.dialog`, stacked under the transcript so nothing
@@ -400,8 +402,7 @@ the `ScrollView`, **before `.thinScrollbar()`** (so the scrollbar overlay stays 
 - The mask spans the scroll view's **full** frame (`.ignoresSafeArea()`) — otherwise the bars' safe-area insets shift the gradient onto at-rest rows.
 
 **Palette only.** Every one of its call sites is a palette screen, and the bands above are measured
-against the palette's bars. A Settings list underlaps nothing, so it uses `.overflowFade()` instead —
-and so does the Notes switcher, whose search row is a sibling in a `VStack`, not a floating bar.
+against the palette's bars. A Settings list underlaps nothing, so it uses `.overflowFade()` instead.
 
 ---
 
@@ -409,12 +410,12 @@ and so does the Notes switcher, whose search row is a sibling in a `VStack`, not
 
 Source: `DesignSystem/Scrolling/OverflowFade.swift`.
 
-The counterpart for any list with no bars over it — the Settings lists and the Notes switcher — and
+The counterpart for any list with no bars over it — the Settings lists — and
 deliberately a separate type: sharing one modifier would tie such a list to geometry that only means
 something under a bar. Attach with `.overflowFade()` on the `ScrollView`, before `.thinScrollbar()`,
 or pass `includingTop: true` for a bounded popup whose title and rows scroll together.
 
-- **Bottom by default.** Settings and Notes have nothing above their lists; popups opt into the top
+- **Bottom by default.** Settings has nothing over its lists; popups opt into the top
   edge because their content, including the title, can scroll past it.
 - Fade band: **24px** with the original single-stop curve by default; popups opt into the progressive
   top-and-bottom curve and their own 30pt band.
@@ -654,7 +655,7 @@ leaves, and `fadeIn`/`fadeOut` for the panels; Reduce Motion, or **Show animatio
 
 ## The camera preview panel
 
-`CameraPanel` is the third borderless surface, beside the dialog and the notes panel. It takes
+`CameraPanel` is another borderless surface, beside the dialog. It takes
 the same recipe — `panelScrim`, then `GlassEffectView`, then the clip — and the same optical lift a
 dialog takes, but sits at `.floating` rather than `.dialog` so a failure report still lands on
 top of it.

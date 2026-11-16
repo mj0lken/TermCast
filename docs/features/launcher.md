@@ -651,17 +651,17 @@ Activation hands the action to `QuickActionCoordinator.run(_:)` **without** hidi
 the coordinator reads the displaced app and then hides, because after the hide the frontmost app is
 Tinycast. See [quick-actions.md](quick-actions.md).
 
-## Notes commands
+## The Notebook command
 
-`CommandID.showNotes`, `.createNote`, and `.searchNotes` publish the three Notes entry points while the
-feature is enabled. Activation hides the palette without restoring focus and calls the matching
-`NotesCoordinator` action; each `HotKeyAction` reaches that same boundary and rechecks enablement.
+`CommandID.showNotes`, named Notebook, is the one Notes entry point while the feature is enabled. Its
+identifier predates the name, and shortcuts and favorites are keyed by it. Activation calls
+`NotesCoordinator.toggle()` without dismissing the palette, so the launcher navigates to the Notes
+screen and Escape comes back; its `HotKeyAction` reaches that same boundary and rechecks enablement.
 
-`AppIndex` projects the three commands together from `notesEnabled`, independently of File Search and
-Quicklinks. They represent collection actions rather than individual notes, so Notes adds no
-`AppEntry.Kind` or launcher section — it owns them through `SettingsTab.ownedCommands` instead, which
-is what keeps them out of Settings › Commands while they stay in the launcher's Commands section. See
-[notes.md](notes.md).
+`AppIndex` projects the command from `notesEnabled`, independently of File Search and Quicklinks. It
+represents the collection rather than an individual note, so Notes adds no `AppEntry.Kind` or launcher
+section — it owns the command through `SettingsTab.ownedCommands` instead, which is what keeps it out
+of Settings › Commands while it stays in the launcher's Commands section. See [notes.md](notes.md).
 
 ## Pane-owned commands
 

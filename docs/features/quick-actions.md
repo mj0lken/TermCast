@@ -176,7 +176,7 @@ the panel. System Settings has no anchor for the sheet itself, so the last click
 
 ## The panel
 
-`QuickActionPanel` is Tinycast's **fourth borderless surface**, beside the dialog, the notes panel
+`QuickActionPanel` is Tinycast's **fourth borderless surface**, beside the dialog, the note heading menu
 and the join preview. It takes the same recipe — `panelScrim`, then `GlassEffectView`, then the
 clip — and sits at `.floating` like the join preview, so a failure report still lands on top of it.
 Its footer speaks the same button language as a dialog's — `ModalActionButtonStyle`, with Replace
@@ -277,7 +277,7 @@ failure handler, so automatic expansion stays silent as before.
 
 - Select text in Safari, Chrome, Brave, Slack, Mail, Notes, VS Code and Terminal, press Fix Grammar,
   and confirm the selection is **replaced** rather than appended to.
-- Select text in a Tinycast floating note and run Fix Grammar by shortcut and launcher row. Confirm
+- Select text in a note on the Notebook screen and run Fix Grammar by shortcut and launcher row. Confirm
   replacement, Undo, and that changing the note before pressing Replace copies instead.
 - In a Chromium target, run one on a **short** selection whose result stays under 100 characters on
   one line: the whole result lands, not its first four characters.

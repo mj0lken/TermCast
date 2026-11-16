@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 
 @MainActor
 final class NoteTextView: NSTextView, InjectableTextView {
@@ -131,11 +132,36 @@ final class NoteTextView: NSTextView, InjectableTextView {
             }
             return true
         }
+        // A non-activating panel has no main menu to offer Find, so the note answers ⌘F itself.
+        if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "f" {
+            if !event.isARepeat { find(.showFindInterface) }
+            return true
+        }
+        if let command = Self.collectionCommand(for: event, modifiers: modifiers) {
+            if !event.isARepeat || command != .newNote { editing?.perform(command) }
+            return true
+        }
         guard rendersMarkdown, let action = Self.chord(for: event) else {
             return super.performKeyEquivalent(with: event)
         }
         if !event.isARepeat { perform(action) }
         return true
+    }
+
+    /// ⌘N, ⌥⌘↑/↓ and ⌥⌘T: the palette's own chords never reach a focused note, so it carries these.
+    private static func collectionCommand(
+        for event: NSEvent, modifiers: NSEvent.ModifierFlags
+    ) -> NoteEditorCommand? {
+        if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "n" {
+            return .newNote
+        }
+        guard modifiers == [.command, .option] else { return nil }
+        switch Int(event.keyCode) {
+        case kVK_UpArrow: return .previousNote
+        case kVK_DownArrow: return .nextNote
+        case kVK_ANSI_T: return .toggleFormattingBar
+        default: return nil
+        }
     }
 
     override func paste(_ sender: Any?) {

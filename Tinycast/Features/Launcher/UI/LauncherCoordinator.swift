@@ -213,15 +213,9 @@ final class LauncherCoordinator {
             calendarCoordinator.openNextMeetingInCalendar()
         case .createEvent:
             calendarCoordinator.createEvent()
+        // A palette screen: the launcher navigates there, so Escape comes back here.
         case .showNotes:
-            dismissPalette()
             notesCoordinator.toggle()
-        case .createNote:
-            dismissPalette()
-            notesCoordinator.createNote()
-        case .searchNotes:
-            dismissPalette()
-            notesCoordinator.searchNotes()
         case .searchQuicklinks:
             paletteCoordinator.togglePalette(mode: .quicklinks)
         case .searchSnippets:

@@ -34,6 +34,7 @@ struct NotesEditorTests {
         testTextHeight(rendersMarkdown: false)
         testTextHeight(rendersMarkdown: true)
         testHeightBeforeDraw()
+        testFirstLineTitle()
         print(failures == 0 ? "Notes editor tests passed" : "\(failures) tests failed")
         exit(failures == 0 ? 0 : 1)
     }
@@ -1050,6 +1051,52 @@ struct NotesEditorTests {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         _ = textView.readSelection(from: pasteboard)
+    }
+
+    private static func testFirstLineTitle() {
+        func font(_ editor: NoteTextView, at location: Int) -> NSFont? {
+            editor.textStorage?.attribute(.font, at: location, effectiveRange: nil) as? NSFont
+        }
+        let source = "Trip plan\nbook flights"
+        let bodyStart = (source as NSString).range(of: "book").location
+
+        let unnamed = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled 3.md"), source: source, epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "an unnamed note's first line is set as its title",
+            font(unnamed.textView, at: 0) == NoteMarkdownTypography.title)
+        check(
+            "the line under the title stays body text",
+            font(unnamed.textView, at: bodyStart) == NoteMarkdownTypography.body)
+        check("title styling leaves the source alone", unnamed.textView.string == source)
+
+        unnamed.textView.setSelectedRange(NSRange(location: 0, length: 0))
+        unnamed.textView.insertText("Intro\n", replacementRange: unnamed.textView.selectedRange())
+        check(
+            "a line typed above takes the title over",
+            font(unnamed.textView, at: 0) == NoteMarkdownTypography.title
+                && font(unnamed.textView, at: 6) == NoteMarkdownTypography.body)
+
+        let named = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Plan.md"), source: source, epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "a named note keeps its filename as the title, so its first line is body text",
+            font(named.textView, at: 0) == NoteMarkdownTypography.body)
+
+        let heading = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled.md"), source: "# Trip\nplan", epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "a heading on the first line keeps its own style",
+            font(heading.textView, at: 2) == NoteMarkdownTypography.heading1)
+
+        let literal = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled.md"), source: source, epoch: 1))
+        check(
+            "the literal editor sets no title",
+            font(literal.textView, at: 0) == NoteMarkdownTypography.body)
     }
 
     private static func makeEditor(

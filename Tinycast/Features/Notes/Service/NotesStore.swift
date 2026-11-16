@@ -27,7 +27,7 @@ final class NotesStore {
         guard NoteTitle.isUnnamed(title) else { return title }
         return NoteTitle.firstLine(of: source) ?? NoteTitle.displayName(title)
     }
-    var activeFileURL: URL? { activeID.map(repository.fileURL(for:)) }
+    func fileURL(for id: NoteID) -> URL { repository.fileURL(for: id) }
     private(set) var notesDirectory: URL
     var onIssue: ((Issue) -> Void)?
 
@@ -172,14 +172,18 @@ final class NotesStore {
         guard id != activeID else { return true }
         guard await flush() else { return false }
         guard permitsApply() else { return false }
-        cancelSearch()
         let repository = repository
+        let revision = sourceRevision
         let result = await detached {
             try repository.load(id)
         } recover: {
             repository.fileURL(for: id)
         }
         guard permitsApply(), !Task.isCancelled else { return false }
+        // The editor keeps the focus while a list row loads, so a key typed meanwhile is saved first.
+        if revision != sourceRevision {
+            guard await flush(), permitsApply(), !Task.isCancelled else { return false }
+        }
         switch result {
         case .success(let document):
             apply(document, summaries: summaries)
@@ -215,15 +219,17 @@ final class NotesStore {
         }
     }
 
+    /// `successor` is the note to open when the active one goes; without one it is the newest.
     @discardableResult
-    func trash(_ id: NoteID) async -> Bool {
+    func trash(_ id: NoteID, successor preferred: NoteID? = nil) async -> Bool {
         guard await flush() else { return false }
         let repository = repository
         let replacesActive = id == activeID
         let result = await detached {
             try repository.trash(id: id)
             let summaries = try repository.list()
-            let successor = replacesActive ? summaries.first : nil
+            let successor =
+                replacesActive ? summaries.first { $0.id == preferred } ?? summaries.first : nil
             return (try successor.map { try repository.load($0.id) }, summaries)
         } recover: {
             repository.fileURL(for: id)

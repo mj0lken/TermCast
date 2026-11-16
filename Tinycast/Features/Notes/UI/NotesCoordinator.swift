@@ -5,9 +5,13 @@ import SwiftUI
 @Observable
 final class NotesCoordinator {
     private enum Presentation: Equatable {
+        /// The Notebook command: the most recently edited note, with the caret in it.
+        case latest
+        /// The note the store already holds, once a create this request waited on has landed.
         case editor
+        /// The screen came up on its own; the folder is re-read and nothing on screen moves.
+        case refresh
         case create(source: String)
-        case search
         case note(NoteID)
     }
 
@@ -15,9 +19,13 @@ final class NotesCoordinator {
     private let settings: AppSettings
     private let appIndex: AppIndex
     private unowned let core: AppCore
-    @ObservationIgnored private lazy var windowController = NotesWindowController(coordinator: self)
-    @ObservationIgnored private lazy var switcherController = NoteSwitcherWindowController(
-        coordinator: self)
+    /// The note editor on the palette's Notes screen, there only while that screen is mounted.
+    @ObservationIgnored private weak var editor: NoteTextView?
+    @ObservationIgnored private var editorFocusTask: Task<Void, Never>?
+    /// Set by a show this coordinator asked for, so the screen does not ask the store again.
+    @ObservationIgnored private var openedByRequest = false
+    /// One open and one close per visit, though the view and the palette both report each.
+    @ObservationIgnored private var isScreenOpen = false
     @ObservationIgnored private lazy var headingMenuController = NoteHeadingMenuWindowController(
         coordinator: self)
     @ObservationIgnored private var menuBarController: NotesMenuBarController?
@@ -29,9 +37,6 @@ final class NotesCoordinator {
     @ObservationIgnored private var pendingIssue: NotesStore.Issue?
     private var pendingPresentation: Presentation?
     private var enablementGeneration = 0
-    private(set) var isSwitcherPresented = false
-    private(set) var switcherSelection: NoteID?
-    private(set) var switcherFocusRevision = 0
     private(set) var characterCount = 0
     private(set) var wordCount = 0
     private(set) var formatting = NoteFormatting.plain
@@ -41,7 +46,16 @@ final class NotesCoordinator {
     @ObservationIgnored private var headingMenuWasOpenAtPress = false
     /// The heading button in the panel's flipped content space, reported by the bar as it lays out.
     @ObservationIgnored var headingButtonFrame: CGRect = .zero
-    private var switcherRename = NoteSwitcherRenameState()
+    private var listRename = NoteListRenameState()
+    /// The list's dragged width, for this visit only; every open starts from the default again.
+    private(set) var listWidth: CGFloat?
+    /// The rows on screen when the query last changed, shown until its results arrive.
+    @ObservationIgnored private var heldRows: [NoteID] = []
+    private var isInfoHovered = false
+    /// A click keeps the info card up after the pointer leaves; Escape or another click drops it.
+    private var isInfoPinned = false
+    /// The row an in-flight selection is heading for, so a held arrow key steps from there.
+    @ObservationIgnored private var pendingSelectionID: NoteID?
     private var presentationGeneration = 0
 
     @ObservationIgnored private let saveFormattingBarExpanded: @Sendable (Bool) -> Void
@@ -71,40 +85,42 @@ final class NotesCoordinator {
     }
 
     var hasActiveNote: Bool { store.activeID != nil }
-    /// UTF-16 units, straight off the text storage: the only length TextKit hands back in O(1).
-    var characterCountLabel: String {
-        String(localized: "\(characterCount) characters")
+    var selectedID: NoteID? { store.activeID }
+    var showsInfo: Bool { hasActiveNote && (isInfoHovered || isInfoPinned) }
+    var isInfoPinnedOpen: Bool { isInfoPinned }
+    var activeCreatedAt: Date? {
+        store.summaries.first { $0.id == store.activeID }?.createdAt
     }
-    var wordCountLabel: String {
-        String(localized: "\(wordCount) words")
-    }
-
-    var searchQueryBinding: Binding<String> {
-        Binding(
-            get: { [weak self] in self?.store.searchQuery ?? "" },
-            set: { [weak self] in self?.store.updateSearchQuery($0) })
-    }
-
-    var activeTitle: String { store.activeTitle }
+    /// Lit while the bar's buttons are showing under the note.
+    var isFormattingBarShown: Bool { showsFormattingBar && isFormattingBarExpanded }
+    /// True while a row is still loading, when the open note is not yet the one the list chose.
+    var isSelectionPending: Bool { pendingSelectionID != nil }
+    private var isShowing: Bool { core.paletteCoordinator.isShowing(.notes) }
     var rendersMarkdown: Bool { settings.notesRendersMarkdown }
     var showsFormattingBar: Bool { settings.notesRendersMarkdown && settings.notesShowsFormattingBar }
     var isSearching: Bool { store.isSearching }
-    var visibleNotes: [NoteSummary] {
-        store.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? store.summaries : store.searchResults.map(\.summary)
+    var isFilteringList: Bool {
+        !store.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    var switcherEditingID: NoteID? { switcherRename.id }
-    var isRenamingSwitcherNote: Bool { switcherRename.isActive }
-    var switcherTitleDraftBinding: Binding<String> {
+    /// Results are read through the current listing, so a row edited mid-search is never stale.
+    var visibleNotes: [NoteSummary] {
+        guard isFilteringList else { return store.summaries }
+        let current = Dictionary(store.summaries.map { ($0.id, $0) }) { first, _ in first }
+        // A search in flight keeps the rows it replaces, or every keystroke would blank the screen.
+        let ids = store.isSearching ? heldRows : store.searchResults.map(\.id)
+        return ids.compactMap { current[$0] }
+    }
+    var editingID: NoteID? { listRename.id }
+    var titleDraftBinding: Binding<String> {
         Binding(
-            get: { [weak self] in self?.switcherRename.draft ?? "" },
-            set: { [weak self] in self?.switcherRename.updateDraft($0) })
+            get: { [weak self] in self?.listRename.draft ?? "" },
+            set: { [weak self] in self?.listRename.updateDraft($0) })
     }
 
     func applyEnabled() {
         enablementGeneration &+= 1
         let generation = enablementGeneration
-        appIndex.setCommandsVisible([.showNotes, .createNote, .searchNotes], settings.notesEnabled)
+        appIndex.setCommandsVisible([.showNotes], settings.notesEnabled)
         applyMenuBarItem()
         guard !settings.notesEnabled else { return }
         presentationGeneration &+= 1
@@ -113,8 +129,8 @@ final class NotesCoordinator {
         loadTask = nil
         operationTask?.cancel()
         closeHeadingMenu()
-        closeSwitcher(focusEditor: false)
-        windowController.hide(restoreFocus: false)
+        resetListState()
+        if isShowing { core.paletteCoordinator.hidePalette(restoreFocus: false) }
         Task { [weak self] in
             guard let self else { return }
             _ = await store.flush()
@@ -136,10 +152,10 @@ final class NotesCoordinator {
     }
 
     func toggle() {
-        if windowController.isVisible {
-            hide()
+        if isShowing {
+            core.paletteCoordinator.hidePalette()
         } else {
-            request(.editor)
+            request(.latest)
         }
     }
 
@@ -151,8 +167,37 @@ final class NotesCoordinator {
         request(.create(source: text))
     }
 
-    func searchNotes() {
-        request(.search)
+    func setInfoHovered(_ hovered: Bool) {
+        guard hovered != isInfoHovered else { return }
+        isInfoHovered = hovered
+    }
+
+    func toggleInfoPinned() {
+        isInfoPinned.toggle()
+    }
+
+    func setListWidth(_ width: CGFloat) {
+        listWidth = min(max(width, Theme.Size.noteListMinWidth), Theme.Size.noteListMaxWidth)
+    }
+
+    /// The chords a focused note answers itself, since the palette's own never reach it.
+    func perform(_ command: NoteEditorCommand) {
+        switch command {
+        case .newNote: createNote()
+        case .toggleFormattingBar: toggleFormattingBar()
+        case .previousNote: stepNote(by: -1)
+        case .nextNote: stepNote(by: 1)
+        }
+    }
+
+    /// Steps from the row the last press was heading for, and keeps the caret in the editor.
+    private func stepNote(by offset: Int) {
+        let notes = visibleNotes
+        guard let index = notes.firstIndex(where: { $0.id == pendingSelectionID ?? store.activeID })
+        else { return }
+        let next = min(max(index + offset, 0), notes.count - 1)
+        guard next != index else { return }
+        select(notes[next].id, focusEditor: true)
     }
 
     func open(_ id: NoteID) {
@@ -163,113 +208,206 @@ final class NotesCoordinator {
         core.deepLinkCoordinator.copyLink(toNote: id)
     }
 
-    func openSwitcher() {
-        guard settings.notesEnabled, store.isLoaded else { return }
-        closeHeadingMenu()
-        if isSwitcherPresented {
-            switcherFocusRevision &+= 1
+    // MARK: - The palette screen
+
+    /// Notes is a launcher screen, so showing it is navigating the palette there.
+    private func show(focusEditor: Bool) {
+        if !isShowing {
+            openedByRequest = true
+            core.paletteCoordinator.showPalette(mode: .notes)
+        }
+        if focusEditor { self.focusEditor() }
+    }
+
+    /// The screen mounted: a show that did not come through `request` still owes the store a read.
+    func screenDidOpen() {
+        guard !isScreenOpen else { return }
+        isScreenOpen = true
+        listWidth = nil
+        setSearchQuery(core.palette.query)
+        guard !openedByRequest else {
+            openedByRequest = false
             return
         }
-        isSwitcherPresented = true
-        switcherSelection = store.activeID ?? store.summaries.first?.id
-        switcherFocusRevision &+= 1
-        windowController.presentSwitcher(switcherController)
+        request(.refresh)
     }
 
-    func closeSwitcher(focusEditor: Bool = true) {
-        guard isSwitcherPresented || !store.searchQuery.isEmpty else { return }
-        switcherRename.cancel()
-        isSwitcherPresented = false
-        switcherSelection = nil
-        store.cancelSearch()
-        switcherController.hide()
-        if focusEditor { windowController.focusEditor() }
-    }
-
-    func hide() {
+    /// The screen left, by Escape or with the palette: the draft is saved and the list state dropped.
+    func screenDidClose() {
+        guard isScreenOpen else { return }
+        isScreenOpen = false
+        openedByRequest = false
         closeHeadingMenu()
         presentationGeneration &+= 1
         pendingPresentation = nil
-        closeSwitcher(focusEditor: false)
-        windowController.hide(restoreFocus: true)
+        editorFocusTask?.cancel()
+        editorFocusTask = nil
+        core.palette.noteEditingField(false)
+        resetListState()
         Task { await store.flush() }
     }
 
-    func handleEscape() {
+    func setSearchQuery(_ query: String) {
+        guard query != store.searchQuery else { return }
+        heldRows = visibleNotes.map(\.id)
+        store.updateSearchQuery(query)
+    }
+
+    /// Renaming and trashing end the store's search, so the field's query is applied again.
+    private func resumeSearch() {
+        guard isShowing else { return }
+        setSearchQuery(core.palette.query)
+    }
+
+    /// The palette's own summon refocuses its search field a beat later, so this waits that out.
+    func focusEditor() {
+        editorFocusTask?.cancel()
+        editorFocusTask = Task { [weak self] in
+            for _ in 0..<6 {
+                try? await Task.sleep(for: .milliseconds(60))
+                guard !Task.isCancelled, let self, isShowing else { return }
+                guard let editor, let window = editor.window else { continue }
+                // Once, then never again: a later click on the search field must keep the focus.
+                window.makeFirstResponder(editor)
+                return
+            }
+        }
+    }
+
+    /// ⌘L: from the list into the open note, and from the note back to the list's search field.
+    func toggleEditorFocus() {
+        guard hasActiveNote else { return }
+        guard isEditorFocused else { return focusEditor() }
+        editorFocusTask?.cancel()
+        core.palette.focusToken = UUID()
+    }
+
+    /// The palette asks before any text key of its own, so typing in a note never drives the list.
+    func editorFocusChanged(_ focused: Bool) {
+        // The find bar's field is the note's own text too, so Backspace in it must not go back.
+        core.palette.noteEditingField(focused || listRename.isActive || isFindBarVisible)
+    }
+
+    private var isEditorFocused: Bool {
+        guard let editor, let window = editor.window else { return false }
+        return window.firstResponder === editor
+    }
+
+    private var isFindBarVisible: Bool {
+        editor?.enclosingScrollView?.isFindBarVisible == true
+    }
+
+    /// Escape leaves the note for the list before the palette takes it as its own back step.
+    func handlePaletteEscape() -> Bool {
         if isHeadingMenuPresented {
             closeHeadingMenu()
-        } else if isSwitcherPresented {
-            closeSwitcher()
-        } else {
-            hide()
+            return true
         }
+        if isFindBarVisible {
+            editor?.find(.hideFindInterface)
+            return true
+        }
+        if isInfoPinned {
+            isInfoPinned = false
+            return true
+        }
+        if listRename.isActive {
+            cancelRename()
+            return true
+        }
+        guard isEditorFocused else { return false }
+        editorFocusTask?.cancel()
+        core.palette.focusToken = UUID()
+        return true
     }
 
-    func reconcileSwitcherSelection() {
-        let notes = visibleNotes
-        guard !notes.isEmpty else {
-            switcherSelection = nil
-            return
-        }
-        if let switcherSelection, notes.contains(where: { $0.id == switcherSelection }) { return }
-        switcherSelection = notes.first?.id
+    /// What leaving the screen undoes: a search, a rename in progress and a pinned info card.
+    private func resetListState() {
+        listRename.cancel()
+        isInfoPinned = false
+        isInfoHovered = false
+        pendingSelectionID = nil
+        store.cancelSearch()
     }
 
-    func moveSwitcherSelection(by offset: Int) {
-        let notes = visibleNotes
-        guard !notes.isEmpty else {
-            switcherSelection = nil
-            return
-        }
-        guard let current = switcherSelection,
-            let index = notes.firstIndex(where: { $0.id == current })
-        else {
-            switcherSelection = notes[offset < 0 ? notes.count - 1 : 0].id
-            return
-        }
-        switcherSelection = notes[(index + offset + notes.count) % notes.count].id
+    /// The highlight moved onto a row: its note opens, and the keyboard stays with the list.
+    func preview(_ id: NoteID) {
+        guard !listRename.isActive else { return commitRename(opening: id) }
+        guard id != store.activeID || pendingSelectionID != nil else { return }
+        select(id, focusEditor: false)
     }
 
-    func selectSwitcherNote() {
-        guard let switcherSelection else { return }
-        select(switcherSelection)
+    /// ↵ on a row: the note opens with the caret in it.
+    func edit(_ id: NoteID) {
+        select(id, focusEditor: true)
     }
 
-    func activateSwitcherNote(_ id: NoteID) {
-        switcherRename.cancel()
-        select(id)
+    func showInFinder(_ id: NoteID) {
+        AppLauncher.showInFinder(store.fileURL(for: id))
+    }
+
+    func showSettings() {
+        core.settingsCoordinator.showSettings(tab: .notes)
+    }
+
+    /// Moving to another row ends a rename the way losing the focus does: by keeping the name.
+    private func commitRename(opening id: NoteID) {
+        guard let committed = listRename.commit() else { return }
+        core.palette.noteEditingField(isEditorFocused)
+        pendingSelectionID = nil
+        runOperation { [weak self] generation in
+            guard let self else { return }
+            let renamedID = await store.rename(committed.id, to: committed.title)
+            guard settings.notesEnabled, !Task.isCancelled else {
+                if !settings.notesEnabled { store.stop() }
+                return
+            }
+            resumeSearch()
+            // The row moved to may be the renamed one, whose identity is its new filename.
+            let target = committed.id == id ? renamedID ?? id : id
+            let selected = await store.select(target) { [weak self] in
+                self?.permitsCompletion(generation) ?? false
+            }
+            guard selected, permitsCompletion(generation) else { return }
+            show(focusEditor: false)
+        }
     }
 
     /// Renaming edits the filename, so the field starts from that and never from a derived line.
-    func beginSwitcherRename(_ summary: NoteSummary) {
-        switcherRename.begin(id: summary.id, title: summary.title)
+    func beginRename(_ summary: NoteSummary) {
+        listRename.begin(id: summary.id, title: summary.title)
+        core.palette.noteEditingField(true)
     }
 
-    func commitSwitcherRename() {
-        guard let committed = switcherRename.commit() else { return }
+    func commitRename() {
+        guard let committed = listRename.commit() else { return }
+        core.palette.noteEditingField(isEditorFocused)
         rename(committed.id, to: committed.title)
-        switcherFocusRevision &+= 1
+        core.palette.focusToken = UUID()
     }
 
-    func cancelSwitcherRename() {
-        guard switcherRename.isActive else { return }
-        switcherRename.cancel()
-        switcherFocusRevision &+= 1
+    func cancelRename() {
+        guard listRename.isActive else { return }
+        listRename.cancel()
+        core.palette.noteEditingField(isEditorFocused)
+        core.palette.focusToken = UUID()
     }
 
-    func select(_ id: NoteID) {
+    func select(_ id: NoteID, focusEditor: Bool = true) {
+        pendingSelectionID = id
         runOperation { [weak self] generation in
             guard let self else { return }
             let selected = await store.select(id) { [weak self] in
                 self?.permitsCompletion(generation) ?? false
             }
+            // A newer selection has already replaced this one's target, and keeps its own.
+            if pendingSelectionID == id { pendingSelectionID = nil }
             guard selected, settings.notesEnabled, !Task.isCancelled else {
                 if !settings.notesEnabled { store.stop() }
                 return
             }
             guard permitsCompletion(generation) else { return }
-            closeSwitcher()
-            windowController.show(focusEditor: true)
+            show(focusEditor: focusEditor)
         }
     }
 
@@ -281,22 +419,11 @@ final class NotesCoordinator {
                 if !settings.notesEnabled { store.stop() }
                 return
             }
-            switcherSelection = renamedID
+            resumeSearch()
             if renamedID == store.activeID, permitsCompletion(generation) {
-                windowController.show(focusEditor: false)
+                show(focusEditor: false)
             }
         }
-    }
-
-    func trashSwitcherSelection() {
-        guard let id = switcherSelection ?? store.activeID else { return }
-        trash(id)
-    }
-
-    func handleDeleteShortcut() -> Bool {
-        guard isSwitcherPresented, !switcherRename.isActive else { return false }
-        trashSwitcherSelection()
-        return true
     }
 
     func trash(_ id: NoteID) {
@@ -309,20 +436,17 @@ final class NotesCoordinator {
                 symbol: nil,
                 confirmTitle: String(localized: "Move to Trash"))
             guard confirmed, settings.notesEnabled, !Task.isCancelled else { return }
-            let switcherOrder = visibleNotes.map(\.id)
-            let removed = await store.trash(id)
+            // The row that takes the removed one's place, which is what the list leads one to expect.
+            let neighbour = NoteListSelection.replacement(
+                afterRemoving: id, from: store.summaries.map(\.id), fallback: nil)
+            let removed = await store.trash(id, successor: neighbour)
             guard removed, settings.notesEnabled, !Task.isCancelled else {
                 if !settings.notesEnabled { store.stop() }
                 return
             }
-            switcherSelection = NoteSwitcherSelection.replacement(
-                afterRemoving: id,
-                from: switcherOrder,
-                fallback: store.activeID ?? store.summaries.first?.id)
-            // Nothing left to browse, so the empty state owns the window rather than a bare list.
-            if store.summaries.isEmpty { closeSwitcher(focusEditor: false) }
+            resumeSearch()
             guard permitsCompletion(generation) else { return }
-            windowController.show(focusEditor: !isSwitcherPresented)
+            show(focusEditor: false)
         }
     }
 
@@ -338,18 +462,6 @@ final class NotesCoordinator {
 
     func resetNotesFolder() {
         settings.notesFolder = nil
-    }
-
-    func openNotesFolder() {
-        guard let fileURL = store.activeFileURL else {
-            NSWorkspace.shared.open(store.notesDirectory)
-            return
-        }
-        AppLauncher.showInFinder(fileURL)
-    }
-
-    func moveToTopRight() {
-        windowController.moveToTopRight()
     }
 
     func updateSource(_ source: String) {
@@ -377,8 +489,11 @@ final class NotesCoordinator {
         self.formatting = formatting
     }
 
+    /// The bar's buttons never take focus, but the editor is re-seated in case anything else did.
     func format(_ action: NoteEditAction) {
-        windowController.format(action)
+        guard isShowing, let editor, let window = editor.window else { return }
+        if window.firstResponder !== editor { window.makeFirstResponder(editor) }
+        editor.format(action)
     }
 
     /// Collapsing takes the heading button with it, so its menu cannot outlive it.
@@ -402,7 +517,11 @@ final class NotesCoordinator {
         }
         guard !isHeadingMenuPresented else { return closeHeadingMenu() }
         isHeadingMenuPresented = true
-        windowController.presentHeadingMenu(headingMenuController)
+        guard let window = editor?.window, window.isVisible else {
+            isHeadingMenuPresented = false
+            return
+        }
+        headingMenuController.show(above: window)
     }
 
     func chooseHeading(_ level: Int) {
@@ -422,7 +541,7 @@ final class NotesCoordinator {
     }
 
     func editorReady(_ textView: NoteTextView) {
-        windowController.editorReady(textView)
+        editor = textView
     }
 
     private func request(_ presentation: Presentation) {
@@ -460,17 +579,19 @@ final class NotesCoordinator {
 
     private func present(_ presentation: Presentation) async {
         switch presentation {
+        case .latest:
+            await showEditor { [store] in
+                guard let latest = store.summaries.first?.id else { return true }
+                return await store.select(latest)
+            }
         case .editor:
-            closeSwitcher()
-            windowController.show(focusEditor: true)
+            show(focusEditor: true)
+        case .refresh:
+            break
         case .create(let source):
             await showEditor { await store.create(source: source) }
         case .note(let id):
             await showEditor { await store.select(id) }
-        case .search:
-            // The switcher hangs off the note window, so that window has to exist first.
-            windowController.show(focusEditor: false)
-            openSwitcher()
         }
     }
 
@@ -480,13 +601,15 @@ final class NotesCoordinator {
         guard await change(), settings.notesEnabled, !Task.isCancelled,
             generation == presentationGeneration
         else { return }
-        closeSwitcher()
-        windowController.show(focusEditor: true)
+        store.cancelSearch()
+        // The field and the list it filters must agree, so the query goes with the search.
+        if isShowing, !core.palette.query.isEmpty { core.palette.query = "" }
+        show(focusEditor: true)
     }
 
     /// A newer show or hide retires an older operation's right to put what it loaded on screen.
     private func permitsCompletion(_ generation: Int) -> Bool {
-        windowController.isVisible && generation == presentationGeneration
+        isShowing && generation == presentationGeneration
     }
 
     /// One collection operation at a time: a newer request cancels and supersedes an in-flight one.

@@ -17,7 +17,6 @@ struct NotesTests {
         try testUnnamedNotesTitleThemselves()
         try testCreatedNoteHoldsItsSource()
         testSwitcherInteraction()
-        testWindowPlacement()
         try await testStoreCollectionAndAutosave()
         try await testStoreRefreshesExternalEdits()
         try await testStoreRefreshPreservesDrafts()
@@ -202,6 +201,19 @@ struct NotesTests {
         check(
             "rules and fences carry no title",
             NoteTitle.firstLine(of: "---\n```swift\nlet x = 1\n```") == "let x = 1")
+        check(
+            "an unnamed note previews what follows its title line",
+            NoteTitle.preview(of: "Groceries\n\n- milk\n- **eggs**", skippingTitle: true) == "milk eggs")
+        check(
+            "a named note previews from its first line",
+            NoteTitle.preview(of: "Groceries\nmilk", skippingTitle: false) == "Groceries milk")
+        check(
+            "a note with only a title line has no preview",
+            NoteTitle.preview(of: "Groceries\n\n", skippingTitle: true) == nil
+                && NoteTitle.preview(of: "", skippingTitle: false) == nil)
+        check(
+            "a preview is capped",
+            NoteTitle.preview(of: "t\n" + String(repeating: "a", count: 900), skippingTitle: true)?.count == 240)
     }
 
     private static func testCreatedNoteHoldsItsSource() throws {
@@ -246,7 +258,7 @@ struct NotesTests {
 
     private static func testSwitcherInteraction() {
         let id = NoteID(rawValue: "Project.md")
-        var rename = NoteSwitcherRenameState()
+        var rename = NoteListRenameState()
         check("switcher rename starts inactive", !rename.isActive)
         rename.begin(id: id, title: "Project")
         check("switcher rename captures identity and title", rename.id == id && rename.draft == "Project")
@@ -263,83 +275,22 @@ struct NotesTests {
         let fallback = NoteID(rawValue: "Untitled.md")
         check(
             "Trash selects the next switcher row",
-            NoteSwitcherSelection.replacement(
+            NoteListSelection.replacement(
                 afterRemoving: second,
                 from: [first, second, third],
                 fallback: fallback) == third)
         check(
             "Trash selects the previous row when removing the last one",
-            NoteSwitcherSelection.replacement(
+            NoteListSelection.replacement(
                 afterRemoving: third,
                 from: [first, second, third],
                 fallback: fallback) == second)
         check(
             "Trash uses the post-operation fallback when no row remains",
-            NoteSwitcherSelection.replacement(
+            NoteListSelection.replacement(
                 afterRemoving: first,
                 from: [first],
                 fallback: fallback) == fallback)
-    }
-
-    private static func testWindowPlacement() {
-        let visible = CGRect(x: 0, y: 50, width: 1440, height: 850)
-        let window = CGRect(x: 100, y: 100, width: 440, height: 312)
-        check(
-            "corner placement respects menu bar and Dock insets",
-            NoteWindowPlacement.topRight(window, in: visible, inset: 40)
-                == CGRect(x: 960, y: 548, width: 440, height: 312))
-
-        let external = CGRect(x: -1920, y: 30, width: 1880, height: 1020)
-        check(
-            "corner placement respects another display's origin",
-            NoteWindowPlacement.topRight(window, in: external, inset: 40)
-                == CGRect(x: -520, y: 698, width: 440, height: 312))
-
-        let nearlyFull = CGRect(x: 0, y: 0, width: 1420, height: 830)
-        check(
-            "corner placement reduces the inset rather than pushing a fitting window offscreen",
-            NoteWindowPlacement.topRight(nearlyFull, in: visible, inset: 40)
-                == CGRect(x: 0, y: 50, width: 1420, height: 830))
-
-        let oversized = CGRect(x: 0, y: 0, width: 1600, height: 1000)
-        check(
-            "oversized notes retain their size and align the top-right corner",
-            NoteWindowPlacement.topRight(oversized, in: visible, inset: 40)
-                == CGRect(x: -160, y: -100, width: 1600, height: 1000))
-
-        let highWindow = CGRect(x: 100, y: 500, width: 440, height: 180)
-        let heights: ClosedRange<CGFloat> = 180...860
-        check(
-            "fitting grows downward and preserves width and the top edge",
-            NoteWindowPlacement.fitting(highWindow, toHeight: 300, within: heights, in: visible)
-                == CGRect(x: 100, y: 380, width: 440, height: 300))
-        check(
-            "fitting moves the window up when it reaches the Dock",
-            NoteWindowPlacement.fitting(window, toHeight: 500, within: heights, in: visible)
-                == CGRect(x: 100, y: 50, width: 440, height: 500))
-        check(
-            "fitting stops at the screen's usable height",
-            NoteWindowPlacement.fitting(highWindow, toHeight: 2000, within: heights, in: visible)
-                == CGRect(x: 100, y: 50, width: 440, height: 850))
-        let tall = CGRect(x: 0, y: 0, width: 2560, height: 1400)
-        let tallWindow = CGRect(x: 100, y: 1000, width: 440, height: 312)
-        check(
-            "fitting stops at the height limit on a tall display",
-            NoteWindowPlacement.fitting(tallWindow, toHeight: 2000, within: heights, in: tall)
-                == CGRect(x: 100, y: 452, width: 440, height: 860))
-        check(
-            "fitting shrinks shorter content and preserves the top edge",
-            NoteWindowPlacement.fitting(window, toHeight: 200, within: heights, in: visible)
-                == CGRect(x: 100, y: 212, width: 440, height: 200))
-        check(
-            "fitting never shrinks below the minimum height",
-            NoteWindowPlacement.fitting(window, toHeight: 40, within: heights, in: visible)
-                == CGRect(x: 100, y: 232, width: 440, height: 180))
-        let externalWindow = CGRect(x: -900, y: 700, width: 500, height: 180)
-        check(
-            "fitting uses the current display's origin and rounds up fractional heights",
-            NoteWindowPlacement.fitting(externalWindow, toHeight: 300.2, within: heights, in: external)
-                == CGRect(x: -900, y: 579, width: 500, height: 301))
     }
 
     private static func testStoreCollectionAndAutosave() async throws {
@@ -415,6 +366,18 @@ struct NotesTests {
             FileManager.default.fileExists(
                 atPath: trashDirectory(in: root).appendingPathComponent(projectID.rawValue).path))
         check("trashing another note keeps the active note", store.activeID == firstID)
+
+        _ = await store.create(source: "newest note")
+        _ = await store.create(source: "note to remove")
+        let removable = try require(store.activeID)
+        let trashedActive = await store.trash(removable, successor: firstID)
+        check(
+            "trashing the active note opens the successor asked for, not the newest",
+            trashedActive && store.activeID == firstID)
+        let orphaned = await store.trash(firstID, successor: NoteID(rawValue: "missing.md"))
+        check(
+            "a successor that is gone falls back to the newest note",
+            orphaned && store.source == "newest note")
 
         for summary in store.summaries {
             _ = await store.trash(summary.id)

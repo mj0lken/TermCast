@@ -4,6 +4,8 @@ import AppKit
 @MainActor
 enum NoteMarkdownTypography {
     static let body = NSFont.systemFont(ofSize: size(.title3))
+    /// An unnamed note's first line is its title, so it reads as one above the body.
+    static let title = NSFont.systemFont(ofSize: size(.title1) + 2, weight: .bold)
     static let heading1 = NSFont.systemFont(ofSize: size(.largeTitle), weight: .bold)
     static let heading2 = NSFont.systemFont(ofSize: size(.title1), weight: .bold)
     static let heading3 = NSFont.systemFont(ofSize: size(.title2), weight: .semibold)

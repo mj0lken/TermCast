@@ -10,8 +10,10 @@ final class NotesMenuBarController: NSObject {
         self.coordinator = coordinator
         super.init()
         status.autosaveName = "Notes"
-        menu.addItem(item(.createNote, action: #selector(createNote)))
-        menu.addItem(item(.searchNotes, action: #selector(searchNotes)))
+        let newNote = NSMenuItem(
+            title: String(localized: "New Note"), action: #selector(createNote), keyEquivalent: "")
+        newNote.target = self
+        menu.addItem(newNote)
         guard let button = status.button else { return }
         button.image = NSImage(
             systemSymbolName: CommandID.showNotes.sfSymbol,
@@ -26,17 +28,11 @@ final class NotesMenuBarController: NSObject {
         NSStatusBar.system.removeStatusItem(status)
     }
 
-    private func item(_ command: CommandID, action: Selector) -> NSMenuItem {
-        let item = NSMenuItem(title: command.name, action: action, keyEquivalent: "")
-        item.target = self
-        return item
-    }
-
     @objc private func click(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent,
             event.type == .rightMouseUp || !event.modifierFlags.isDisjoint(with: [.control, .option])
         else { return coordinator.toggle() }
-        // Attached only for this click, so a plain click stays free to toggle the window.
+        // Attached only for this click, so a plain click stays free to toggle Notebook.
         status.menu = menu
         sender.performClick(nil)
         status.menu = nil
@@ -44,9 +40,5 @@ final class NotesMenuBarController: NSObject {
 
     @objc private func createNote() {
         coordinator.createNote()
-    }
-
-    @objc private func searchNotes() {
-        coordinator.searchNotes()
     }
 }

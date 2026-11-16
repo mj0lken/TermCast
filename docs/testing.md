@@ -460,7 +460,7 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
   capsule fills the rest, the whole width with none on. Each summon and each cleared query buds them out
   of the capsule's end, the last one never clipped at the window's edge; with Show animations off they
   appear in place. Mouse and keyboard activation open the command immediately, without a fuse,
-  delayed reveal or shortcut shapes beneath the expanded panel. Show Notes opens its window
+  delayed reveal or shortcut shapes beneath the expanded panel. Notebook opens the Notes screen
 - Compact mode: arrow navigation tints the selected glass circle and uses a white monochrome glyph;
   inspect its native contour at actual size in both appearances, without a second fill or stroke;
   the left capsule and rightmost button must remain whole through opening, hovering, and selection,
@@ -554,7 +554,7 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 
 ### Hotkeys
 
-- The palette, clipboard, emoji, File Search, and all three Notes shortcuts fire; a per-app shortcut
+- The palette, clipboard, emoji, File Search, and Notebook shortcuts fire; a per-app shortcut
   toggles that app
 - Recording captures a shortcut, and the old binding does not fire while recording
 - A conflicting binding is rejected and names its current owner
@@ -675,23 +675,108 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 
 ### Notes
 
-- With Notes **off**: all three commands are absent, their shortcuts no-op, and the Notes directory is
-  not created
-- Enabling in Settings projects Show Notes, Create Note, and Search Notes immediately; the pane's
-  visibility checkboxes and recorders are the only ones — Settings > Commands lists none of the three
-- Show Notes opens the last active note and focuses an already visible window without hiding it
-- Create Note makes one unique Untitled file, including as the first action in an empty channel
-- Command-P and the Browse button focus search, arrows move selection, Return opens, and Command-N
-  creates
-- Empty switcher search reads the complete recent list; title and body searches rank correctly and a
-  superseded query never publishes
-- An Untitled note titles itself from its first line as it is typed, in the title bar and — after the
-  autosave — in the browse list; naming it replaces that, and clearing the name brings it back
-- Inline rename updates the Markdown filename without changing source, and starts from that filename
-  even where the row shows a derived title; collisions receive a suffix
-- Delete confirms through Tinycast, moves the file to Trash, and selecting another note never loses an
-  unsaved edit
+Notes is a palette screen. Run every item against the launcher panel; nothing here opens a window of
+its own.
+
+Command and entry points:
+
+- With Notes **off**: Notebook is absent from the launcher, its shortcut no-ops, and the Notes
+  directory is not created
+- Enabling in Settings projects Notebook immediately; the pane's visibility checkbox and recorder are
+  the only ones — Settings > Commands does not list it, and there is no Create Note or Search Notes
+  command anywhere
+- Notebook from its global shortcut opens the palette on the Notes screen, with the most recently
+  edited note open and the caret in it; pressed again it hides the palette
+- Notebook from the launcher opens the same screen, and Escape from its search field steps back to
+  the launcher
+- The screen is the launcher's panel: same position, width and glass, the back chevron, a search field
+  reading `Search notes…`, and the bottom bar with its pill and Actions ⌘K. There is no title bar and
+  no traffic lights
+- Clicking another app hides the palette and the note with it; an edit made just before the click is
+  on disk, and Notebook brings the note back as it was left
+- With Show in Menu Bar on, the Notes icon appears at once; a click opens Notebook and a second click
+  hides it, and right-, Control- and Option-click open a menu holding New Note. Turning the setting or
+  Notes off removes the icon, and a ⌘-dragged position survives a relaunch
+- The notch tray's Notes button opens and hides the same screen
+
+The list:
+
+- An empty search field lists every note, most recently edited first. A row is the note icon, a
+  one-line title and one line of preview; a note with nothing to preview is a title alone
+- The open note's row has the palette's rounded selection fill and the row under the pointer a fainter
+  one, no lines part the rows, and one vertical hairline parts the list from the editor
+- ↑ and ↓ in the search field move the highlight and open each note, stopping at the first and last.
+  Holding the key keeps stepping and ends on the row it stopped at, and arrowing past the visible rows
+  scrolls the highlight into view
+- A click opens a row, a double-click opens it with the caret in the note, and a right-click opens
+  Actions for it
+- Edit an older note: after the autosave its row rises to the top and the highlight goes with it; the
+  editor does not switch notes
+- Typing in the search field filters by title and body after a short pause. The highlight stays on
+  the open note while it still matches, and otherwise the first result opens. A superseded query never
+  publishes, a query with no match reads `No notes found`, and clearing the field restores the full
+  list
+- Dragging the hairline resizes the list between 150 and 340 points under a left-right resize cursor,
+  without moving the palette; closing and reopening the screen restores the default width
+- The list dissolves under the header and the bottom bar as the clipboard's list does
+
+Actions:
+
+- The pill reads Edit Note and ↵ puts the caret in the highlighted note; with no notes it reads Create
+  Note and ↵ creates one
+- ⌘K lists Edit Note ↵, Create Note ⌘N, Rename Note ⌘E, Copy Deeplink ⇧⌘C, Show in Finder ⌘F, Move to
+  Trash ⌃X and Notes Settings ⌥⌘, under the note's title. Each chord also works from the search field
+  with the menu closed
+- ⌘N and the header's plus button create one unique Untitled file, including as the first action in an
+  empty channel, and land the caret in it
+- Rename Note edits the title in the row, where Return commits, as does clicking away or moving the
+  highlight, and Escape cancels. It updates the Markdown filename without changing source, and starts
+  from that filename even where the row shows a derived title; collisions receive a suffix
+- Move to Trash, by ⌃X or ⌘⌫ from the search field, confirms through Tinycast and moves the file to
+  Trash. Trashing the open note opens the row that took its place in the list, and selecting another
+  note never loses an unsaved edit
+- Copy Deeplink copies a link that reopens the note, Show in Finder opens Finder with the Markdown file
+  selected, and Notes Settings opens Settings > Notes
+
+Focus and Escape:
+
+- With the caret in a note, typing, Backspace on an empty line and ⇧⇥ act on the note: the palette
+  does not step back and its mode does not change. The same holds in the find bar's field
+- ⌘L moves the keyboard from the search field into the open note and back again; clicking the note
+  or the field does the same. With the caret in a note, ↑ and ↓ move the caret and never the list's
+  highlight, ⇥ indents, and ⌘⌫ deletes to the start of the line without offering to trash the note
+- In a note, ⌘N creates a note, ⌥⌘↑ and ⌥⌘↓ open the previous and next row with the caret still in
+  the editor, ⌥⌘T shows and hides the formatting bar, and ⌘F opens the find bar. ⌘E and ⌘K there are
+  inline code and link, not Rename Note and Actions
+- Escape undoes one layer per press: the heading menu, the find bar, a pinned info card, a rename,
+  then it moves the caret from the note to the search field. From the search field it clears a query,
+  then steps back or closes the palette
+- ⌘W closes the palette from the search field and from a note. Command-Q does nothing anywhere; with
+  Settings in front, Command-W closes Settings
+
+Header controls and the info card:
+
+- The header's trailing end shows a plus button always, a paintbrush while a note is open with Render
+  Markdown and Show Formatting Bar on, and an info button while a note is open. Plus and paintbrush
+  show a tooltip with their shortcut below them; the info button shows none
+- Hovering the info button shows a card with Words, Characters and Created, and it goes when the
+  pointer leaves. A click pins it, lighting the button, until another click or Escape
+- The counts in the card are right after typing, pasting and undoing, and after switching notes
+- The card is opaque and legible over the note's text in Dark and Light, and a click on it falls
+  through to the note
+
+Titles:
+
+- An Untitled note titles itself from its first line, in its list row after the autosave; naming it
+  replaces that, and clearing the name brings it back
+- With Render Markdown on, an Untitled note's first line is drawn larger and bold as its title and its
+  row previews the lines after it; a named note's first line stays body text and its row previews
+  from that line
+- The derived title of an Untitled note shows no Markdown markers
 - An existing `Floating Note.md` appears as an ordinary note without conversion
+
+The editor:
+
 - A note using every construct renders in Dark and Light: sized headings, emphasis, strikethrough,
   inline code, coloured links, bullets, numbers, checkboxes with space between tasks, lists nested at
   two and four spaces, quote bars, a code band with its language label, and a rule
@@ -699,7 +784,7 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
   multi-line selection reveals every selected line, and Select All shows the whole source
 - Dragging a selection across rendered lines does not jump under the pointer; the lines reveal on
   mouse-up
-- Clicking another app renders the whole note; clicking back reveals the caret line again
+- Escape to the search field renders the whole note; ↵ back into it reveals the caret line again
 - Inside a code block both fences show and Markdown inside it stays literal
 - A table shows as its literal source in the code font, with no styling inside it; adding the `| --- |`
   row under existing rows turns them all into the table at once
@@ -714,38 +799,33 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 - Pasting a URL over selected text makes a link; pasting anything else is plain text
 - Copy from a rendered line pastes raw Markdown into another app; a snippet keyword expands inside a
   rendered note and is styled at once
-- The derived title of an Untitled note shows no Markdown markers
-- A narrow window wraps list items under their text, not under the marker
-- A bullet, task or numbered item whose first word is wider than the window keeps a whole marker on
-  its first line of text, and its checkbox toggles where it is drawn
-- Typing new lines, wrapping text, and pasting grow the note vertically without changing its width,
-  and deleting shrinks it back to the 180pt floor; the top edge stays put until growth reaches the
-  screen's bottom, then the window moves up. It stops at 860pt or the screen's usable height and
-  scrolls. A dragged height holds until the next keystroke, which fits the window again. Switching
-  to a shorter note shrinks it. Repeat with rendering on and off, Find and the formatting bar open,
-  and on a secondary display
-- Typing, Return and Delete in a bulleted list, in its last item and in the middle, grow or shrink the
-  window by whole rows and never shrink it for a frame, scroll the first line away or flash the
-  scrollbar
+- With the list dragged to its widest, list items wrap under their text, not under the marker
+- A bullet, task or numbered item whose first word is wider than the editor pane keeps a whole marker
+  on its first line of text, and its checkbox toggles where it is drawn
+- Typing new lines, wrapping text, pasting, deleting and switching notes never change the palette's
+  size or position; a note longer than the pane scrolls. Repeat with rendering on and off, Find and
+  the formatting bar open, and on a secondary display
 - With Render Markdown **off**, the note is fully literal (markers visible, links inert, task syntax
   plain) and Return, Tab, Delete, and formatting-looking shortcuts keep native plain-text behavior;
   flipping it back re-renders without dirtying the note or touching undo
 - Edit one note, switch to a shorter note, then Undo and Redo: the new note remains intact and the app
   does not terminate
 - With rendering on and off, ⌘Z undoes and ⇧⌘Z redoes typing, deletion and paste while another app's
-  menu bar is visible; both update the footer and autosave the restored source. Editing after undo
-  discards redo; reopening a note after switching away starts with no history
+  menu bar is visible; both update the counts in the info card and autosave the restored source.
+  Editing after undo discards redo; reopening a note after switching away starts with no history
 - Marked-text input, emoji, combining marks, Copy, Cut, Paste, Select All, Undo, and Redo preserve
   exact source; ⌘F finds occurrences in the active note with rendering on and off, and Escape closes
-  the find bar before hiding Notes
+  the find bar before it leaves the note
 - An empty note shows `Start writing…`; ⌘F moves it below the find bar without overlap, and closing Find
-  restores its position. The footer's word and character counts are right after typing, pasting and
-  undoing, and after switching notes
-- With Render Markdown and Show Formatting Bar on, the band under a note holds the word and character
-  counts on the left and the round formatting button on the right; with either setting off, the old
-  centred counts footer is back and nothing else moved
-- The bar starts collapsed, ⌥⌘T and the round button both expand and collapse it, the buttons slide out
-  from behind that button, and the state survives switching notes, hiding the window and a relaunch
+  restores its position
+
+The formatting bar:
+
+- With Render Markdown and Show Formatting Bar on, the header's paintbrush shows and hides the bar
+  under the note and is lit while it is out; ⌥⌘T does the same with the caret in the note. With either
+  setting off there is no paintbrush and no bar
+- The bar is one glass capsule at the right of a band under the note. Hidden, it leaves no band, and
+  nothing else moved. Shown or hidden survives switching notes, closing the palette and a relaunch
 - Every bar button applies its formatting, undoes in one step with ⌘Z, and autosaves; clicking keeps the
   caret where it was and the caret's line stays revealed
 - Buttons light for the selection: inside bold, on a list, quote, heading or code line; clicking a lit
@@ -753,37 +833,37 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 - Hovering a button shows its name and shortcut above it, fully visible and not clipped by the capsule;
   the heading button's tooltip does not show while its menu is open
 - The heading menu opens above the capsule, aligned to its left edge, shows the current level checked,
-  and applies a level on click; it closes on Escape, on a click anywhere in the note window (including
-  the heading button itself, which must not reopen it), on typing, on ⌘P, and when another app is clicked
-- At the smallest window size all eleven controls show and the counts are hidden, the note's text keeps
-  its inset in both states, the heading menu still opens in full above the capsule, and widening the
-  window brings the counts back
+  and applies a level on click; it closes on Escape, on a click anywhere in the palette (including
+  the heading button itself, which must not reopen it), on typing, on hiding the bar, and when the
+  palette closes
+- With the list dragged to its widest, the bar still shows all eleven controls inside the editor pane
+  and the heading menu opens in full above the capsule
 - ⌥⌘C and ⇧⌘B toggle a code block and a quote; with Render Markdown off they do nothing special
 - Settings > Notes > Show Formatting Bar is disabled while Render Markdown is off, Settings search for
   "formatting" lands on it, and a backup round trip restores it
-- With Show in Menu Bar on, the Notes icon appears at once; a click shows Notes and a second click
-  hides it, and right-, Control- and Option-click open Create Note and Search Notes. Turning the
-  setting or Notes off removes the icon, and a ⌘-dragged position survives a relaunch
-- With VoiceOver, the bar reads as "Formatting" with each button named, lit ones as selected, the round
-  button announcing Expanded or Collapsed, and the heading button its level; menu rows read their titles
-  and the current one as selected
-- Traffic lights sit top-left, the title is centred **on the window**, and the capsule is top-right, all
-  on one line; the yellow light is disabled and green zooms
-- Each capsule button shows a hover capsule and a native tooltip, and fires its action
-- Dragging the title bar moves the window and dragging an edge resizes it; both survive relaunch
-- Clicking another app leaves the panel visible; Escape, Command-W, and the red light hide it
-- Command-Q does nothing anywhere; with Settings in front, Command-W closes Settings
-- Hiding restores the previous external app or Tinycast window
-- Open Notes Folder opens Finder with the active Markdown file selected, or the folder with no note
-- Hide a saved checklist, reset its boxes in another editor, and reopen: the boxes match the file
-- Reopen an unchanged note: Undo still works; an external content change starts fresh history
-- Remove the active file while hidden: reopening selects a remaining note or shows the empty state
-- Deleting every note closes the browse list and leaves one clean empty state with no counts;
-  Command-N from there creates and selects one note
-- The browse list fades only at its bottom edge and rests opaque once it reaches the end
-- Quitting inside the debounce window saves the last edit
-- Over a light desktop, the corner matches the palette's, the shadow follows it, and no dark edge shows
-  around the glass controls
+
+Accessibility and appearance:
+
+- With VoiceOver, the bar reads as "Formatting" with each button named, lit ones as selected, and the
+  heading button its level; menu rows read their titles and the current one as selected. A list row
+  reads its title, and the open note as selected. The header buttons read Create Note, Formatting and
+  Note Info, and the card reads its word and character counts
+- The screen is the palette's glass in Dark and Light. Over a light desktop the list, the note and the
+  header buttons stay legible, and no dark edge shows around the formatting bar's glass or the info
+  card
+
+Saving and the folder:
+
+- Close the palette inside the debounce window, and quit inside it: both save the last edit
+- Close the palette on a saved checklist, reset its boxes in another editor, and run Notebook: the
+  boxes match the file
+- Reopen an unchanged note before the palette resets to the launcher: Undo still works; an external
+  content change starts fresh history
+- Remove the active file while the palette is closed: Notebook opens a remaining note or shows the
+  empty state
+- Deleting every note leaves the screen reading `No Notes` under its book glyph, with no editor, no
+  paintbrush and no info button, and the pill reading Create Note; ↵ and ⌘N from there create and open
+  one note
 
 ### Snippets
 
@@ -898,10 +978,11 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 - Lock Screen locks from a global hotkey with the palette closed, including a Hyper-key binding
 - Window commands move the window you were last in; cycle-on-repeat steps ½ → ⅓ → ⅔
 - "Top Half" lands flush with the top of the visible frame, on a secondary display too
-- A command with the Notes window focused places Notes, not the app behind it
-- Cycling, Restore, custom sizes and display moves all work on Notes and on Settings
-- Fullscreen on Settings toggles it; on the Notes window it does nothing
-- With the note switcher open a command places Notes; the switcher and HUDs are never placed
+- A command with Settings focused places Settings, not the app behind it
+- Cycling, Restore, custom sizes and display moves all work on Settings
+- Fullscreen on Settings toggles it
+- A command fired with the palette on the Notes screen hides the palette and places the window that
+  was behind it, with the note heading menu open too; the palette, that menu and HUDs are never placed
 - Rooms: create one from Switch Room; ⇥ glides the preview through its layouts; ↵ lands its windows
   with the gap, hides other apps and parks their extra windows; quitting, `kill -9` then relaunching, and
   turning Window Management off each bring every window back.
@@ -918,8 +999,9 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   values, and opening it fills the same fields
 - Right-click a shortcut field in Settings (a command, a quicklink, an extension command): Copy
   Deeplink copies its link. Onboarding's and General's App Launcher field offer no menu
-- The note switcher's link button, and Copy Deeplink in the AI Chat sidebar and window menu, copy a
-  link that reopens that note or chat; a renamed note's old link reports the missing file
+- ⇧⌘C on a Notes row, Copy Deeplink in its ⌘K menu, and Copy Deeplink in the AI Chat sidebar and
+  window menu, copy a link that reopens that note or chat; a note link opens the Notes screen on that
+  note with the caret in it, and a renamed note's old link reports the missing file
 - `open -g` each copied link with the palette closed: it runs what the row's shortcut runs
 - Quit Tinycast, then `open -g` a command link: the app starts and runs it
 - Open a window command's link with a plain `open` (no `-g`): after the question, it moves the
@@ -943,8 +1025,9 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   `?fallbackText=x` both open `?q=x`; with no input it asks for the argument. A custom command with
   one argument and `?arguments=%5B%22x%22%5D` runs with `$1` = `x`
 - `command/create-quicklink?context=%7B%22name%22%3A%22Docs%22%2C%22link%22%3A%22https%3A%2F%2Fexample.com%22%7D`
-  opens the editor filled in; Cancel saves nothing. `command/create-snippet?fallbackText=hello` and
-  `command/create-note?fallbackText=hello` start with `hello`
+  opens the editor filled in; Cancel saves nothing. `command/create-snippet?fallbackText=hello`
+  starts with `hello`, and `command/show-notes?fallbackText=hello` opens Notebook on a new note
+  holding `hello`
 - `command/create-quicklink?context=` with a list of two, one already in the library: it asks to add
   two, showing each name and link, adds one, and the HUD says so. The same for `create-snippet`,
   whose question shows names
@@ -1016,7 +1099,7 @@ tccutil reset Accessibility com.abueammar.tinycast.dev 2>/dev/null || true
   Settings still adds a Dock entry while open and removes it when the last ordinary window closes
 - Palette opens and lists apps; clipboard, quicklinks, snippets and calculator history are all empty
   and all accept a first entry
-- Notes creates no directory until Show, Create, or Search is first used, then accepts its first edit
+- Notes creates no directory until Notebook is first run, then accepts its first edit
 - **Every setting shows its intended default.** Walk the panes: this is what catches a broken
   absence-versus-`false` read
 - Quit and relaunch: everything created above persisted

@@ -73,24 +73,14 @@ struct NoteFormattingBar: View {
 
     var body: some View {
         let formatting = notes.formatting
-        let isExpanded = notes.isFormattingBarExpanded
         HStack(spacing: Theme.Spacing.sm) {
-            if isExpanded {
-                HStack(spacing: Theme.Spacing.sm) {
-                    NoteHeadingButton(
-                        level: formatting.headingLevel, isOpen: notes.isHeadingMenuPresented,
-                        action: notes.toggleHeadingMenu
-                    ) { notes.headingButtonFrame = $0 }
-                    group(Self.styles, formatting)
-                    group(Self.blocks, formatting)
-                    group(Self.lists, formatting)
-                }
-                // Grows out of the round button; nothing leaves the capsule, so no clip is needed.
-                .transition(.scale(scale: 0.6, anchor: .trailing).combined(with: .opacity))
-            }
-            NoteFormattingToggle(isExpanded: isExpanded, action: notes.toggleFormattingBar)
-                // Drawn above the buttons, so they grow out from behind it.
-                .zIndex(1)
+            NoteHeadingButton(
+                level: formatting.headingLevel, isOpen: notes.isHeadingMenuPresented,
+                action: notes.toggleHeadingMenu
+            ) { notes.headingButtonFrame = $0 }
+            group(Self.styles, formatting)
+            group(Self.blocks, formatting)
+            group(Self.lists, formatting)
         }
         .padding(Theme.Spacing.xs)
         // Behind the buttons, not around them: glass clips content, tooltips draw outside it.
@@ -112,22 +102,6 @@ struct NoteFormattingBar: View {
                 .tooltip("\(control.title)  \(control.shortcut)")
             }
         }
-    }
-}
-
-private struct NoteFormattingToggle: View {
-    let isExpanded: Bool
-    let action: () -> Void
-
-    var body: some View {
-        BarButton(isSelected: isExpanded, isCompact: true, action: action) {
-            NoteBarGlyph(name: "paintbrush")
-        }
-        .focusable(false)
-        .accessibilityLabel("Formatting")
-        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
-        // Against the window's trailing edge, so a centred label would run off it.
-        .tooltip(String(localized: "Formatting  ⌥⌘T"), alignment: .trailing)
     }
 }
 

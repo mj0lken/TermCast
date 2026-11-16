@@ -134,6 +134,9 @@ struct RootPaletteView: View {
                 vm: vm, openActions: openActions, metrics: metrics)
         case .dictionary:
             return DictionaryScreen(session: dictionary, core: core, vm: vm)
+        case .notes:
+            return NotesScreen(
+                notes: core.notesCoordinator, core: core, vm: vm, openActions: openActions)
         case .calculatorHistory:
             return CalculatorHistoryScreen(
                 history: calcHistory, currencyRates: currencyRates, core: core, vm: vm,
@@ -707,6 +710,8 @@ struct RootPaletteView: View {
                 // ⇥ inside an open list belongs to the list, not to the form's field order.
                 if vm.isControlListOpen || menuOpen { return .handled }
                 if vm.isComposing { return .ignored }
+                // A focused note indents with ⇥, so the palette's focus ring stays out of it.
+                if vm.mode == .notes, vm.isEditingField { return .ignored }
                 let shift = press.modifiers.contains(.shift) || press.key == KeyEquivalent("\u{19}")
                 advanceTabFocus(backwards: shift)
                 return .handled
@@ -721,6 +726,8 @@ struct RootPaletteView: View {
                 else { return .ignored }
                 // A control's open list owns the screen, so a second panel may never open over it.
                 guard !vm.isControlListOpen else { return .handled }
+                // In a focused note ⌘K is the note's own link chord.
+                if vm.mode == .notes, vm.isEditingField { return .ignored }
                 // The Actions menu has no anchor in the compact bar, so swallow ⌘K there.
                 guard !isCollapsed else { return .handled }
                 let screen = screen
@@ -911,6 +918,10 @@ struct RootPaletteView: View {
                     isOpen: openMenu == .dictionaryScope,
                     help: String(localized: "Dictionary or thesaurus  ⌘P"),
                     action: toggleDictionaryScope)
+            }
+            if !isCollapsed, vm.mode == .notes {
+                headerGutter(width: metrics.spacing.md)
+                NotesHeaderControls()
             }
             if !isCollapsed, vm.mode == .ai {
                 headerGutter(width: metrics.spacing.md)
@@ -1737,6 +1748,8 @@ struct RootPaletteView: View {
         panel.onShiftTab = {
             if vm.isControlListOpen || menuOpen { return true }
             if vm.isComposing { return false }
+            // A focused note outdents with ⇧⇥; cycling the mode from under it would lose the place.
+            if vm.mode == .notes, vm.isEditingField { return false }
             advanceTabFocus(backwards: true)
             return true
         }
