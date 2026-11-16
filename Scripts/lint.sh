@@ -27,5 +27,9 @@ fi
 if ! Scripts/check-migrations.sh; then
     exit 1
 fi
+# Termcast fork invariants, removed Support references, and test harness paths must stay intact.
+if ! node Scripts/check-fork-invariants.js; then
+    exit 1
+fi
 
 echo "✓ lint-clean"

@@ -18,12 +18,14 @@ struct SettingsSearchEntry: Identifiable, Hashable, Sendable {
     /// One setting, which its pane marks with a matching `SettingsRowTitle`.
     init(_ anchor: SettingsAnchor, _ title: LocalizedStringResource, keywords: [String] = []) {
         let localized = title.resolved()
-        self.init(.row(anchor, localized), localized, keywords + [title.key])
+        let english = title.key.replacingOccurrences(of: "Tinycast", with: "Termcast")
+        self.init(.row(anchor, localized), localized, keywords + [english])
     }
 
     /// A whole group, for a result no single row answers — a list, or a section's master switch.
     init(group anchor: SettingsAnchor, _ title: LocalizedStringResource, keywords: [String] = []) {
-        self.init(.section(anchor), title.resolved(), keywords + [title.key])
+        let english = title.key.replacingOccurrences(of: "Tinycast", with: "Termcast")
+        self.init(.section(anchor), title.resolved(), keywords + [english])
     }
 
     init(pane: SettingsTab, keywords: [String] = []) {
@@ -172,6 +174,9 @@ enum SettingsSearchCatalog {
             .generalHyperKey, "Secure Input Compatibility",
             keywords: ["password", "secure input", "right control"]),
         .init(
+            .generalHyperKey, "Trackpad Scroll Sliders",
+            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"]),
+        .init(
             .generalCalculator, "Number format",
             keywords: ["decimal", "comma", "separator", "locale", "region", "thousands"]),
         .init(
@@ -185,7 +190,10 @@ enum SettingsSearchCatalog {
             keywords: ["reset", "history", "order", "privacy"]),
         .init(
             group: .generalDeepLinks, "Deeplinks",
-            keywords: ["link", "url", "tinycast://", "allow", "karabiner", "shortcuts", "automation"])
+            keywords: [
+                "link", "url", "termcast://", "tinycast://", "allow", "karabiner", "shortcuts",
+                "automation"
+            ])
     ]
 
     private static let applications: [SettingsSearchEntry] = [
@@ -462,11 +470,45 @@ enum SettingsSearchCatalog {
             .windowManagementWindowManagement, "Enable window management",
             keywords: ["tile", "accessibility"]),
         .init(
+            .windowManagementMouse, "Snap windows by dragging",
+            keywords: ["mouse", "drag", "edges", "corners", "magnet", "preview", "tile"]),
+        .init(
+            .windowManagementMouse, "Restore windows to original size",
+            keywords: ["mouse", "drag", "unsnap", "restore", "resize", "original"]),
+        .init(
+            .windowManagementMouse, "Highlight activation areas when dragging",
+            keywords: ["mouse", "drag", "activation", "zones", "edges", "pills", "magnet"]),
+        .init(
+            .windowManagementMouse, "Screen edge width",
+            keywords: ["mouse", "drag", "activation", "margin", "sensitivity", "edges", "magnet"]),
+        .init(
+            .windowManagementMouse, "Activation area scale",
+            keywords: ["mouse", "drag", "activation", "corners", "zones", "scale", "magnet"]),
+        .init(
+            .windowManagementMouse, "Activation areas",
+            keywords: [
+                "mouse", "drag", "zones", "corners", "thirds", "quarters", "halves", "magnet"
+            ]),
+        .init(
+            .windowManagementGreenButton, "Show green button menu",
+            keywords: [
+                "zoom", "traffic light", "fullscreen button", "hover", "dropdown", "magnet"
+            ]),
+        .init(
+            .windowManagementGreenButton, "Hover button",
+            keywords: ["green", "yellow", "zoom", "minimize", "traffic light", "magnet"]),
+        .init(
+            .windowManagementGreenButton, "Green button hover delay",
+            keywords: ["zoom", "traffic light", "hover", "delay", "milliseconds", "magnet"]),
+        .init(
             .windowManagementOptions, "Cycling",
             keywords: ["repeat", "thirds", "halves", "displays", "monitor", "screens"]),
         .init(
             .windowManagementOptions, "Gap between windows",
             keywords: ["padding", "spacing", "margin", "points"]),
+        .init(
+            .windowManagementOptions, "Fit tightly to screen edges",
+            keywords: ["gap", "outer", "margins", "padding", "edges", "inner", "magnet"]),
         .init(
             .windowManagementOptions, "Wrap around displays",
             keywords: ["next display", "previous display", "monitor", "screens", "loop"]),
@@ -513,7 +555,10 @@ enum SettingsSearchCatalog {
             keywords: ["add", "create", "project", "windows"]),
         .init(
             group: .windowManagementCustomSizes, "Custom Sizes",
-            keywords: ["custom", "size", "resize", "dimensions", "pixels", "points", "percent", "alias"]),
+            keywords: [
+                "custom", "size", "resize", "dimensions", "pixels", "points", "percent",
+                "fractional", "grid", "cells", "alias"
+            ]),
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])
@@ -743,10 +788,10 @@ enum SettingsSearchCatalog {
             keywords: ["export", "import", "restore", "migrate", "raycast"]),
         .init(
             .backupExport, "Export Backup",
-            keywords: ["save", "tinycast file", "archive"]),
+            keywords: ["save", "termcast file", "tinycast file", "archive"]),
         .init(
             .backupImport, "Backup File",
-            keywords: ["restore", "choose", "tinycast file"]),
+            keywords: ["restore", "choose", "termcast file", "tinycast file"]),
         .init(
             .backupImportFromRaycast, "Raycast Export",
             keywords: ["migrate", "rayconfig", "passphrase"]),
@@ -766,10 +811,7 @@ enum SettingsSearchCatalog {
             group: .aboutTermcast, "Termcast",
             keywords: ["links", "github", "source", "issues", "website"]),
         .init(
-            group: .aboutTinycast, "Tinycast",
-            keywords: ["links", "upstream", "github", "website", "discord", "x", "email"]),
-        .init(
-            .aboutTinycast, "Support",
-            keywords: ["donate", "sponsor", "funding"])
+            group: .aboutTinycast, "A Tinycast fork",
+            keywords: ["links", "upstream", "github", "website", "tinycast"])
     ]
 }

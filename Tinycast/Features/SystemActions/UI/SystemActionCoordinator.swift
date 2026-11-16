@@ -63,7 +63,7 @@ final class SystemActionCoordinator {
             } else {
                 feedback = try await SystemActionRunner.run(action.id, previousApp: previousApp)
             }
-            if Self.showsVolumeFeedback.contains(action.id) {
+            if Self.showsCustomVolumeFeedback(for: action.id) {
                 let state = try SystemActionRunner.outputState()
                 volumeHUD.show(level: state.level, muted: state.muted)
             } else if let feedback {
@@ -82,6 +82,18 @@ final class SystemActionCoordinator {
         if let preset { return preset }
         return try await core.pickVolume(current: SystemActionRunner.currentVolume())
     }
+
+    /// Media-key volume actions raise macOS or BoringNotch's own HUD once Accessibility is granted.
+    private static func showsCustomVolumeFeedback(for id: SystemAction.ID) -> Bool {
+        if mediaKeyVolumeActions.contains(id), Permissions.isAccessibilityTrusted() {
+            return false
+        }
+        return showsVolumeFeedback.contains(id)
+    }
+
+    private static let mediaKeyVolumeActions: Set<SystemAction.ID> = [
+        .volumeUp, .volumeDown, .toggleMute
+    ]
 
     /// Level and mute actions; macOS draws its HUD only for real media keys.
     private static let showsVolumeFeedback: Set<SystemAction.ID> = [

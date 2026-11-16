@@ -256,8 +256,8 @@ final class CodexAppServerClient {
                 method: "initialize",
                 params: [
                     "clientInfo": [
-                        "name": "tinycast",
-                        "title": "Tinycast",
+                        "name": "termcast",
+                        "title": "Termcast",
                         "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
                             ?? "0"
                     ],
@@ -415,7 +415,7 @@ final class CodexAppServerClient {
         default:
             _ = try? send(
                 CodexAppServerProtocol.errorResponse(
-                    id: id, message: "Tinycast does not expose Codex tools."))
+                    id: id, message: "Termcast does not expose Codex tools."))
             return
         }
         _ = try? send(CodexAppServerProtocol.response(id: id, result: result))

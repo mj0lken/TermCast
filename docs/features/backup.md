@@ -1,7 +1,7 @@
 # Backup
 
-Export and import of Tinycast's own data as a single `.tinycast` file, plus the entry point for
-importing a Raycast export. The feature lives in `Features/Backup/`.
+Export of Termcast's own data as a single `.termcast` file and import of `.termcast` or `.tinycast`
+backups, plus the entry point for importing a Raycast export. The feature lives in `Features/Backup/`.
 
 A backup carries five independently selectable categories, ticked on export and again on import:
 **Settings & Shortcuts**, **Clipboard History**, **Snippets**, **Notes** and **Launcher Learning**.
@@ -21,7 +21,7 @@ A backup carries five independently selectable categories, ticked on export and 
   config must not be able to grant something the user never granted. `FallbackStore` is the second
   case: its order and checkboxes live on their own `UserDefaults` keys precisely so an import cannot
   arm **Run Shell Command** in someone's launcher. This change adds *content*, never a capability.
-- **No absolute path may enter a `.tinycast`.** A clip's `imagePath` names a file on the Mac that wrote
+- **No absolute path may enter a `.termcast` or `.tinycast`.** A clip's `imagePath` names a file on the Mac that wrote
   it, so `BackupClipboardItem` carries a bundle-relative `imageName` instead. `BackupArchiveTests`
   asserts the produced file contains neither `/Users` nor `/Library` — the analogue of
   `SettingsBackupTests`'s `snippetsEnabled` check, and for the same reason: this file gets sent to
@@ -43,7 +43,7 @@ A backup carries five independently selectable categories, ticked on export and 
 | `Model/BackupCategory.swift` | The categories and the descriptor every one of them must name |
 | `Model/BackupManifest.swift` | The table of contents, the format constant and its guard |
 | `Model/BackupBundle.swift` | The payload directory's layout and part-by-part encode/decode |
-| `Model/BackupArchive.swift` | Directory ⇄ `.tinycast`; the only file importing `AppleArchive` |
+| `Model/BackupArchive.swift` | Directory ⇄ `.termcast` / `.tinycast`; the only file importing `AppleArchive` |
 | `Model/BackupClipboardItem.swift` | The portable clip, with no path in it |
 | `Model/SettingsBackup.swift` | The settings, fixed/per-item hotkey payloads, and their `Codable` shape |
 | `Model/SettingsBackupCoverage.swift` | The coverage declaration the harness checks |

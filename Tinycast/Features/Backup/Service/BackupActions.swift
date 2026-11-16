@@ -3,7 +3,11 @@ import UniformTypeIdentifiers
 
 extension UTType {
     /// Not per-channel: a UTI names an interchange format, so Dev must read stable's exports.
+    static let termcastBackup = UTType(exportedAs: "com.mj0lken.termcast.backup")
     static let tinycastBackup = UTType(exportedAs: "com.tinycast.backup")
+    static let backupTypes: [UTType] =
+        [.termcastBackup, .tinycastBackup]
+        + BackupArchive.supportedFileExtensions.compactMap { UTType(filenameExtension: $0) }
 }
 
 @MainActor
@@ -27,7 +31,9 @@ enum BackupActions {
     static func chooseSaveLocation(named base: String, type: UTType = .json) -> URL? {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [type]
-        let ext = type.preferredFilenameExtension ?? "json"
+        let ext =
+            type == .termcastBackup
+            ? BackupArchive.fileExtension : (type.preferredFilenameExtension ?? "json")
         panel.nameFieldStringValue = "\(base)-\(dateStamp()).\(ext)"
         panel.canCreateDirectories = true
         NSApp.activate(ignoringOtherApps: true)
@@ -35,13 +41,13 @@ enum BackupActions {
         return panel.url
     }
 
-    static func chooseJSONFile() -> URL? { chooseFile(ofType: .json) }
+    static func chooseJSONFile() -> URL? { chooseFile(ofTypes: [.json]) }
 
-    static func chooseBackupFile() -> URL? { chooseFile(ofType: .tinycastBackup) }
+    static func chooseBackupFile() -> URL? { chooseFile(ofTypes: UTType.backupTypes) }
 
-    private static func chooseFile(ofType type: UTType) -> URL? {
+    private static func chooseFile(ofTypes types: [UTType]) -> URL? {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [type]
+        panel.allowedContentTypes = types
         panel.allowsMultipleSelection = false
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return nil }
@@ -56,7 +62,7 @@ enum BackupActions {
     ) async throws
         -> BackupComposer.Result
     {
-        guard let destination = chooseSaveLocation(named: "Termcast", type: .tinycastBackup) else {
+        guard let destination = chooseSaveLocation(named: "Termcast", type: .termcastBackup) else {
             throw CancellationError()
         }
         let plan = BackupComposer.plan(categories, from: core)

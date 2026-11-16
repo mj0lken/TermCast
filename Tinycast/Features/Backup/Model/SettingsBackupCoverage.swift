@@ -11,6 +11,7 @@ enum SettingsBackupCoverage {
         "hyperKeyIncludesShift": .hyperKeyIncludesShift,
         "hyperKeyQuickPress": .hyperKeyQuickPress,
         "hyperKeySecureInputCompatibility": .hyperKeySecureInputCompatibility,
+        "hyperKeyTrackpadSliders": .hyperKeyTrackpadSliders,
         "showInMenuBar": .showInMenuBar,
         "automaticallyCheckForUpdates": .automaticallyCheckForUpdates,
         "emojiSkinTone": .emojiSkinTone,
@@ -47,7 +48,17 @@ enum SettingsBackupCoverage {
         "menuSearchShowsAppleMenu": .menuSearchShowsAppleMenu,
         "windowManagementEnabled": .windowManagementEnabled,
         "windowManagementShowInLauncher": .windowManagementShowInLauncher,
+        "windowSnapByDragging": .windowSnapByDragging,
+        "windowRestoreOnDrag": .windowRestoreOnDrag,
+        "windowHighlightActivationAreas": .windowHighlightActivationAreas,
+        "windowActivationEdgeWidth": .windowActivationEdgeWidth,
+        "windowActivationAreaScale": .windowActivationAreaScale,
+        "windowDisabledActivationAreas": .windowDisabledActivationAreas,
+        "windowGreenButtonMenu": .windowGreenButtonMenu,
+        "windowGreenButtonTarget": .windowGreenButtonTarget,
+        "windowGreenButtonHoverDelay": .windowGreenButtonHoverDelay,
         "windowGap": .windowGap,
+        "windowFitTightlyToEdges": .windowFitTightlyToEdges,
         "windowCycle": .windowCycle,
         "windowWrapsDisplays": .windowWrapsDisplays,
         "windowKeepsProportions": .windowKeepsProportions,
@@ -70,8 +81,7 @@ enum SettingsBackupCoverage {
         "calendarMenuBarDisplay": .calendarMenuBarDisplay,
         "menuBarLinkedEventsOnly": .menuBarLinkedEventsOnly,
         "calendarMenuBarHidesWhenEmpty": .calendarMenuBarHidesWhenEmpty,
-        "hideCurrentEvent": .hideCurrentEvent,
-        "supportReminders": .supportReminders
+        "hideCurrentEvent": .hideCurrentEvent
     ]
 
     /// The `SettingsData` fields no `AppSettings` key stands behind, and what they read instead.

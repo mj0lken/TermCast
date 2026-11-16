@@ -16,8 +16,9 @@ concurrency:
 jobs:
   check:
     if: >-
-      github.event_name == 'schedule' ||
-      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+      github.repository == 'abue-ammar/tinycast' &&
+      (github.event_name == 'schedule' ||
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v8

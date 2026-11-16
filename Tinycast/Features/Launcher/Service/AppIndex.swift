@@ -244,7 +244,8 @@ extension AppEntry {
         self.init(
             id: command.entryID, name: command.name,
             url: URL(string: "tinycast://window-command/" + command.id.rawValue)!,
-            bundleID: nil, kind: .windowCommand, alternateTitles: [command.englishName])
+            bundleID: nil, kind: .windowCommand, alternateTitles: [command.englishName],
+            iconOverride: command.tilePreviewRect.map { .windowTile(WindowTileIcon(unitRect: $0)) })
     }
 
     /// A custom size shares the window commands' kind and section, as custom Quick Actions do.
@@ -252,7 +253,8 @@ extension AppEntry {
         self.init(
             id: size.entryID, name: size.name,
             url: URL(string: "tinycast://window-size/" + size.id.uuidString)!,
-            bundleID: nil, kind: .windowCommand)
+            bundleID: nil, kind: .windowCommand,
+            iconOverride: size.tilePreviewRect.map { .windowTile(WindowTileIcon(unitRect: $0)) })
     }
 
     init(_ action: CustomQuickAction) {

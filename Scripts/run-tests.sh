@@ -452,6 +452,8 @@ run WindowCommandTests     Tinycast/Features/WindowManagement/Model/WindowComman
                            Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
                            Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
                            Tinycast/Features/WindowManagement/Model/WindowActionMemory.swift \
+                           Tinycast/Features/WindowManagement/Model/WindowDragSnap.swift \
+                           Tinycast/Features/WindowManagement/Model/WindowTrafficLightButton.swift \
                            Tinycast/Platform/LocalizedResource.swift
 run WindowPresetTests      Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
                            Tinycast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
@@ -670,6 +672,21 @@ run HyperKeyEngineTests    Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift 
                            Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
                            Tinycast/Platform/ASCIIKeyboardLayout.swift
+run HyperScrollTests       Tinycast/Features/HotKeys/Model/HyperScrollZone.swift \
+                           Tinycast/Features/HotKeys/Model/HyperScrollEngine.swift \
+                           Tinycast/Features/HotKeys/Model/DisplayDDC.swift \
+                           Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift \
+                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
+                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
+                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Tinycast/Features/HotKeys/Service/HyperScrollRunner.swift \
+                           Tinycast/Features/HotKeys/Service/DisplayBrightnessService.swift \
+                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Tinycast/Platform/MediaKeyPoster.swift \
+                           Tinycast/Platform/ScreenTarget.swift \
+                           Tinycast/Platform/ASCIIKeyboardLayout.swift
 run HyperKeyTests          Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Tinycast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
                            Tinycast/Features/HotKeys/Service/KeyboardRemapper.swift \
@@ -799,7 +816,6 @@ run BundleIdentifierMigrationTests Tinycast/Migrations/BundleIdentifierMigration
 run UpdateCheckTests       Tinycast/Features/Updates/Model/*.swift \
                            Tinycast/Features/Updates/Service/UpdateCheckStore.swift \
                            Tinycast/Platform/AppPaths.swift
-run SupportTests           Tinycast/Features/Support/Model/*.swift
 run AIProviderTests        Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \

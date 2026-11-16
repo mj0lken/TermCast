@@ -29,6 +29,145 @@ enum AXWindowAccess {
         return windows(in: application).first(where: isEligible)
     }
 
+    /// Resolves the topmost movable window under `point` in AX space via z-order, then AX hit-test.
+    static func windowAtPosition(_ point: CGPoint, timeout: Float = 0.15) -> (
+        pid: pid_t, application: AXUIElement, window: AXUIElement, windowID: UInt32?
+    )? {
+        if let zOrdered = topmostWindow(at: point, timeout: timeout) {
+            return zOrdered
+        }
+        return hitTestedWindow(at: point, timeout: timeout)
+    }
+
+    /// Returns our own layer-0 window number at `point` only when no external window sits above it.
+    static func topmostOwnWindowNumber(at point: CGPoint) -> Int? {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard
+            let listing = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]]
+        else { return nil }
+
+        for entry in listing {
+            guard entry[kCGWindowLayer as String] as? Int == 0,
+                let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
+                pid > 0,
+                let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+                let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                bounds.width > 1, bounds.height > 1, bounds.contains(point)
+            else { continue }
+            guard pid == ownPID else { return nil }
+            return entry[kCGWindowNumber as String] as? Int
+        }
+        return nil
+    }
+
+    /// Reads the live on-screen bounds of `windowID` directly from the WindowServer without AX IPC.
+    static func windowServerFrame(for windowID: UInt32) -> CGRect? {
+        let options: CGWindowListOption = [.optionIncludingWindow]
+        guard
+            let listing = CGWindowListCopyWindowInfo(options, windowID) as? [[String: Any]],
+            let entry = listing.first,
+            let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+            let bounds = CGRect(dictionaryRepresentation: boundsDict),
+            bounds.width > 0, bounds.height > 0
+        else { return nil }
+        return bounds
+    }
+
+    private static func topmostWindow(at point: CGPoint, timeout: Float) -> (
+        pid: pid_t, application: AXUIElement, window: AXUIElement, windowID: UInt32?
+    )? {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard
+            let listing = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]]
+        else { return nil }
+
+        for entry in listing {
+            guard entry[kCGWindowLayer as String] as? Int == 0,
+                let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
+                pid > 0,
+                let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+                let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                bounds.width > 1, bounds.height > 1, bounds.contains(point)
+            else { continue }
+            guard pid != ownPID else { return nil }
+
+            let targetID = entry[kCGWindowNumber as String] as? UInt32
+            let application = Self.application(for: pid, timeout: timeout)
+            var candidates = windows(in: application)
+            if candidates.isEmpty {
+                setManualAccessibility(true, application: application)
+                defer { setManualAccessibility(false, application: application) }
+                candidates = windows(in: application)
+            }
+            if let targetID {
+                for window in candidates {
+                    AXUIElementSetMessagingTimeout(window, timeout)
+                    if windowID(of: window) == targetID, isEligible(window) {
+                        return (pid, application, window, targetID)
+                    }
+                }
+            }
+            for window in candidates {
+                AXUIElementSetMessagingTimeout(window, timeout)
+                guard isEligible(window), let frame = Self.frame(of: window) else { continue }
+                if abs(frame.minX - bounds.minX) <= 4 && abs(frame.minY - bounds.minY) <= 4
+                    && abs(frame.width - bounds.width) <= 4
+                    && abs(frame.height - bounds.height) <= 4
+                {
+                    return (pid, application, window, targetID ?? windowID(of: window))
+                }
+            }
+            if let focused = targetWindow(in: application) {
+                AXUIElementSetMessagingTimeout(focused, timeout)
+                if let frame = Self.frame(of: focused), frame.contains(point) {
+                    return (pid, application, focused, targetID ?? windowID(of: focused))
+                }
+            }
+            return nil
+        }
+        return nil
+    }
+
+    private static func hitTestedWindow(at point: CGPoint, timeout: Float) -> (
+        pid: pid_t, application: AXUIElement, window: AXUIElement, windowID: UInt32?
+    )? {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, timeout)
+        var element: AXUIElement?
+        guard
+            AXUIElementCopyElementAtPosition(
+                system, Float(point.x), Float(point.y), &element) == .success,
+            let hit = element
+        else { return nil }
+
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(hit, &pid) == .success, pid > 0,
+            pid != ProcessInfo.processInfo.processIdentifier
+        else { return nil }
+
+        let application = Self.application(for: pid, timeout: timeout)
+        var current: AXUIElement? = hit
+        for _ in 0..<12 {
+            guard let candidate = current else { break }
+            AXUIElementSetMessagingTimeout(candidate, timeout)
+            if string(candidate, kAXRoleAttribute) == (kAXWindowRole as String),
+                isEligible(candidate)
+            {
+                return (pid, application, candidate, windowID(of: candidate))
+            }
+            if let directWindow = Self.element(candidate, kAXWindowAttribute) {
+                AXUIElementSetMessagingTimeout(directWindow, timeout)
+                if isEligible(directWindow) {
+                    return (pid, application, directWindow, windowID(of: directWindow))
+                }
+            }
+            current = Self.element(candidate, kAXParentAttribute)
+        }
+        return nil
+    }
+
     /// Every window the app reports, unfiltered and in its own order.
     static func windows(in application: AXUIElement) -> [AXUIElement] {
         var value: CFTypeRef?
@@ -48,6 +187,25 @@ enum AXWindowAccess {
     }
 
     static func isFullScreen(_ window: AXUIElement) -> Bool { fullScreenState(window) == true }
+
+    /// AX-space bounds of the window's chosen traffic-light button, if present.
+    static func trafficLightButtonFrame(
+        of window: AXUIElement, kind: WindowTrafficLightButton, timeout: Float = 0.15
+    ) -> CGRect? {
+        let attributes: [String] =
+            switch kind {
+            case .green: [fullScreenButtonAttribute as String, kAXZoomButtonAttribute]
+            case .yellow: [kAXMinimizeButtonAttribute]
+            }
+        for attribute in attributes {
+            guard let button = element(window, attribute) else { continue }
+            AXUIElementSetMessagingTimeout(button, timeout)
+            if let rect = frame(of: button), rect.width > 0, rect.height > 0 {
+                return rect
+            }
+        }
+        return nil
+    }
 
     /// Nil when the window does not answer, as a busy app mid-transition often does not.
     static func fullScreenState(_ window: AXUIElement) -> Bool? {

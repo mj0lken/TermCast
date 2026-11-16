@@ -101,7 +101,7 @@ extension InstalledAIKind {
     static let antigravityNoToolsHooks =
         #"{"tinycast-no-tools":{"PreToolUse":[{"matcher":"*","hooks":[{"type":"command","#
         + #""command":"printf '{\"decision\":\"deny\","#
-        + #"\"reason\":\"Tools are disabled inside Tinycast.\"}\\n'"}]}]}}"#
+        + #"\"reason\":\"Tools are disabled inside Termcast.\"}\\n'"}]}]}}"#
 
     static let antigravitySessionRequestID = InstalledAIModel.antigravitySessionRequestID
     static let antigravityModelRequestID = 3
@@ -192,7 +192,7 @@ extension InstalledAIKind {
         return jsonLines([
             [
                 "jsonrpc": "2.0", "id": id,
-                "error": ["code": -32601, "message": "Tinycast does not answer this request."]
+                "error": ["code": -32601, "message": "Termcast does not answer this request."]
             ]
         ])
     }
@@ -214,7 +214,7 @@ extension InstalledAIKind {
     /// A trailing `*` deny drops every tool from the request, not just refuses the call.
     private static let openCodeConfiguration = """
         {"share":"disabled","snapshots":false,"agents":{"\(openCodeAgent)":{"system":\
-        "You are generating text inside Tinycast. Use only the conversation in this request.",\
+        "You are generating text inside Termcast. Use only the conversation in this request.",\
         "permissions":[{"action":"*","resource":"*","effect":"deny"}]}}}
         """
 }

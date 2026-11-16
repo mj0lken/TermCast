@@ -36,6 +36,8 @@ git config merge.ours.driver true
 git_dir="$(git rev-parse --git-dir)"
 
 finish_merge_and_verify() {
+    # Keep features deliberately removed in Termcast deleted even if upstream adds or edits files there.
+    git rm -rf --ignore-unmatch Tinycast/Features/Support Tests/SupportTests.swift docs/features/support.md >/dev/null 2>&1 || true
     node Scripts/rebrand-strings.js
     xcodegen generate
     git add Tinycast.xcodeproj/project.pbxproj Tinycast/Resources/Localizable.xcstrings Tinycast/Resources/InfoPlist.xcstrings
@@ -80,6 +82,7 @@ incoming="$(git rev-list --count HEAD..upstream/main)"
 echo "Integrating $incoming commit(s) from upstream/main…"
 
 if ! git merge --no-commit --no-ff upstream/main; then
+    git rm -rf --ignore-unmatch Tinycast/Features/Support Tests/SupportTests.swift docs/features/support.md >/dev/null 2>&1 || true
     node Scripts/rebrand-strings.js --resolve-conflicts
     unmerged="$(git diff --name-only --diff-filter=U)"
     # Regenerating from project.yml resolves pbxproj file-list collisions deterministically.

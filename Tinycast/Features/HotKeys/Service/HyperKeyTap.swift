@@ -20,10 +20,13 @@ final class HyperKeyTap {
     nonisolated static let syntheticTag: Int64 = 0x5459_4354
 
     var onUnmappedCapsLock: (() -> Void)?
+    var onScrollAdjustment: ((HyperScrollEngine.Adjustment) -> Void)?
+    var onHoldEnded: (() -> Void)?
 
     private var route: HyperKeyRoute?
     private var includesShift = true
     private var quickPress: HyperKeyQuickPress = .none
+    private var trackpadSliders = false
     private var session: Session?
     private var hidConnect: io_connect_t = IO_OBJECT_NULL
 
@@ -36,8 +39,23 @@ final class HyperKeyTap {
     var isEnabled: Bool? { session?.isEnabled }
     var runLoopSourceIsValid: Bool? { session?.runLoopSourceIsValid }
 
-    func configure(route: HyperKeyRoute?, includesShift: Bool, quickPress: HyperKeyQuickPress) {
+    func configure(
+        route: HyperKeyRoute?,
+        includesShift: Bool,
+        quickPress: HyperKeyQuickPress,
+        trackpadSliders: Bool
+    ) {
         self.quickPress = quickPress
+        if trackpadSliders != self.trackpadSliders {
+            self.trackpadSliders = trackpadSliders
+            self.route = route
+            self.includesShift = includesShift
+            if session != nil {
+                tearDown()
+                _ = install()
+            }
+            return
+        }
         guard route != self.route || includesShift != self.includesShift else { return }
         self.route = route
         self.includesShift = includesShift
@@ -57,9 +75,18 @@ final class HyperKeyTap {
     func install() -> Bool {
         guard session == nil else { return true }
         let engine = HyperKeyEngine(route: route, includesShift: includesShift)
-        session = Session(engine: engine) { [weak self] route, effect in
-            self?.handle(effect, from: route)
-        }
+        session = Session(
+            engine: engine,
+            trackpadSliders: trackpadSliders,
+            deliver: { [weak self] route, effect in
+                self?.handle(effect, from: route)
+            },
+            deliverScroll: { [weak self] adjustment in
+                self?.onScrollAdjustment?(adjustment)
+            },
+            deliverHoldEnded: { [weak self] in
+                self?.onHoldEnded?()
+            })
         return session != nil
     }
 
@@ -158,6 +185,8 @@ final class HyperKeyTap {
 
     /// One installed tap and the thread that serves it, so a busy main thread never stalls typing.
     fileprivate final class Session: Sendable {
+        private static let directionInvertedField = CGEventField(rawValue: 137)
+
         // Core Foundation allows cross-thread port and run-loop calls; only the worker runs the loop.
         private struct Installation: @unchecked Sendable {
             let port: CFMachPort
@@ -165,25 +194,51 @@ final class HyperKeyTap {
             var runLoop: CFRunLoop?
         }
 
+        private struct WeakTarget {
+            weak var session: Session?
+        }
+
         private struct State {
             var engine: HyperKeyEngine
+            var scrollEngine = HyperScrollEngine()
+            var pendingScrolls: [HyperScrollEngine.Adjustment] = []
+            var isDrainingScrolls = false
             var installation: Installation?
             var isRunning = true
         }
 
         private let state: Mutex<State>
+        private let touchMonitor: TrackpadTouchMonitor?
         private let deliver: @MainActor @Sendable (HyperKeyRoute, HyperKeyEngine.Effect) -> Void
+        private let deliverScroll: @MainActor @Sendable (HyperScrollEngine.Adjustment) -> Void
+        private let deliverHoldEnded: @MainActor @Sendable () -> Void
 
         init?(
             engine: HyperKeyEngine,
-            deliver: @escaping @MainActor @Sendable (HyperKeyRoute, HyperKeyEngine.Effect) -> Void
+            trackpadSliders: Bool,
+            deliver: @escaping @MainActor @Sendable (HyperKeyRoute, HyperKeyEngine.Effect) -> Void,
+            deliverScroll: @escaping @MainActor @Sendable (HyperScrollEngine.Adjustment) -> Void,
+            deliverHoldEnded: @escaping @MainActor @Sendable () -> Void
         ) {
             state = Mutex(State(engine: engine))
             self.deliver = deliver
-            let events: CGEventMask =
+            self.deliverScroll = deliverScroll
+            self.deliverHoldEnded = deliverHoldEnded
+
+            let target = Mutex(WeakTarget())
+            touchMonitor =
+                trackpadSliders
+                ? TrackpadTouchMonitor { xs in
+                    target.withLock { $0.session }?.updateTouches(xs)
+                } : nil
+
+            var events: CGEventMask =
                 (1 << CGEventType.keyDown.rawValue)
                 | (1 << CGEventType.keyUp.rawValue)
                 | (1 << CGEventType.flagsChanged.rawValue)
+            if trackpadSliders {
+                events |= (1 << CGEventType.scrollWheel.rawValue)
+            }
             guard
                 let port = CGEvent.tapCreate(
                     tap: .cghidEventTap,
@@ -193,6 +248,7 @@ final class HyperKeyTap {
                     callback: hyperKeyTapCallback,
                     userInfo: Unmanaged.passUnretained(self).toOpaque())
             else { return nil }
+            target.withLock { $0.session = self }
             state.withLock { $0.installation = Installation(port: port) }
             let thread = Thread { [self] in run() }
             thread.name = "com.tinycast.hyper-key"
@@ -210,21 +266,31 @@ final class HyperKeyTap {
 
         /// Swaps the route and drops any hold, which the old route's release would no longer end.
         func configure(route: HyperKeyRoute?, includesShift: Bool) -> Bool {
-            state.withLock { state in
+            let needsRelease = state.withLock { state in
                 let needsRelease = state.engine.reset()
+                state.scrollEngine.reset()
                 state.engine.route = route
                 state.engine.includesShift = includesShift
                 return needsRelease
             }
+            touchMonitor?.stop()
+            return needsRelease
         }
 
         func cancelHold() -> Bool {
-            state.withLock { $0.engine.reset() }
+            let needsRelease = state.withLock { state in
+                state.scrollEngine.reset()
+                return state.engine.reset()
+            }
+            touchMonitor?.stop()
+            return needsRelease
         }
 
         func stop() {
+            touchMonitor?.stop()
             state.withLock { state in
                 state.isRunning = false
+                state.scrollEngine.reset()
                 guard let runLoop = state.installation?.runLoop else { return }
                 // A queued stop also covers closing before the worker enters its run loop.
                 CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue) {
@@ -232,6 +298,10 @@ final class HyperKeyTap {
                 }
                 CFRunLoopWakeUp(runLoop)
             }
+        }
+
+        private func updateTouches(_ normalizedXs: [Double]) {
+            state.withLock { $0.scrollEngine.updateTouches(normalizedXs: normalizedXs) }
         }
 
         private func run() {
@@ -262,27 +332,41 @@ final class HyperKeyTap {
                 // Whatever was held went unseen while disabled, so the hold is stale.
                 let needsRelease = state.withLock { state in
                     if let port = state.installation?.port { CGEvent.tapEnable(tap: port, enable: true) }
+                    state.scrollEngine.reset()
                     return state.engine.reset()
                 }
+                touchMonitor?.stop()
                 if needsRelease { HyperKeyTap.postModifierRelease() }
                 return unchanged
             }
             guard event.getIntegerValueField(.eventSourceUserData) != HyperKeyTap.syntheticTag else {
                 return unchanged
             }
+            if type == .scrollWheel {
+                return handleScroll(event)
+            }
             let keyCode = Int(event.getIntegerValueField(.keyboardEventKeycode))
             let flags = event.flags.rawValue
             let isAutorepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             let now = ProcessInfo.processInfo.systemUptime
-            let (route, result) = state.withLock { state in
+            let (route, result, wasActive, nowActive) = state.withLock { state in
+                let wasActive = state.engine.isActive
                 let route = state.engine.route
                 let insideSecureInput = keyCode == route?.tapKeyCode && IsSecureEventInputEnabled()
-                return (
-                    route,
-                    state.engine.handle(
-                        type: type, keyCode: keyCode, flags: flags, isAutorepeat: isAutorepeat, at: now,
-                        insideSecureInput: insideSecureInput)
-                )
+                let result = state.engine.handle(
+                    type: type, keyCode: keyCode, flags: flags, isAutorepeat: isAutorepeat, at: now,
+                    insideSecureInput: insideSecureInput)
+                let nowActive = state.engine.isActive
+                if wasActive, !nowActive { state.scrollEngine.endHyperHold() }
+                return (route, result, wasActive, nowActive)
+            }
+            if nowActive != wasActive {
+                if nowActive {
+                    touchMonitor?.start()
+                } else {
+                    touchMonitor?.stop()
+                    Task { @MainActor [deliverHoldEnded] in deliverHoldEnded() }
+                }
             }
             if let route, let effect = result.effect {
                 Task { @MainActor [deliver] in deliver(route, effect) }
@@ -297,6 +381,77 @@ final class HyperKeyTap {
                 if let keyCode { event.setIntegerValueField(.keyboardEventKeycode, value: keyCode) }
                 event.flags = CGEventFlags(rawValue: flags)
                 return unchanged
+            }
+        }
+
+        private func handleScroll(_ event: CGEvent) -> Unmanaged<CGEvent>? {
+            let unchanged = Unmanaged.passUnretained(event)
+            let isInterested = state.withLock {
+                $0.engine.isActive || $0.scrollEngine.isSuppressingMomentum
+            }
+            guard isInterested else { return unchanged }
+
+            let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+            let scrollPhase = UInt32(
+                bitPattern: Int32(truncatingIfNeeded: event.getIntegerValueField(.scrollWheelEventScrollPhase)))
+            let momentumPhase = UInt32(
+                bitPattern: Int32(
+                    truncatingIfNeeded: event.getIntegerValueField(.scrollWheelEventMomentumPhase)))
+            let pointDeltaY = event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1)
+            let lineDeltaY = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+            let isDirectionInverted =
+                Self.directionInvertedField.map { event.getIntegerValueField($0) != 0 } ?? false
+
+            let (result, shouldStartDrain) = state.withLock { state -> (HyperScrollEngine.Result, Bool) in
+                let result = state.scrollEngine.handleScroll(
+                    isHyperActive: state.engine.isActive,
+                    isContinuous: isContinuous,
+                    scrollPhase: scrollPhase,
+                    momentumPhase: momentumPhase,
+                    pointDeltaY: pointDeltaY,
+                    lineDeltaY: lineDeltaY,
+                    isDirectionInverted: isDirectionInverted)
+                if result.marksHyperUsed { state.engine.markUsed() }
+                var shouldStartDrain = false
+                if result.gestureEnded {
+                    state.pendingScrolls.removeAll(keepingCapacity: true)
+                } else if let adjustment = result.adjustment {
+                    if let last = state.pendingScrolls.last, last.zone == adjustment.zone {
+                        state.pendingScrolls[state.pendingScrolls.count - 1].delta += adjustment.delta
+                    } else {
+                        state.pendingScrolls.append(adjustment)
+                    }
+                    if !state.isDrainingScrolls {
+                        state.isDrainingScrolls = true
+                        shouldStartDrain = true
+                    }
+                }
+                return (result, shouldStartDrain)
+            }
+
+            if result.gestureEnded {
+                Task { @MainActor [deliverHoldEnded] in deliverHoldEnded() }
+            }
+            if shouldStartDrain {
+                Task { @MainActor [weak self] in self?.drainPendingScrolls() }
+            }
+            return result.decision == .suppress ? nil : unchanged
+        }
+
+        @MainActor
+        private func drainPendingScrolls() {
+            while true {
+                let batch: [HyperScrollEngine.Adjustment] = state.withLock { state in
+                    if state.pendingScrolls.isEmpty {
+                        state.isDrainingScrolls = false
+                        return []
+                    }
+                    let drained = state.pendingScrolls
+                    state.pendingScrolls.removeAll(keepingCapacity: true)
+                    return drained
+                }
+                guard !batch.isEmpty else { return }
+                for adjustment in batch { deliverScroll(adjustment) }
             }
         }
     }

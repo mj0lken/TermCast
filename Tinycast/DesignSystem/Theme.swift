@@ -299,6 +299,8 @@ enum Theme {
         static let volumeReadout: CGFloat = 38
         static let roomCardTitleBar: CGFloat = 40
         static let roomCardStroke: CGFloat = 2
+        static let snapPreviewStroke: CGFloat = 2.5
+        static let snapPillStroke: CGFloat = 1.5
         static let roomCardShadowRadius: CGFloat = 24
         static let roomCardShadowOffset: CGFloat = 8
         static let roomCardDot: CGFloat = 8
@@ -486,6 +488,17 @@ enum Theme {
         static let roomCardFill = adaptive(
             dark: .srgbInk(0.16, alpha: 0.94), light: .srgbInk(0.98, alpha: 0.94))
         static let roomCardStroke = Color.accentColor
+        static let snapPreviewFill = Color.accentColor.opacity(0.18)
+        static let snapPreviewStroke = Color.accentColor.opacity(0.85)
+        static let snapPillFill = adaptive(
+            dark: .srgbInk(0.18, alpha: 0.78), light: .srgbInk(0.96, alpha: 0.85))
+        static let snapPillStroke = adaptive(
+            dark: .srgbInk(1, alpha: 0.42), light: .srgbInk(0, alpha: 0.28))
+        static let snapPillArmedFill = Color.accentColor.opacity(0.90)
+        static let snapPillArmedStroke = adaptive(
+            dark: .srgbInk(1, alpha: 0.85), light: .srgbInk(1, alpha: 0.92))
+        static let hitTestShield = adaptive(
+            dark: .srgbInk(1, alpha: 0.002), light: .srgbInk(0, alpha: 0.002))
         static let roomCardShadow = adaptive(
             dark: .srgbInk(0, alpha: 0.25), light: .srgbInk(0, alpha: 0.25))
         static let roomCardDot = ramp(dark: 0.25, light: 0.25)

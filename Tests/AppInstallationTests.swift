@@ -531,7 +531,8 @@ struct AppInstallationTests {
 // Empty feature catalogs keep this harness focused on the shipped launcher.
 enum SettingsTab: Sendable { case ai }
 enum ExtensionRefreshState: Hashable, Sendable { case idle }
-enum EntryIcon: Hashable, Sendable { case file(stamp: Int), symbol(String) }
+struct WindowTileIcon: Hashable, Sendable { init(unitRect: CGRect) {} }
+enum EntryIcon: Hashable, Sendable { case file(stamp: Int), symbol(String), windowTile(WindowTileIcon) }
 enum IconCache {
     static func observeStyle() {}
     static func icon(for source: EntryIcon, fileURL: URL) -> NSImage { NSImage() }
@@ -562,6 +563,7 @@ struct OtherEntry<Tag: Sendable>: Sendable {
     var entryID: String { id.uuidString }
     var name = ""
     var iconSymbol: String?
+    var tilePreviewRect: CGRect?
     var isEnabled = true
     var showsInRootSearch = true
     var link = ""
@@ -602,6 +604,7 @@ struct WindowCommand: Sendable {
     var name = ""
     var englishName = ""
     var sfSymbol = ""
+    var tilePreviewRect: CGRect?
 }
 enum WindowCommandCatalog {
     static let all: [WindowCommand] = []

@@ -49,12 +49,74 @@ enum SystemSymbolName {
     }
 }
 
+/// Unit-square region (`0...1` in top-left AX space) for a schematic window-tile glyph.
+struct WindowTileIcon: Hashable, Sendable {
+    let x: CGFloat
+    let y: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+
+    init(unitRect: CGRect) {
+        let clamped = unitRect.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+        if clamped.isNull {
+            self.x = 0
+            self.y = 0
+            self.width = 0
+            self.height = 0
+        } else {
+            self.x = clamped.minX
+            self.y = clamped.minY
+            self.width = clamped.width
+            self.height = clamped.height
+        }
+    }
+
+    var unitRect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
+}
+
+/// Shared vector drawing for schematic window-tile glyphs across launcher, menus and settings.
+enum WindowTileGlyph {
+    static let templateSize = NSSize(width: 18, height: 14)
+
+    static func draw(
+        _ tile: WindowTileIcon, in size: NSSize, strokeWidth: CGFloat, ink: NSColor
+    ) {
+        let scale = size.width / templateSize.width
+        let outer = NSRect(x: 1.5 * scale, y: 1.5 * scale, width: 15 * scale, height: 11 * scale)
+        let border = NSBezierPath(roundedRect: outer, xRadius: 2 * scale, yRadius: 2 * scale)
+        border.lineWidth = strokeWidth
+        ink.setStroke()
+        border.stroke()
+
+        let clamped = tile.unitRect
+        guard clamped.width > 0, clamped.height > 0 else { return }
+        let inner = NSRect(x: 3.4 * scale, y: 3.4 * scale, width: 11.2 * scale, height: 7.2 * scale)
+        let tileRect = NSRect(
+            x: inner.minX + clamped.minX * inner.width,
+            y: inner.minY + clamped.minY * inner.height,
+            width: max(1.8 * scale, clamped.width * inner.width),
+            height: max(1.8 * scale, clamped.height * inner.height))
+        ink.setFill()
+        NSBezierPath(roundedRect: tileRect, xRadius: 0.9 * scale, yRadius: 0.9 * scale).fill()
+    }
+
+    static func templateImage(for tile: WindowTileIcon) -> NSImage {
+        let image = NSImage(size: templateSize, flipped: true) { _ in
+            draw(tile, in: templateSize, strokeWidth: 1.15, ink: .black)
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+}
+
 /// A feature sets one rather than branching `AppEntry`; `artwork` carries its extent.
 enum EntryIcon: Hashable, Sendable {
     /// The stamp is `FileIconStamp`'s: it moves when the file's icon does, retiring the old bitmap.
     case file(stamp: Int)
     case symbol(String)
     case tintedSymbol(name: String, tint: SymbolTint)
+    case windowTile(WindowTileIcon)
     case artwork(path: String, extent: CGFloat)
     /// A declared type's icon, for a bundle whose own file icon is a placeholder.
     case contentType(String)
@@ -180,6 +242,12 @@ enum IconCache {
         return key("symbol:\(surface):\(tint?.key ?? "plain"):\(name)")
     }
 
+    private static func windowTileKey(_ tile: WindowTileIcon) -> NSString {
+        let surface = darkSurface.withLock { $0 } ? "dark" : "light"
+        return key(
+            "windowTile:\(surface):\(tile.x),\(tile.y),\(tile.width),\(tile.height)")
+    }
+
     /// A freshly-decoded, thereafter-immutable `NSImage` is safe to move across the actor boundary.
     private struct Decoded: @unchecked Sendable {
         let image: NSImage?
@@ -277,6 +345,47 @@ enum IconCache {
         return icon
     }
 
+    static func cachedWindowTileIcon(_ tile: WindowTileIcon) -> NSImage? {
+        cache.object(forKey: windowTileKey(tile))
+    }
+
+    static func loadWindowTileIconAsync(_ tile: WindowTileIcon) async -> NSImage? {
+        if let cached = cachedWindowTileIcon(tile) { return cached }
+        return await Task.detached(priority: .userInitiated) {
+            Decoded(image: windowTileIcon(tile))
+        }.value.image
+    }
+
+    static func windowTileIcon(_ tile: WindowTileIcon) -> NSImage {
+        let key = windowTileKey(tile)
+        if let cached = cache.object(forKey: key) { return cached }
+
+        let side = displayPixel
+        let isDark = darkSurface.withLock { $0 }
+        let plainInk: CGFloat = isDark ? 1 : 0
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: true) { _ in
+            let card = NSRect(x: 0, y: 0, width: side, height: side).insetBy(dx: 4, dy: 4)
+            NSColor.srgbInk(plainInk, alpha: 0.09).setFill()
+            NSBezierPath(roundedRect: card, xRadius: 9, yRadius: 9).fill()
+
+            let glyphSize = NSSize(width: 28, height: 22)
+            let origin = NSPoint(
+                x: (side - glyphSize.width) / 2, y: (side - glyphSize.height) / 2)
+            NSGraphicsContext.saveGraphicsState()
+            let transform = NSAffineTransform()
+            transform.translateX(by: origin.x, yBy: origin.y)
+            transform.concat()
+            WindowTileGlyph.draw(
+                tile, in: glyphSize, strokeWidth: 1.85,
+                ink: .srgbInk(plainInk, alpha: 0.85))
+            NSGraphicsContext.restoreGraphicsState()
+            return true
+        }
+        let (icon, cost) = downsampled(image)
+        cache.setObject(icon, forKey: key, cost: cost)
+        return icon
+    }
+
     private static func glyph(named name: String, tint: NSColor, isDark: Bool) -> NSImage? {
         let config = NSImage.SymbolConfiguration(pointSize: 21, weight: .medium)
             .applying(.init(paletteColors: [tint]))
@@ -367,6 +476,7 @@ enum IconCache {
         case .file(let stamp): return icon(forFile: fileURL.path, stamp: stamp)
         case .symbol(let name): return symbolIcon(named: name)
         case .tintedSymbol(let name, let tint): return symbolIcon(named: name, tint: tint)
+        case .windowTile(let tile): return windowTileIcon(tile)
         case .artwork(let path, let extent): return artwork(atPath: path, extent: extent)
         case .contentType(let identifier): return contentTypeIcon(identifier)
         }
@@ -377,6 +487,7 @@ enum IconCache {
         case .file(let stamp): return cached(forFile: fileURL.path, stamp: stamp, size: size)
         case .symbol(let name): return cachedSymbol(named: name)
         case .tintedSymbol(let name, let tint): return cachedSymbol(named: name, tint: tint)
+        case .windowTile(let tile): return cachedWindowTileIcon(tile)
         case .artwork(let path, let extent): return cachedArtwork(atPath: path, extent: extent)
         case .contentType(let identifier): return cachedContentTypeIcon(identifier)
         }
@@ -387,6 +498,7 @@ enum IconCache {
         case .file(let stamp): return await loadAsync(forFile: fileURL.path, stamp: stamp, size: size)
         case .symbol(let name): return await loadSymbolAsync(named: name)
         case .tintedSymbol(let name, let tint): return await loadSymbolAsync(named: name, tint: tint)
+        case .windowTile(let tile): return await loadWindowTileIconAsync(tile)
         case .artwork(let path, let extent):
             return await loadArtworkAsync(atPath: path, extent: extent)
         case .contentType(let identifier): return await loadContentTypeIconAsync(identifier)

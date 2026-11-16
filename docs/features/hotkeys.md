@@ -390,6 +390,46 @@ there, so the toggle cannot move without a chord to mean.
 Include Shift costs one chord: macOS consumes ⌃⌥⇧⌘Q as a system shortcut before any app or Carbon sees
 it, so ✦Q can be neither recorded nor fired while it is on.
 
+### Trackpad scroll sliders
+
+When **Trackpad Scroll Sliders** (`hyperKey.trackpadSliders`, off by default) is switched on in
+Settings → General → Hyper Key, `HyperKeyTap` adds `scrollWheel` to its event mask and creates a
+`TrackpadTouchMonitor` (`Platform/TrackpadTouchMonitor.swift`, resolving `MultitouchSupport.framework`
+with `dlsym`). The touch stream starts only when the Hyper key goes down and stops on release, so an
+idle Hyper key adds zero background touch callbacks.
+
+`HyperScrollEngine` (`HotKeys/Model/HyperScrollEngine.swift`) is pure and tested by `HyperScrollTests`:
+
+- **Three horizontal trackpad zones, locked on touch-down:** two or more contacts lock their initial
+  mean normalized X into `.screenBrightness` (`0..<1/3`), `.keyboardBrightness` (`1/3..<2/3`), or
+  `.volume` (`2/3...1`) for the rest of that gesture, so sideways finger drift never jumps between
+  targets.
+- **Physical mouse wheel fallback:** non-continuous wheel ticks (`isContinuous == false`) and
+  continuous scroll devices without trackpad contacts adjust `.volume`.
+- **Natural scrolling normalization:** `CGEventField(137)` (`isDirectionInvertedFromDevice`) normalizes
+  scroll deltas so pushing fingers or a wheel upward always increases the level and pulling downward
+  decreases it.
+- **Quick Press and momentum isolation:** consuming a scroll marks the Hyper hold used so release
+  skips Quick Press, and trailing momentum events from an intercepted swipe stay suppressed even if the
+  Hyper key is released mid-coast, while pre-existing page momentum started before the hold passes
+  through untouched.
+
+`HyperScrollRunner` (`HotKeys/Service/HyperScrollRunner.swift`) converts live scroll deltas (`384 pt`
+full sweep) into target-specific updates, clearing buffered carry immediately on trackpad liftoff:
+
+- **Screen brightness targets only `NSScreen.underCursor`:** the cursor's `CGDirectDisplayID` is locked
+  at gesture start and passed to `DisplayBrightnessService` (`HotKeys/Service/DisplayBrightnessService.swift`),
+  never posted as a blind brightness media key (which macOS otherwise routes to the built-in display).
+  Apple and `DisplayServices`-capable displays step smoothly via `DisplayServicesSetBrightnessSmooth`
+  and render macOS's native HUD on that exact `displayID` via `OSDManager`; non-Apple external monitors
+  matched by EDID (`DisplayDDC` in `HotKeys/Model/DisplayDDC.swift`) write VCP `0x10` over Apple
+  Silicon `IOAVService` I²C off-main (`50 ms`-coalesced) with the same per-display native HUD, and
+  unsupported virtual displays no-op without touching another screen.
+- **Keyboard backlight and volume:** posted as isolated `.privateState` `NSSystemDefined` media keys
+  through `MediaKeyPoster` (`Platform/MediaKeyPoster.swift`) — `1/64` (`⇧⌥`) fine steps on local
+  outputs and `45 ms`-paced `1/16` steps on Bluetooth AVRCP outputs so `bluetoothaudiod` never queues
+  lagging packets.
+
 ### Lifecycle
 
 The modifying tap needs the **Accessibility** grant. Choosing a key in Settings is the one place

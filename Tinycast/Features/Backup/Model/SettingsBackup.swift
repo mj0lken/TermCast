@@ -29,6 +29,7 @@ struct SettingsBackup: Codable {
         var hyperKeyIncludesShift: Bool?
         var hyperKeyQuickPress: String?
         var hyperKeySecureInputCompatibility: Bool?
+        var hyperKeyTrackpadSliders: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -68,7 +69,17 @@ struct SettingsBackup: Codable {
         var menuSearchShowsAppleMenu: Bool?
         var windowManagementEnabled: Bool?
         var windowManagementShowInLauncher: Bool?
+        var windowSnapByDragging: Bool?
+        var windowRestoreOnDrag: Bool?
+        var windowHighlightActivationAreas: Bool?
+        var windowActivationEdgeWidth: Int?
+        var windowActivationAreaScale: Int?
+        var windowDisabledActivationAreas: [String]?
+        var windowGreenButtonMenu: Bool?
+        var windowGreenButtonTarget: String?
+        var windowGreenButtonHoverDelay: Int?
         var windowGap: Int?
+        var windowFitTightlyToEdges: Bool?
         var windowCycle: String?
         var windowWrapsDisplays: Bool?
         var windowKeepsProportions: Bool?
@@ -97,8 +108,6 @@ struct SettingsBackup: Codable {
         var menuBarLinkedEventsOnly: Bool?
         var calendarMenuBarHidesWhenEmpty: Bool?
         var hideCurrentEvent: Int?
-        // Safe to carry: it silences a prompt rather than granting anything.
-        var supportReminders: Bool?
     }
 
     struct HotkeyBackup: Codable {
@@ -148,6 +157,7 @@ extension SettingsBackup {
             hyperKeyIncludesShift: s.hyperKeyIncludesShift,
             hyperKeyQuickPress: s.hyperKeyQuickPress.rawValue,
             hyperKeySecureInputCompatibility: s.hyperKeySecureInputCompatibility,
+            hyperKeyTrackpadSliders: s.hyperKeyTrackpadSliders,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -184,7 +194,17 @@ extension SettingsBackup {
             menuSearchShowsAppleMenu: s.menuSearchShowsAppleMenu,
             windowManagementEnabled: s.windowManagementEnabled,
             windowManagementShowInLauncher: s.windowManagementShowInLauncher,
+            windowSnapByDragging: s.windowSnapByDragging,
+            windowRestoreOnDrag: s.windowRestoreOnDrag,
+            windowHighlightActivationAreas: s.windowHighlightActivationAreas,
+            windowActivationEdgeWidth: s.windowActivationEdgeWidth,
+            windowActivationAreaScale: s.windowActivationAreaScale,
+            windowDisabledActivationAreas: s.windowDisabledActivationAreas,
+            windowGreenButtonMenu: s.windowGreenButtonMenu,
+            windowGreenButtonTarget: s.windowGreenButtonTarget.rawValue,
+            windowGreenButtonHoverDelay: s.windowGreenButtonHoverDelay,
             windowGap: s.windowGap,
+            windowFitTightlyToEdges: s.windowFitTightlyToEdges,
             windowCycle: s.windowCycle.rawValue,
             windowWrapsDisplays: s.windowWrapsDisplays,
             windowKeepsProportions: s.windowKeepsProportions,
@@ -207,8 +227,7 @@ extension SettingsBackup {
             calendarMenuBarDisplay: s.calendarMenuBarDisplay.rawValue,
             menuBarLinkedEventsOnly: s.menuBarLinkedEventsOnly,
             calendarMenuBarHidesWhenEmpty: s.calendarMenuBarHidesWhenEmpty,
-            hideCurrentEvent: s.hideCurrentEvent.rawValue,
-            supportReminders: s.supportRemindersEnabled)
+            hideCurrentEvent: s.hideCurrentEvent.rawValue)
 
         let hk = core.hotKeys
         var hotkeys = HotkeyBackup()
@@ -351,6 +370,10 @@ extension SettingsBackup {
         }
         if let flag = s.hyperKeySecureInputCompatibility {
             settings.hyperKeySecureInputCompatibility = flag
+            count += 1
+        }
+        if let flag = s.hyperKeyTrackpadSliders {
+            settings.hyperKeyTrackpadSliders = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {
@@ -500,8 +523,58 @@ extension SettingsBackup {
             settings.windowManagementShowInLauncher = flag
             count += 1
         }
+        if let flag = s.windowSnapByDragging {
+            settings.windowSnapByDragging = flag
+            count += 1
+        }
+        if let flag = s.windowRestoreOnDrag {
+            settings.windowRestoreOnDrag = flag
+            count += 1
+        }
+        if let flag = s.windowHighlightActivationAreas {
+            settings.windowHighlightActivationAreas = flag
+            count += 1
+        }
+        if let width = s.windowActivationEdgeWidth,
+            WindowDragSnap.edgeWidthRange.contains(width)
+        {
+            settings.windowActivationEdgeWidth = width
+            count += 1
+        }
+        if let scale = s.windowActivationAreaScale,
+            WindowDragSnap.areaScaleRange.contains(scale)
+        {
+            settings.windowActivationAreaScale = scale
+            count += 1
+        }
+        if let zones = s.windowDisabledActivationAreas,
+            let normalized = WindowDragSnap.normalizedDisabledZones(zones)
+        {
+            settings.windowDisabledActivationAreas = normalized
+            count += 1
+        }
+        if let flag = s.windowGreenButtonMenu {
+            settings.windowGreenButtonMenu = flag
+            count += 1
+        }
+        if let raw = s.windowGreenButtonTarget,
+            let target = WindowTrafficLightButton(rawValue: raw)
+        {
+            settings.windowGreenButtonTarget = target
+            count += 1
+        }
+        if let delay = s.windowGreenButtonHoverDelay,
+            WindowTrafficLightButton.hoverDelayRange.contains(delay)
+        {
+            settings.windowGreenButtonHoverDelay = delay
+            count += 1
+        }
         if let gap = s.windowGap {
             settings.windowGap = gap
+            count += 1
+        }
+        if let flag = s.windowFitTightlyToEdges {
+            settings.windowFitTightlyToEdges = flag
             count += 1
         }
         if let raw = s.windowCycle, let cycle = WindowCycle(rawValue: raw) {
@@ -596,10 +669,6 @@ extension SettingsBackup {
         }
         if let raw = s.hideCurrentEvent, let hide = HideCurrentEvent(rawValue: raw) {
             settings.hideCurrentEvent = hide
-            count += 1
-        }
-        if let flag = s.supportReminders {
-            settings.supportRemindersEnabled = flag
             count += 1
         }
         return count

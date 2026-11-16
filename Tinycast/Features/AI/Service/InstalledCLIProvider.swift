@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 struct InstalledCLIProvider: AIProvider {
     fileprivate static let safetyInstructions = """
-        You are generating text inside Tinycast. Do not invoke tools, read files, inspect the \
+        You are generating text inside Termcast. Do not invoke tools, read files, inspect the \
         environment, access external resources, or modify anything. Use only the conversation and \
         instructions in this request.
         """
@@ -124,7 +124,7 @@ struct InstalledCLIProvider: AIProvider {
 private final class InstalledCLITurnRunner {
     private static let safetyInstructions = InstalledCLIProvider.safetyInstructions
     nonisolated fileprivate static let toolSafetyInstructions = """
-        You are generating text inside Tinycast. The only tools you may use are the MCP tools \
+        You are generating text inside Termcast. The only tools you may use are the MCP tools \
         supplied with this request, and you may use them for anything they offer. Do not run \
         commands, read files, inspect the environment, access external resources, or modify \
         anything except through them.
@@ -564,7 +564,7 @@ private final class InstalledCLITurnRunner {
                 "--agent", InstalledAIKind.openCodeAgent,
                 "--model", effort.map { model + "#" + $0 } ?? model,
                 // A set title spares the turn a second model call to name its session.
-                "--title", "Tinycast"
+                "--title", "Termcast"
             ] + attachments.flatMap { ["--file", $0.path] }
         case .grok:
             var result = [
@@ -684,7 +684,7 @@ private final class InstalledCLITurnRunner {
             return
         }
         if let id = frame.unsupportedRequestID {
-            let refusal = "Tinycast does not answer this request."
+            let refusal = "Termcast does not answer this request."
             if let line = ClaudeControlProtocol.error(to: id, message: refusal) {
                 write(line, closing: false)
             }

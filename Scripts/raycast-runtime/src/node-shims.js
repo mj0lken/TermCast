@@ -185,10 +185,10 @@ const process = {
   getegid: () => bootEnvironment.egid,
   getgroups: () => [...bootEnvironment.groups],
   chdir: () => {
-    throw new Error("process.chdir is not supported in Tinycast extensions.");
+    throw new Error("process.chdir is not supported in Termcast extensions.");
   },
   exit: () => {
-    throw new Error("process.exit is not supported in Tinycast extensions.");
+    throw new Error("process.exit is not supported in Termcast extensions.");
   },
   kill(pid, signal = "SIGTERM") {
     hostCallSync("proc", "kill", [Number(pid), signalNumber(signal)]);
@@ -492,7 +492,7 @@ const fs = {
   },
   futimesSync() {},
   watch() {
-    throw new Error("fs.watch is not supported in Tinycast extensions.");
+    throw new Error("fs.watch is not supported in Termcast extensions.");
   },
   createReadStream(file, options) {
     const target = fsPath(file);
@@ -760,7 +760,7 @@ const childProcess = {
     return new ChildProcess(String(file), args.map(String), options);
   },
   fork() {
-    throw new Error("child_process.fork is not supported in Tinycast extensions.");
+    throw new Error("child_process.fork is not supported in Termcast extensions.");
   },
 };
 
@@ -992,10 +992,10 @@ const zlibImpl = {
   deflateRawSync: zlibSync("deflateRaw"),
   inflateRawSync: zlibSync("inflateRaw"),
   brotliCompressSync: () => {
-    throw new Error("zlib brotli is not supported in Tinycast extensions.");
+    throw new Error("zlib brotli is not supported in Termcast extensions.");
   },
   brotliDecompressSync: () => {
-    throw new Error("zlib brotli is not supported in Tinycast extensions.");
+    throw new Error("zlib brotli is not supported in Termcast extensions.");
   },
   constants: {},
 };
@@ -1710,7 +1710,7 @@ function unsupportedModule(name, extras = {}) {
 const RESERVED_MEMBERS = new Set(["__esModule", "default", "then", "catch", "prototype", "constructor", "toJSON", "inspect", "valueOf", "toString", "length", "name"]);
 
 function makeUnsupported(label) {
-  const reason = `${label} is not supported in Tinycast extensions (no Node runtime). See docs/extensions.md.`;
+  const reason = `${label} is not supported in Termcast extensions (no Node runtime). See docs/extensions.md.`;
   const Unsupported = class {
     constructor() {
       throw new Error(reason);
@@ -1953,7 +1953,7 @@ if (typeof globalThis.SharedArrayBuffer === "undefined") {
     const milliseconds = +timeout;
     if (load(array, offset) !== expected) return "not-equal";
     if (Number.isNaN(milliseconds) || milliseconds === Infinity) {
-      throw new TypeError("Atomics.wait with an infinite timeout is not supported in Tinycast extensions");
+      throw new TypeError("Atomics.wait with an infinite timeout is not supported in Termcast extensions");
     }
     if (milliseconds > 0) hostCallSync("atomics", "wait", [milliseconds]);
     return "timed-out";

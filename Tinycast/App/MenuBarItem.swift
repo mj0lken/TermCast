@@ -23,9 +23,11 @@ struct MenuBarMenu: View {
                 AppCore.shared.paletteCoordinator.showPalette(mode: .clipboard)
             }
         }
+        if AppCore.shared.settings.windowManagementEnabled {
+            WindowManagementMenu()
+        }
         Divider()
         Button("Check for Updates…") { AppCore.shared.updateCoordinator.checkForUpdates() }
-        Button("Support \(appName)…") { AppCore.shared.supportCoordinator.showSupport() }
         Button("Settings…") { AppCore.shared.settingsCoordinator.showSettings() }
             .keyboardShortcut(",")
         Divider()

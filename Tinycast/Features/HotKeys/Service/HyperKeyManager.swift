@@ -22,6 +22,7 @@ final class HyperKeyManager: HealthCheckable {
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let hotKeys: HotKeyManager
     @ObservationIgnored private let tap = HyperKeyTap()
+    @ObservationIgnored private lazy var scrollRunner = makeScrollRunner()
     @ObservationIgnored private lazy var remapper = KeyboardRemapper(instanceLock: instanceLock)
     @ObservationIgnored private let secureInput = SecureInputMonitor()
     @ObservationIgnored private let instanceLock = RemapInstanceLock(
@@ -44,6 +45,8 @@ final class HyperKeyManager: HealthCheckable {
     func start() {
         secureInput.onChange = { [weak self] _ in self?.secureInputChanged() }
         tap.onUnmappedCapsLock = { [weak self] in self?.repairRemap() }
+        tap.onScrollAdjustment = { [weak self] adjustment in self?.scrollRunner.apply(adjustment) }
+        tap.onHoldEnded = { [weak self] in self?.resetScrollGestureIfLoaded() }
         remapper.clearLeftovers()
         observeSettings()
         observeSystem()
@@ -135,6 +138,7 @@ final class HyperKeyManager: HealthCheckable {
     private func stop(_ status: Status, retrying: Bool = false) {
         setRoute(nil)
         tap.tearDown()
+        if hasScrollRunner { scrollRunner.cancelPendingWork() }
         remapper.apply(nil)
         instanceLock.release()
         if retrying { healthTicker?.subscribe(self) } else { healthTicker?.unsubscribe(self) }
@@ -145,8 +149,21 @@ final class HyperKeyManager: HealthCheckable {
     private func setRoute(_ route: HyperKeyRoute?) {
         tap.configure(
             route: route, includesShift: settings.hyperKeyIncludesShift,
-            quickPress: settings.hyperKeyQuickPress)
+            quickPress: settings.hyperKeyQuickPress,
+            trackpadSliders: route != nil && settings.hyperKeyTrackpadSliders)
         hotKeys.capture.hyperRoute = route
+    }
+
+    @ObservationIgnored private var hasScrollRunner = false
+
+    private func makeScrollRunner() -> HyperScrollRunner {
+        hasScrollRunner = true
+        return HyperScrollRunner()
+    }
+
+    private func resetScrollGestureIfLoaded() {
+        guard hasScrollRunner else { return }
+        scrollRunner.resetGesture()
     }
 
     private var otherInstanceName: String {
@@ -218,6 +235,7 @@ final class HyperKeyManager: HealthCheckable {
             _ = settings.hyperKeySecureInputCompatibility
             _ = settings.hyperKeyIncludesShift
             _ = settings.hyperKeyQuickPress
+            _ = settings.hyperKeyTrackpadSliders
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

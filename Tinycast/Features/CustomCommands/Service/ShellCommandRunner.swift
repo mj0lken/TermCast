@@ -101,8 +101,10 @@ enum ShellCommandRunner {
         process.executableURL = URL(fileURLWithPath: shell)
         process.arguments = launch.arguments
         process.currentDirectoryURL = URL(fileURLWithPath: launch.directory)
-        // Lets a shell config skip slow sections when Tinycast is the caller.
-        process.environment = ProcessInfo.processInfo.environment.merging(["TINYCAST": "1"]) { _, new in
+        // Lets a shell config skip slow sections when Termcast is the caller.
+        process.environment = ProcessInfo.processInfo.environment.merging(
+            ["TERMCAST": "1", "TINYCAST": "1"]
+        ) { _, new in
             new
         }
         // Load-bearing: a config that prompts reads EOF and moves on, never hanging.
@@ -146,6 +148,7 @@ enum ShellCommandRunner {
         }
 
         var environment = ProcessInfo.processInfo.environment
+        environment["TERMCAST"] = "1"
         environment["TINYCAST"] = "1"
         // A terminal makes tools colour output, so ask for colour the window can draw.
         environment["TERM"] = "xterm-256color"

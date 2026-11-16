@@ -54,6 +54,12 @@ struct HyperKeyEngine: Sendable {
         return flags & ~own
     }
 
+    /// Marks the active hold as consumed by a non-key gesture so release skips Quick Press.
+    mutating func markUsed() {
+        guard isActive else { return }
+        used = true
+    }
+
     /// True when a release must be synthesized: a modifier's own release still reaches the tap.
     @discardableResult
     mutating func reset() -> Bool {

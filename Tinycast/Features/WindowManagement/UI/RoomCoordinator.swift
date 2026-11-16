@@ -176,7 +176,8 @@ final class RoomCoordinator {
         else { return }
         let choices = RoomPlan.layoutChoices(
             for: room, windows: snapshot.windows, on: screen, gap: gap,
-            minimums: minimums.sizes, claimed: store.claimedWindowIDs(excluding: room.id))
+            minimums: minimums.sizes, claimed: store.claimedWindowIDs(excluding: room.id),
+            fitTightlyToEdges: fitTightlyToEdges)
         guard
             let next = RoomPlan.nextLayout(
                 after: room.layout(onDisplay: screen.display.uuid), in: choices,
@@ -196,7 +197,8 @@ final class RoomCoordinator {
         else { return preview.hide() }
         let plan = RoomPlan.make(
             room, windows: snapshot.windows, on: screen, gap: gap, minimums: minimums.sizes,
-            claimed: store.claimedWindowIDs(excluding: room.id))
+            claimed: store.claimedWindowIDs(excluding: room.id),
+            fitTightlyToEdges: fitTightlyToEdges)
         let cards = plan.placements.compactMap { placement in
             snapshot.window(placement.handle).map { card(for: $0, at: placement.frame) }
         }
@@ -213,7 +215,7 @@ final class RoomCoordinator {
         isEntering = preview.isShowing
         if paletteCoordinator.isVisible { paletteCoordinator.hidePalette(restoreFocus: false) }
         let context = RoomRunner.Context(
-            gap: gap, displayUUID: targetDisplayUUID,
+            gap: gap, fitTightlyToEdges: fitTightlyToEdges, displayUUID: targetDisplayUUID,
             claimed: store.claimedWindowIDs(excluding: room.id), minimums: minimums, ledger: ledger)
         inTurn { [weak self] in
             let outcome = await RoomRunner.enter(room, context: context)
@@ -342,7 +344,8 @@ final class RoomCoordinator {
         let members = session.picked.compactMap { member(for: $0, in: snapshot) }
         let frames = RoomLayoutEngine.frames(
             count: members.count, kind: .auto, in: screen.screen.visibleFrame, gap: gap,
-            minimums: members.map { minimums.size(for: $0.bundleID) })
+            minimums: members.map { minimums.size(for: $0.bundleID) },
+            fitTightlyToEdges: fitTightlyToEdges)
         let cards = zip(members, frames).map { member, frame in
             RoomPreviewCard(
                 id: member.id, frame: frame, appName: member.appName, title: member.title,
@@ -465,7 +468,8 @@ final class RoomCoordinator {
         else { return nil }
         let result = RoomArrangement.learn(
             room, from: windows, keeping: kept, on: screen, spansDisplays: counts.count > 1, gap: gap,
-            minimums: windows.map { minimums.size(for: $0.bundleID) }, keepsOrder: keepsOrder)
+            minimums: windows.map { minimums.size(for: $0.bundleID) }, keepsOrder: keepsOrder,
+            fitTightlyToEdges: fitTightlyToEdges)
         return (result.room, result.reading)
     }
 
@@ -506,6 +510,7 @@ final class RoomCoordinator {
     // MARK: - Helpers
 
     private var gap: CGFloat { CGFloat(settings.windowGap) }
+    private var fitTightlyToEdges: Bool { settings.windowFitTightlyToEdges }
 
     /// The display the palette opens on, so the room lands where the preview is drawn.
     private var targetDisplayUUID: String? {

@@ -13,9 +13,13 @@ enum RoomGrid {
     }
 
     /// Nil when windows overlap or one is too small to place: a cascade is not a grid.
-    static func cells(for frames: [CGRect], in visible: CGRect, gap: CGFloat) -> [Cell]? {
+    static func cells(
+        for frames: [CGRect], in visible: CGRect, gap: CGFloat, fitTightlyToEdges: Bool = false
+    ) -> [Cell]? {
         guard !visible.isNull, !visible.isInfinite else { return nil }
-        let box = RoomLayoutEngine.Area(visible: visible, gap: gap).canvas
+        let box = RoomLayoutEngine.Area(
+            visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges
+        ).canvas
         guard box.width.isFinite, box.height.isFinite, box.width > 0, box.height > 0 else {
             return nil
         }
@@ -85,10 +89,12 @@ enum RoomGrid {
 
     /// Nil for cells that are not a grid. A window that will not shrink widens its columns.
     static func frames(
-        _ cells: [Cell], in visible: CGRect, gap: CGFloat, minimums: [CGSize] = []
+        _ cells: [Cell], in visible: CGRect, gap: CGFloat, minimums: [CGSize] = [],
+        fitTightlyToEdges: Bool = false
     ) -> [CGRect]? {
         guard isValid(cells) else { return nil }
-        let area = RoomLayoutEngine.Area(visible: visible, gap: gap)
+        let area = RoomLayoutEngine.Area(
+            visible: visible, gap: gap, fitTightlyToEdges: fitTightlyToEdges)
         let box = area.canvas
         let gap = area.gap
         let minimums =

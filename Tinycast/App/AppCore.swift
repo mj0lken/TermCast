@@ -32,6 +32,11 @@ final class AppCore {
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     let windowMover = WindowMover()
+    @ObservationIgnored private(set) lazy var windowDragMonitor = WindowDragMonitor(
+        settings: settings, windowMover: windowMover)
+    @ObservationIgnored private(set) lazy var windowGreenButtonMonitor = WindowGreenButtonMonitor(
+        settings: settings, windowMover: windowMover, customSizes: customWindowSizes,
+        hotKeys: hotKeys)
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
     let settings: AppSettings
@@ -53,7 +58,6 @@ final class AppCore {
     let calendarStore = CalendarStore()
     let meetingClock = MeetingClock()
     let updateChecker = UpdateCheckStore()
-    let supportReminders: SupportReminderStore
     let emojiIndex = EmojiIndex()
     let frequentEmoji = FrequentEmojiStore()
     let pinnedEmoji = PinnedEmojiStore()
@@ -225,8 +229,6 @@ final class AppCore {
         paletteCoordinator: paletteCoordinator)
     @ObservationIgnored private(set) lazy var updateCoordinator = UpdateCoordinator(
         store: updateChecker, core: self)
-    @ObservationIgnored private(set) lazy var supportCoordinator = SupportCoordinator(
-        store: supportReminders, core: self)
     @ObservationIgnored private(set) lazy var quickActionCoordinator = QuickActionCoordinator(
         settings: settings, store: quickActionSettings, customActions: customQuickActions,
         injector: textInjector, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
@@ -271,7 +273,6 @@ final class AppCore {
         self.launcherRanking = launcherRanking
         self.settings = settings
         self.chatHistory = chatHistory
-        supportReminders = SupportReminderStore(settings: settings)
         aiChats = AIChatSurfacesState(history: chatHistory)
         appIndex = AppIndex(ranking: launcherRanking, aliases: aliases)
         let clipboardManager = ClipboardManager(store: clipboardStore, settings: settings)
@@ -365,12 +366,12 @@ final class AppCore {
             currencyRates.start()
             updateChecker.onUpdateAvailable = { [weak self] in self?.updateCoordinator.offer($0) }
             updateCoordinator.applyAutomaticChecking()
-            supportReminders.onDue = { [weak self] in self?.supportCoordinator.presentIfDue() }
-            supportReminders.start()
 
             hyperKey.healthTicker = healthTicker
             dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
+            windowDragMonitor.healthTicker = healthTicker
+            windowGreenButtonMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
 
             hotKeys.onTogglePalette = { [weak self] in self?.paletteCoordinator.togglePalette() }
@@ -445,6 +446,8 @@ final class AppCore {
             hyperKey.start()
             dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             dictationKey.start()
+            windowDragMonitor.start()
+            windowGreenButtonMonitor.start()
 
             snippetsStore.onSnapshot = { [weak self] snapshot in
                 guard let self else { return }
@@ -501,7 +504,6 @@ final class AppCore {
         if settingsCoordinator.focusExisting() { return }
         if aiChatCoordinator.focusExisting() { return }
         if onboardingCoordinator.focusExisting() { return }
-        if supportCoordinator.focusExisting() { return }
         if customCommandCoordinator.focusOutputWindow() { return }
         paletteCoordinator.showPalette(mode: .launcher, restoreAnyMode: true)
     }
@@ -622,6 +624,8 @@ final class AppCore {
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
         dictationKey.prepareForTermination()
+        windowDragMonitor.prepareForTermination()
+        windowGreenButtonMonitor.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         roomCoordinator.prepareForTermination()
         terminalCoordinator.prepareForTermination()
@@ -714,6 +718,23 @@ final class AppCore {
                 _ = $0.windowManagementEnabled
                 _ = $0.windowRoomsShowInLauncher
             }, reproject: { $0.roomCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.windowManagementEnabled
+                _ = $0.windowSnapByDragging
+                _ = $0.windowRestoreOnDrag
+                _ = $0.windowGreenButtonMenu
+            },
+            reproject: {
+                if $0.settings.windowManagementEnabled,
+                    $0.settings.windowSnapByDragging || $0.settings.windowRestoreOnDrag
+                        || $0.settings.windowGreenButtonMenu
+                {
+                    _ = Permissions.ensureAccessibility()
+                }
+                $0.windowDragMonitor.sync()
+                $0.windowGreenButtonMonitor.sync()
+            })
         track(
             {
                 _ = $0.customCommandsEnabled

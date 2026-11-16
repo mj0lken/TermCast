@@ -43,8 +43,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Tinycast version + channel
-      placeholder: 0.1.0 stable
+      label: Termcast version + channel
+      placeholder: 0.2.0 stable
     validations:
       required: true
   - type: input

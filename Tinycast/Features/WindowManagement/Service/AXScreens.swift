@@ -17,11 +17,20 @@ struct AXGeometry {
         CGRect(
             x: rect.origin.x, y: anchorHeight - rect.maxY, width: rect.width, height: rect.height)
     }
+
+    func flip(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x, y: anchorHeight - point.y)
+    }
 }
 
 /// Displays, converted into the AX space the geometry layer works in.
 @MainActor
 enum AXScreens {
+    /// Current pointer location converted into AX coordinates.
+    static func cursorPosition() -> CGPoint {
+        AXGeometry(screens: NSScreen.screens).flip(NSEvent.mouseLocation)
+    }
+
     /// Cocoa screens flipped through one snapshotted anchor, never one each.
     static func converted(
         _ screens: [NSScreen], geometry: AXGeometry
@@ -29,7 +38,7 @@ enum AXScreens {
         screens.enumerated().map { index, screen in
             // A display with no number still needs a stable, collision-free id for this call.
             return WindowPlacementEngine.Screen(
-                id: displayID(screen).map(Int.init) ?? -(index + 1),
+                id: screen.displayID.map(Int.init) ?? -(index + 1),
                 frame: geometry.flip(screen.frame),
                 visibleFrame: geometry.flip(screen.visibleFrame))
         }
@@ -52,15 +61,10 @@ enum AXScreens {
 
     /// Lowercased, so a stored identity and a live one can never miss each other on case.
     static func uuid(of screen: NSScreen) -> String? {
-        guard let id = displayID(screen),
+        guard let id = screen.displayID,
             let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue(),
             let string = CFUUIDCreateString(nil, uuid) as String?
         else { return nil }
         return string.lowercased()
-    }
-
-    private static func displayID(_ screen: NSScreen) -> CGDirectDisplayID? {
-        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?
-            .uint32Value
     }
 }

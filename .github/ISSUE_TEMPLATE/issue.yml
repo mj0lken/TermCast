@@ -1,21 +1,17 @@
-name: Issue
-description: For maintainers. Turn a confirmed discussion into a task.
+name: Bug Report / Feature Request
+description: Report a bug or suggest an improvement for Termcast.
 body:
-  - type: markdown
-    attributes:
-      value: |
-        **Only maintainers open issues.** Please start a [Discussion](https://github.com/abue-ammar/tinycast/discussions) instead.
-  - type: input
-    id: discussion
-    attributes:
-      label: Discussion
-      description: The discussion this issue comes from.
-      placeholder: https://github.com/abue-ammar/tinycast/discussions/123
-    validations:
-      required: false
   - type: textarea
-    id: task
+    id: summary
     attributes:
-      label: What needs to be done?
+      label: What happened or what would you like to see?
+      placeholder: Describe the issue or feature request clearly.
     validations:
       required: true
+  - type: input
+    id: version
+    attributes:
+      label: Termcast version + macOS version
+      placeholder: e.g. 0.2.0 stable, macOS 26.0
+    validations:
+      required: false
