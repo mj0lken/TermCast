@@ -3,7 +3,7 @@ import CoreAudio
 import CoreGraphics
 import Foundation
 
-/// Routes live scroll deltas to cursor-display brightness or HID media keys, pacing Bluetooth AVRCP.
+/// Routes live scroll deltas to cursor-display brightness or media keys, pacing Bluetooth AVRCP.
 @MainActor
 final class HyperScrollRunner {
     private static let localStepInterval: TimeInterval = 0.012

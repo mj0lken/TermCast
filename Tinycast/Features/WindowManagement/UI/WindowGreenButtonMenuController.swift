@@ -60,6 +60,7 @@ final class WindowGreenButtonMenuController {
                 groups: groups,
                 customSizes: customSizes,
                 hotKeys: hotKeys,
+                buttonTitle: target.kind.title,
                 shieldRect: CGRect(
                     x: shieldOffsetX, y: 0, width: shieldWidth, height: shieldHeight),
                 onButtonClick: { [weak self] in
@@ -150,6 +151,7 @@ private struct WindowGreenButtonMenuView: View {
     let groups: [[WindowCommand.ID]]
     let customSizes: [CustomWindowSize]
     let hotKeys: HotKeyManager
+    let buttonTitle: String
     let shieldRect: CGRect
     let onButtonClick: () -> Void
     let onCommand: (WindowCommand.ID) -> Void
@@ -172,6 +174,7 @@ private struct WindowGreenButtonMenuView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text(verbatim: buttonTitle))
                 .offset(x: shieldRect.minX, y: 0)
             }
 

@@ -682,8 +682,8 @@ run HyperScrollTests       Tinycast/Features/HotKeys/Model/HyperScrollZone.swift
                            Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Tinycast/Features/HotKeys/Service/HyperScrollRunner.swift \
+                           Tinycast/Features/HotKeys/Service/DisplayBrightnessService.swift \
                            Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Platform/DisplayBrightnessService.swift \
                            Tinycast/Platform/MediaKeyPoster.swift \
                            Tinycast/Platform/ScreenTarget.swift \
                            Tinycast/Platform/ASCIIKeyboardLayout.swift

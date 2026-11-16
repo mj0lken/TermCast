@@ -418,7 +418,7 @@ idle Hyper key adds zero background touch callbacks.
 full sweep) into target-specific updates, clearing buffered carry immediately on trackpad liftoff:
 
 - **Screen brightness targets only `NSScreen.underCursor`:** the cursor's `CGDirectDisplayID` is locked
-  at gesture start and passed to `DisplayBrightnessService` (`Platform/DisplayBrightnessService.swift`),
+  at gesture start and passed to `DisplayBrightnessService` (`HotKeys/Service/DisplayBrightnessService.swift`),
   never posted as a blind brightness media key (which macOS otherwise routes to the built-in display).
   Apple and `DisplayServices`-capable displays step smoothly via `DisplayServicesSetBrightnessSmooth`
   and render macOS's native HUD on that exact `displayID` via `OSDManager`; non-Apple external monitors

@@ -39,6 +39,28 @@ enum AXWindowAccess {
         return hitTestedWindow(at: point, timeout: timeout)
     }
 
+    /// Returns our own layer-0 window number at `point` only when no external window sits above it.
+    static func topmostOwnWindowNumber(at point: CGPoint) -> Int? {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard
+            let listing = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]]
+        else { return nil }
+
+        for entry in listing {
+            guard entry[kCGWindowLayer as String] as? Int == 0,
+                let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
+                pid > 0,
+                let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+                let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                bounds.width > 1, bounds.height > 1, bounds.contains(point)
+            else { continue }
+            guard pid == ownPID else { return nil }
+            return entry[kCGWindowNumber as String] as? Int
+        }
+        return nil
+    }
+
     /// Reads the live on-screen bounds of `windowID` directly from the WindowServer without AX IPC.
     static func windowServerFrame(for windowID: UInt32) -> CGRect? {
         let options: CGWindowListOption = [.optionIncludingWindow]

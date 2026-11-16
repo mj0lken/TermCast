@@ -16,8 +16,7 @@ final class WindowGreenButtonMonitor: HealthCheckable {
     @ObservationIgnored private let hotKeys: HotKeyManager
     @ObservationIgnored private let menu = WindowGreenButtonMenuController()
 
-    @ObservationIgnored private var globalMonitor: Any?
-    @ObservationIgnored private var localMonitor: Any?
+    @ObservationIgnored private var eventMonitors: [Any] = []
     @ObservationIgnored private var sessionTokens: [NotificationToken] = []
     @ObservationIgnored private var hoverTask: Task<Void, Never>?
     @ObservationIgnored private var pendingButtonRect: CGRect?
@@ -73,8 +72,7 @@ final class WindowGreenButtonMonitor: HealthCheckable {
     // MARK: - Event handling
 
     private func handleEvent(_ event: NSEvent) {
-        let geometry = AXGeometry(screens: NSScreen.screens)
-        let cursor = geometry.flip(NSEvent.mouseLocation)
+        let cursor = AXScreens.cursorPosition()
 
         switch event.type {
         case .mouseMoved:
@@ -146,8 +144,7 @@ final class WindowGreenButtonMonitor: HealthCheckable {
     }
 
     private func presentMenuIfStillHovered() {
-        let geometry = AXGeometry(screens: NSScreen.screens)
-        let cursor = geometry.flip(NSEvent.mouseLocation)
+        let cursor = AXScreens.cursorPosition()
         guard
             let target = windowMover.greenButtonTarget(
                 at: cursor, kind: settings.windowGreenButtonTarget)
@@ -213,14 +210,14 @@ final class WindowGreenButtonMonitor: HealthCheckable {
                     forName: NSWorkspace.sessionDidResignActiveNotification, object: nil,
                     queue: .main
                 ) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.sessionDidChange(active: false) }
+                    Task { @MainActor [weak self] in self?.sessionDidChange(active: false) }
                 }, center: center),
             NotificationToken(
                 center.addObserver(
                     forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil,
                     queue: .main
                 ) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.sessionDidChange(active: true) }
+                    Task { @MainActor [weak self] in self?.sessionDidChange(active: true) }
                 }, center: center)
         ]
     }
@@ -231,30 +228,22 @@ final class WindowGreenButtonMonitor: HealthCheckable {
     }
 
     private func installMonitorsIfNeeded() {
+        guard eventMonitors.isEmpty else { return }
         let mask: NSEvent.EventTypeMask = [
             .mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, .keyDown
         ]
-        if globalMonitor == nil {
-            globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
-                MainActor.assumeIsolated { self?.handleEvent(event) }
-            }
+        let global = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.handleEvent(event)
         }
-        if localMonitor == nil {
-            localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-                MainActor.assumeIsolated { self?.handleEvent(event) }
-                return event
-            }
+        let local = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.handleEvent(event)
+            return event
         }
+        eventMonitors = [global, local].compactMap { $0 }
     }
 
     private func tearDownMonitors() {
-        if let globalMonitor {
-            NSEvent.removeMonitor(globalMonitor)
-            self.globalMonitor = nil
-        }
-        if let localMonitor {
-            NSEvent.removeMonitor(localMonitor)
-            self.localMonitor = nil
-        }
+        eventMonitors.forEach(NSEvent.removeMonitor)
+        eventMonitors = []
     }
 }

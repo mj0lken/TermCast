@@ -52,8 +52,7 @@ final class WindowDragMonitor: HealthCheckable {
     @ObservationIgnored private var phase: Phase = .idle
     @ObservationIgnored private var tapPort: CFMachPort?
     @ObservationIgnored private var runLoopSource: CFRunLoopSource?
-    @ObservationIgnored private var globalMouseMonitor: Any?
-    @ObservationIgnored private var localMouseMonitor: Any?
+    @ObservationIgnored private var eventMonitors: [Any] = []
     @ObservationIgnored private var sessionTokens: [NotificationToken] = []
     @ObservationIgnored private var sessionActive = true
     @ObservationIgnored private var loggedTapFailure = false
@@ -115,8 +114,7 @@ final class WindowDragMonitor: HealthCheckable {
     }
 
     private func handleNSEvent(_ event: NSEvent) {
-        let geometry = AXGeometry(screens: NSScreen.screens)
-        let cursor = geometry.flip(NSEvent.mouseLocation)
+        let cursor = AXScreens.cursorPosition()
         switch event.type {
         case .leftMouseDown:
             process(type: .leftMouseDown, location: cursor, keyCode: -1)
@@ -307,14 +305,14 @@ final class WindowDragMonitor: HealthCheckable {
                     forName: NSWorkspace.sessionDidResignActiveNotification, object: nil,
                     queue: .main
                 ) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.sessionDidChange(active: false) }
+                    Task { @MainActor [weak self] in self?.sessionDidChange(active: false) }
                 }, center: center),
             NotificationToken(
                 center.addObserver(
                     forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil,
                     queue: .main
                 ) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.sessionDidChange(active: true) }
+                    Task { @MainActor [weak self] in self?.sessionDidChange(active: true) }
                 }, center: center)
         ]
     }
@@ -388,20 +386,18 @@ final class WindowDragMonitor: HealthCheckable {
     }
 
     private func installFallbackMonitorsIfNeeded() {
+        guard eventMonitors.isEmpty else { return }
         let mask: NSEvent.EventTypeMask = [
             .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .keyDown
         ]
-        if globalMouseMonitor == nil {
-            globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
-                MainActor.assumeIsolated { self?.handleNSEvent(event) }
-            }
+        let global = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.handleNSEvent(event)
         }
-        if localMouseMonitor == nil {
-            localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-                MainActor.assumeIsolated { self?.handleNSEvent(event) }
-                return event
-            }
+        let local = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.handleNSEvent(event)
+            return event
         }
+        eventMonitors = [global, local].compactMap { $0 }
     }
 
     private func tearDownMonitors() {
@@ -423,14 +419,8 @@ final class WindowDragMonitor: HealthCheckable {
     }
 
     private func tearDownFallbackMonitors() {
-        if let globalMouseMonitor {
-            NSEvent.removeMonitor(globalMouseMonitor)
-            self.globalMouseMonitor = nil
-        }
-        if let localMouseMonitor {
-            NSEvent.removeMonitor(localMouseMonitor)
-            self.localMouseMonitor = nil
-        }
+        eventMonitors.forEach(NSEvent.removeMonitor)
+        eventMonitors = []
     }
 
     fileprivate func tapWasDisabled() {

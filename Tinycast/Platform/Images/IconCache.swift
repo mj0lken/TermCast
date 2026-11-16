@@ -74,7 +74,7 @@ struct WindowTileIcon: Hashable, Sendable {
     var unitRect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
 }
 
-/// Shared vector drawing for schematic window-tile glyphs across launcher tiles, menus and settings.
+/// Shared vector drawing for schematic window-tile glyphs across launcher, menus and settings.
 enum WindowTileGlyph {
     static let templateSize = NSSize(width: 18, height: 14)
 

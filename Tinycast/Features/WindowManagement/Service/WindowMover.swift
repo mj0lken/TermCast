@@ -273,24 +273,23 @@ final class WindowMover {
         let cocoaPoint = geometry.flip(cursor)
         let standardType: NSWindow.ButtonType = kind == .green ? .zoomButton : .miniaturizeButton
 
-        for window in NSApp.orderedWindows
-        where window.isVisible && window.canBecomeMain && window.isMovable
-            && !window.styleMask.contains(.fullScreen)
-            && window.frame.contains(cocoaPoint)
+        if let ownWindow = topmostOwnWindow(at: cursor, cocoaPoint: cocoaPoint),
+            !ownWindow.styleMask.contains(.fullScreen)
         {
-            guard let buttonView = window.standardWindowButton(standardType),
+            guard let buttonView = ownWindow.standardWindowButton(standardType),
                 let superview = buttonView.superview
             else { return nil }
             let inWindow = superview.convert(buttonView.frame, to: nil)
-            let cocoaButton = window.convertToScreen(inWindow)
+            let cocoaButton = ownWindow.convertToScreen(inWindow)
             let axButton = geometry.flip(cocoaButton)
             guard axButton.insetBy(dx: -4, dy: -4).contains(cursor) else { return nil }
-            let axWin = geometry.flip(window.frame)
+            let axWin = geometry.flip(ownWindow.frame)
             guard let host = WindowPlacementEngine.screen(containing: axWin, in: screens) else {
                 return nil
             }
             return GreenButtonTarget(
-                focused: FocusedWindow(surface: .own(window), key: .own(ObjectIdentifier(window))),
+                focused: FocusedWindow(
+                    surface: .own(ownWindow), key: .own(ObjectIdentifier(ownWindow))),
                 kind: kind, buttonFrame: axButton, hostScreen: host, geometry: geometry)
         }
 
@@ -404,12 +403,12 @@ final class WindowMover {
     ) -> (FocusedWindow, UInt32?)? {
         let geometry = AXGeometry(screens: NSScreen.screens)
         let cocoaPoint = geometry.flip(cursor)
-        for window in NSApp.orderedWindows
-        where window.isVisible && window.canBecomeMain && window.isMovable
-            && window.frame.contains(cocoaPoint)
-        {
-            let wid = window.windowNumber > 0 ? UInt32(window.windowNumber) : nil
-            return (FocusedWindow(surface: .own(window), key: .own(ObjectIdentifier(window))), wid)
+        if let ownWindow = topmostOwnWindow(at: cursor, cocoaPoint: cocoaPoint) {
+            let wid = ownWindow.windowNumber > 0 ? UInt32(ownWindow.windowNumber) : nil
+            return (
+                FocusedWindow(surface: .own(ownWindow), key: .own(ObjectIdentifier(ownWindow))),
+                wid
+            )
         }
         if Permissions.isAccessibilityTrusted(),
             let hit = AXWindowAccess.windowAtPosition(cursor, timeout: 0.35)
@@ -477,13 +476,9 @@ final class WindowMover {
             return false
         }
         let canResize = target.placement.resizes && surface.canResize
-        let destination = candidate.screens.first { $0.id == target.screenID }
-        let canvas = destination.map {
-            WindowPlacementEngine.canvas(
-                $0.visibleFrame,
-                gap: WindowPlacementEngine.sanitizedGap(gap, in: $0.visibleFrame),
-                fitTightlyToEdges: fitTightlyToEdges)
-        }
+        let canvas = Self.placementCanvas(
+            for: target.screenID, in: candidate.screens, gap: gap,
+            fitTightlyToEdges: fitTightlyToEdges)
         let restoreEnhancedUI = canResize ? surface.suppressEnhancedUserInterface() : {}
         defer { restoreEnhancedUI() }
         guard
@@ -535,6 +530,29 @@ final class WindowMover {
         case nil:
             return nil
         }
+    }
+
+    private func topmostOwnWindow(at cursor: CGPoint, cocoaPoint: CGPoint) -> NSWindow? {
+        if let number = AXWindowAccess.topmostOwnWindowNumber(at: cursor) {
+            return NSApp.orderedWindows.first {
+                $0.windowNumber == number && $0.isVisible && $0.canBecomeMain && $0.isMovable
+            }
+        }
+        guard NSApp.isActive else { return nil }
+        return NSApp.orderedWindows.first {
+            $0.isVisible && $0.canBecomeMain && $0.isMovable && $0.frame.contains(cocoaPoint)
+        }
+    }
+
+    private static func placementCanvas(
+        for screenID: Int, in screens: [WindowPlacementEngine.Screen], gap: CGFloat,
+        fitTightlyToEdges: Bool
+    ) -> CGRect? {
+        guard let destination = screens.first(where: { $0.id == screenID }) else { return nil }
+        return WindowPlacementEngine.canvas(
+            destination.visibleFrame,
+            gap: WindowPlacementEngine.sanitizedGap(gap, in: destination.visibleFrame),
+            fitTightlyToEdges: fitTightlyToEdges)
     }
 
     /// The one decide → resolve → write → commit sequence every geometry press runs through.
@@ -597,13 +615,9 @@ final class WindowMover {
         guard surface.canMove else { return false }
         let canResize = placement.resizes && surface.canResize
 
-        let destination = screens.first { $0.id == placement.screenID }
-        let canvas = destination.map {
-            WindowPlacementEngine.canvas(
-                $0.visibleFrame,
-                gap: WindowPlacementEngine.sanitizedGap(gap, in: $0.visibleFrame),
-                fitTightlyToEdges: fitTightlyToEdges)
-        }
+        let canvas = Self.placementCanvas(
+            for: placement.screenID, in: screens, gap: gap,
+            fitTightlyToEdges: fitTightlyToEdges)
         let restoreEnhancedUI = canResize ? surface.suppressEnhancedUserInterface() : {}
         defer { restoreEnhancedUI() }
 
