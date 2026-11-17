@@ -157,6 +157,14 @@ final class AppSettings {
         }
     }
 
+    /// Lists every category in the sidebar, an empty one included, rather than only those with items.
+    var clipboardShowsEmptyCategories: Bool {
+        didSet {
+            defaults.set(
+                clipboardShowsEmptyCategories, forKey: Key.clipboardShowsEmptyCategories.rawValue)
+        }
+    }
+
     var launchAtLogin: Bool {
         didSet { LaunchAtLogin.set(launchAtLogin) }
     }
@@ -921,6 +929,8 @@ final class AppSettings {
         clipboardDefaultAction =
             defaults.string(forKey: Key.clipboardDefaultAction.rawValue)
             .flatMap(ClipboardDefaultAction.init) ?? .paste
+        clipboardShowsEmptyCategories = defaults.bool(
+            forKey: Key.clipboardShowsEmptyCategories.rawValue)
         launchAtLogin = LaunchAtLogin.isEnabled
         showInMenuBar =
             defaults.object(forKey: Key.showInMenuBar.rawValue) == nil

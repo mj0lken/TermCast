@@ -650,6 +650,9 @@ enum SettingsSearchCatalog {
             .clipboardHistory, "Default action",
             keywords: ["enter", "return", "paste", "copy", "primary"]),
         .init(
+            .clipboardHistory, "Show empty categories",
+            keywords: ["sidebar", "filter", "apps", "code", "documents", "files", "hidden", "all"]),
+        .init(
             group: .clipboardDisabledApplications, "Excluded Applications",
             keywords: ["exclude", "password manager", "ignore", "privacy"]),
         .init(

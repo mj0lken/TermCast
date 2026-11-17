@@ -993,6 +993,18 @@ struct ClipboardTests {
         expect(
             visible.first { $0.category == .apps }?.count == 2,
             "Apps counts both .app bundles and .dmg disk images")
+        let everything = ClipboardCategory.visibleCategories(
+            in: items, active: .all, knownDirectories: ["/Applications/Safari.app"], showsEmpty: true)
+        expect(
+            everything.map(\.category) == ClipboardCategory.allCases,
+            "showing empty categories lists every one, in canonical order")
+        expect(
+            everything.first { $0.category == .fonts }?.count == 0,
+            "an empty category is listed with a count of zero")
+        let emptyActive = ClipboardCategory.visibleCategories(in: items, active: .fonts)
+        expect(
+            emptyActive.contains { $0.category == .fonts },
+            "the active category stays listed even while it is empty")
 
         let ranked = ClipboardCategory.filterAndRank(
             [plainBodyMatch, titleSubstringMatch, titlePrefixMatch],

@@ -189,6 +189,7 @@ enum SettingsFileSchema {
         case .clipboardEnabled: return bind(settings, \.clipboardEnabled)
         case .clipboardRetention: return bind(settings, \.clipboardRetention)
         case .clipboardDefaultAction: return bind(settings, \.clipboardDefaultAction)
+        case .clipboardShowsEmptyCategories: return bind(settings, \.clipboardShowsEmptyCategories)
         case .clipboardDisabledApps: return bind(settings, \.clipboardDisabledApps)
         case .clipboardCommands: return launcher.commandsBinding(for: key, owner: .clipboard)
         case .emojiSkinTone: return bind(settings, \.emojiSkinTone)

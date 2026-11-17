@@ -187,8 +187,6 @@ Notes adds `noteListWidth 218` (the list's opening width, a quarter narrower tha
 `noteListMinWidth 150` and `noteListMaxWidth 340` (the range its hairline drags between; the ceiling leaves the editor pane room for the whole formatting bar),
 `noteSplitHandleWidth 10` (the hit strip over that hairline), `noteInfoCardWidth 240`,
 `noteEditorInset 16`, `noteEditorTopInset 6`, `noteGlyph 16` and `noteHeadingMenu 220×159`.
-`noteWindowMaxHeight 860` is a leftover of the Notes window: only the editor harnesses read it, as
-the limit they measure text height to.
 
 AI Chat adds `aiChatWindow 960×660` (opening size), `aiChatWindowMinimum 680×440`, a sidebar of
 `aiChatSidebarMinimum 240`–`aiChatSidebarMaximum 340`, `aiChatDetailMinimum 440`,

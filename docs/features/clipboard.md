@@ -298,8 +298,11 @@ active `ClipboardCategory` so keyboard-only switching keeps the exact same muscl
 `ClipboardCategory` owns the nineteen sidebar buckets (`All`, `Pinned`, `Text`, `Links`, `Emails`,
 `Colors`, `Images`, `Videos`, `Audio`, `Documents`, `PDFs`, `Spreadsheets`, `Presentations`,
 `Code`, `Apps` — including `.app`, `.dmg` and `.pkg` installers — `Archives`, `Fonts`, `Folders`,
-`Other Files`), hiding empty
-categories (other than `All` and the currently active category) so the sidebar stays compact, while
+`Other Files`). Empty categories (other than `All` and the currently active category) are hidden so
+the sidebar stays compact, unless Settings › Clipboard › **Show empty categories**
+(`AppSettings.clipboardShowsEmptyCategories`, off when absent, `clipboard.showsEmptyCategories` in
+the settings file, carried by backups) lists all nineteen. A file category counts copied files — a
+Finder copy — so a copied snippet of code is a `Text` item, never `Code`. Meanwhile
 `ClipboardFilter` continues to back `ClipboardStore.search(_:filter:)` over SQLite FTS and `item_text`.
 When a search query is active, `ClipboardCategory.filterAndRank` ranks title matches (first line or
 filename prefix before substring) ahead of body/OCR matches while keeping pinned entries at the top.

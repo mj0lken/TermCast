@@ -148,7 +148,8 @@ struct ClipboardScreen: PaletteScreen {
         let categories = ClipboardCategory.visibleCategories(
             in: store.items,
             active: vm.clipboardCategory,
-            knownDirectories: metadataCache.knownDirectories)
+            knownDirectories: metadataCache.knownDirectories,
+            showsEmpty: core.settings.clipboardShowsEmptyCategories)
         let rows = rows
         let selected = item(at: selection)
 

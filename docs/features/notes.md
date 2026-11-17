@@ -96,7 +96,6 @@ note's `preview`: `NoteTitle.preview(of:skippingTitle:)` joins the visible lines
 240 characters, leaving out the line an unnamed note already shows as its title. The screen shows a
 title only in the list row, which reads the last listing, so an unnamed note's row follows its first
 line on the next autosave; the editor draws that line as the title as it is typed.
-`NotesStore.activeTitle` derives the same title from the live draft, and only the harness reads it.
 Renaming edits the filename, so the rename field starts from `title`: a derived line stands in for a
 name, and is never one.
 
@@ -457,7 +456,7 @@ exact source after styling, hidden and revealed markers, restyling after edits a
 decorations and layout fragments, list keys, chords, the task rule, checkbox toggles, link schemes,
 pasting a URL, the first-line title, and the formatting reports and `format(_:)` the formatting bar
 uses.
-`Tests/NotesEditorPerformanceTests.swift` times install, typing, a text-height read and caret moves on
+`Tests/NotesEditorPerformanceTests.swift` times install, typing and caret moves on
 a 100,000-character note; its budget is in `docs/testing.md`. The palette screen is not automated: the
 Notes manual sweep in `docs/testing.md` covers the command, shortcuts, the list, the Actions menu, focus
 between the search field and the editor, Finder, Trash recovery, and accessibility.

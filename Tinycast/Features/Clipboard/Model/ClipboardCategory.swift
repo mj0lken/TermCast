@@ -177,11 +177,12 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Shows every core category when `alwaysShowCore` is true, or only non-empty categories otherwise.
+    /// Empty categories are hidden unless `showsEmpty`; All and the active one always stay.
     static func visibleCategories(
         in items: [ClipboardItem],
         active: ClipboardCategory,
-        knownDirectories: Set<String> = []
+        knownDirectories: Set<String> = [],
+        showsEmpty: Bool = false
     ) -> [SidebarEntry] {
         allCases.compactMap { category in
             let count = category == .all
@@ -189,7 +190,7 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
                 : items.reduce(into: 0) { acc, item in
                     if category.matches(item, knownDirectories: knownDirectories) { acc += 1 }
                 }
-            guard category == .all || category == active || count > 0 else { return nil }
+            guard showsEmpty || category == .all || category == active || count > 0 else { return nil }
             return SidebarEntry(category: category, count: count)
         }
     }

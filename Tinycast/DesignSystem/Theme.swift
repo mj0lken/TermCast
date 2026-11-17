@@ -69,7 +69,6 @@ enum Theme {
     enum Size {
         static let panelWidth: CGFloat = 750
         static let panelHeight: CGFloat = 475
-        static let noteWindowMaxHeight: CGFloat = 860
         static let noteEditorInset: CGFloat = 16
         /// Shorter than the horizontal inset, so the first line sits close under the header.
         static let noteEditorTopInset: CGFloat = 6

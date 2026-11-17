@@ -78218,6 +78218,58 @@
         }
       }
     },
+    "Lists every category in the sidebar, not only those with items." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt alle Kategorien in der Seitenleiste, nicht nur die mit Einträgen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra todas las categorías en la barra lateral, no solo las que tienen elementos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche toutes les catégories dans la barre latérale, pas seulement celles qui contiennent des éléments."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "項目があるものだけでなく、すべてのカテゴリをサイドバーに表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "항목이 있는 것뿐 아니라 모든 카테고리를 사이드바에 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra todas as categorias na barra lateral, não só as que têm itens."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает в боковой панели все категории, а не только непустые."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在边栏中列出所有类别，而不仅是有项目的类别。"
+          }
+        }
+      }
+    },
     "Load shell environment" : {
       "localizations" : {
         "de" : {
@@ -121804,6 +121856,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示确认"
+          }
+        }
+      }
+    },
+    "Show empty categories" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leere Kategorien anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar categorías vacías"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les catégories vides"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空のカテゴリを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빈 카테고리 표시"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar categorias vazias"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать пустые категории"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示空类别"
           }
         }
       }

@@ -180,12 +180,18 @@ struct RootPaletteView: View {
 
     // MARK: - Popover menu content
 
-    /// The clipboard category filter's rows for ⌘P, matching the narrow left sidebar.
-    private var clipboardFilterContent: PopoverMenuContent {
-        let visible = ClipboardCategory.visibleCategories(
+    /// One answer for the ⌘P filter's rows and the row it opens on.
+    private var clipboardCategories: [ClipboardCategory.SidebarEntry] {
+        ClipboardCategory.visibleCategories(
             in: store.items,
             active: vm.clipboardCategory,
-            knownDirectories: core.clipboardMetadata.knownDirectories)
+            knownDirectories: core.clipboardMetadata.knownDirectories,
+            showsEmpty: settings.clipboardShowsEmptyCategories)
+    }
+
+    /// The clipboard category filter's rows for ⌘P, matching the narrow left sidebar.
+    private var clipboardFilterContent: PopoverMenuContent {
+        let visible = clipboardCategories
         return PopoverMenuContent(
             items: visible.enumerated().map { index, entry in
                 PopoverMenuItem(
@@ -1301,10 +1307,7 @@ struct RootPaletteView: View {
             closeMenus()
             return
         }
-        let visible = ClipboardCategory.visibleCategories(
-            in: store.items,
-            active: vm.clipboardCategory,
-            knownDirectories: core.clipboardMetadata.knownDirectories)
+        let visible = clipboardCategories
         let active = visible.firstIndex { $0.category == vm.clipboardCategory } ?? 0
         open(.clipboardFilter, highlighting: active)
     }

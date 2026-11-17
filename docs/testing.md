@@ -368,12 +368,8 @@ swiftc -O -swift-version 6 Tinycast/Features/Emoji/Model/{EmojiCatalog,EmojiData
 
 `Tests/NotesEditorPerformanceTests.swift` installs a 100,000-character note in a real rendered editor and
 prints, as JSON, the median over 30 runs of the install with its full restyle, one typed character at
-the end, middle and start, the window fit's height read after an install and after each of those
-characters, and a caret move between distant lines. The budget is 150 ms, 8 ms (end and middle) and
-4 ms, and the fit's read gets 10 ms after an install and 1 ms after a character. The read after a
-character runs once the edit has laid out the caret's screen, so it is the fit's cost on top of the
-keystroke. Inside `didChange`, near the top of the note, the read does that layout itself, in about
-2 ms:
+the end, middle and start, and a caret move between distant lines. The budget is 150 ms, 8 ms (end and
+middle) and 4 ms:
 
 ```sh
 N=Tinycast/Features/Notes

@@ -141,28 +141,6 @@ final class AudioVolumeService {
         return StepOutcome(state: snapshot, overshoot: wroteVolume ? overshoot : (delta >= 0 ? 1 : -1))
     }
 
-    func setLevel(_ level: Double) -> State? {
-        guard let device = activeDescriptor() else { return nil }
-        let clamped = min(max(level, 0), 1)
-        lastSelfWriteUptime = ProcessInfo.processInfo.systemUptime
-        guard Self.writeLevel(Float32(clamped), to: device) else { return nil }
-        let nextMuted: Bool
-        if clamped > 0 {
-            _ = Self.writeMuted(false, to: device)
-            nextMuted = false
-        } else {
-            nextMuted = isStarted ? cachedMuted : Self.readMuted(from: device)
-        }
-        cachedLevel = clamped
-        cachedMuted = nextMuted
-        return State(
-            deviceID: device.id,
-            deviceName: device.name,
-            isBluetooth: device.isBluetooth,
-            level: clamped,
-            isMuted: nextMuted)
-    }
-
     func toggleMute() -> State? {
         guard let device = activeDescriptor() else { return nil }
         let currentMuted = isStarted ? cachedMuted : Self.readMuted(from: device)

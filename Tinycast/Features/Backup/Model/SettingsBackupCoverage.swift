@@ -6,6 +6,7 @@ enum SettingsBackupCoverage {
         "clipboardEnabled": .clipboardEnabled,
         "clipboardRetentionDays": .clipboardRetention,
         "clipboardDefaultAction": .clipboardDefaultAction,
+        "clipboardShowsEmptyCategories": .clipboardShowsEmptyCategories,
         "clipboardDisabledApps": .clipboardDisabledApps,
         "hyperKey": .hyperKey,
         "hyperKeyIncludesShift": .hyperKeyIncludesShift,

@@ -90,7 +90,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .navigation: return "arrow.left.arrow.right"
         case .windowManagement: return "macwindow"
         case .notch: return "menubar.dock.rectangle"
-        case .clipboard: return "doc.on.clipboard"
+        case .clipboard: return "paperclip"
         case .emoji: return "face.smiling"
         case .terminal: return "apple.terminal"
         case .calendar: return "calendar"

@@ -23,6 +23,7 @@ struct SettingsBackup: Codable {
         var clipboardEnabled: Bool?
         var clipboardRetentionDays: Int?
         var clipboardDefaultAction: String?
+        var clipboardShowsEmptyCategories: Bool?
         var clipboardDisabledApps: [String]?
         var launchAtLogin: Bool?
         var hyperKey: String?
@@ -167,6 +168,7 @@ extension SettingsBackup {
             clipboardEnabled: s.clipboardEnabled,
             clipboardRetentionDays: s.clipboardRetention.rawValue,
             clipboardDefaultAction: s.clipboardDefaultAction.rawValue,
+            clipboardShowsEmptyCategories: s.clipboardShowsEmptyCategories,
             clipboardDisabledApps: s.clipboardDisabledApps,
             launchAtLogin: s.launchAtLogin,
             hyperKey: s.hyperKey.rawValue,
@@ -382,6 +384,10 @@ extension SettingsBackup {
         }
         if let raw = s.clipboardDefaultAction, let action = ClipboardDefaultAction(rawValue: raw) {
             settings.clipboardDefaultAction = action
+            count += 1
+        }
+        if let flag = s.clipboardShowsEmptyCategories {
+            settings.clipboardShowsEmptyCategories = flag
             count += 1
         }
         if let launch = s.launchAtLogin {

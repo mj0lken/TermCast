@@ -20,12 +20,6 @@ struct NotesEditorPerformanceTests {
             epoch += 1
             editor.coordinator.update(NoteEditorInput(id: input.id, source: source, epoch: epoch))
         }
-        let fitAfterInstall = median(prepare: {
-            epoch += 1
-            editor.coordinator.update(NoteEditorInput(id: input.id, source: source, epoch: epoch))
-        }) {
-            _ = editor.textView.textHeight(upTo: Theme.Size.noteWindowMaxHeight)
-        }
         let middleLine = text.lineRange(for: NSRange(location: text.length / 2, length: 0)).location
         let places = [("end", text.length), ("middle", middleLine + 2), ("start", 2)]
         let typing = places.map { name, location in
@@ -34,19 +28,6 @@ struct NotesEditorPerformanceTests {
                 median(prepare: { editor.textView.setSelectedRange(NSRange(location: location, length: 0)) })
                 {
                     editor.textView.insertText("x", replacementRange: editor.textView.selectedRange())
-                } after: {
-                    editor.textView.deleteBackward(nil)
-                }
-            )
-        }
-        let fit = places.map { name, location in
-            (
-                name,
-                median(prepare: {
-                    editor.textView.setSelectedRange(NSRange(location: location, length: 0))
-                    editor.textView.insertText("x", replacementRange: editor.textView.selectedRange())
-                }) {
-                    _ = editor.textView.textHeight(upTo: Theme.Size.noteWindowMaxHeight)
                 } after: {
                     editor.textView.deleteBackward(nil)
                 }
@@ -64,8 +45,6 @@ struct NotesEditorPerformanceTests {
             "runs": runs,
             "installAndRestyleMs": install,
             "typingMs": Dictionary(uniqueKeysWithValues: typing),
-            "windowFitAfterInstallMs": fitAfterInstall,
-            "windowFitAfterTypingMs": Dictionary(uniqueKeysWithValues: fit),
             "caretMoveMs": caret
         ]
         let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])

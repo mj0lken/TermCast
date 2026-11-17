@@ -55,20 +55,6 @@ final class NoteTextView: NSTextView, InjectableTextView {
         performTextFinderAction(item)
     }
 
-    /// The frame never gets shorter than the clip view, so only the layout knows the text's height.
-    func textHeight(upTo limit: CGFloat) -> CGFloat {
-        guard let textLayoutManager else { return frame.height }
-        var height: CGFloat = 0
-        // Summed: until the next draw, the lines below an edit keep their old origins.
-        textLayoutManager.enumerateTextLayoutFragments(
-            from: textLayoutManager.documentRange.location, options: [.ensuresLayout]
-        ) { fragment in
-            height += fragment.layoutFragmentFrame.height
-            return height < limit
-        }
-        return height + textContainerInset.height * 2
-    }
-
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard textStorage?.length == 0 else { return }

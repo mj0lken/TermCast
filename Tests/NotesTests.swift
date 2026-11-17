@@ -305,13 +305,8 @@ struct NotesTests {
         let started = await store.create()
         check(
             "Create Note is one file when it is the first action",
-            started && store.activeTitle == "Untitled" && store.summaries.count == 1)
+            started && store.activeID?.rawValue == "Untitled.md" && store.summaries.count == 1)
         check("active selection is persisted separately from note files", selection.id == store.activeID)
-
-        store.updateSource("# Draft heading\nbody")
-        check(
-            "an unnamed note titles itself from the live draft",
-            store.activeTitle == "Draft heading")
 
         store.updateSource("first")
         store.updateSource("latest searchable body")
@@ -329,7 +324,7 @@ struct NotesTests {
         let renamedID = await store.rename(secondID, to: "Project")
         check(
             "rename updates active identity and title",
-            renamedID == store.activeID && store.activeTitle == "Project")
+            renamedID == store.activeID && store.activeID?.rawValue == "Project.md")
 
         store.updateSearchQuery("searchable")
         await waitUntil { !store.isSearching }
@@ -440,7 +435,8 @@ struct NotesTests {
         _ = await store.start()
         check(
             "external text edits refresh both the source and the derived title",
-            store.source == externalText && store.activeTitle == "Updated elsewhere")
+            store.source == externalText
+                && store.summaries.first { $0.id == store.activeID }?.displayTitle == "Updated elsewhere")
 
         try FileManager.default.removeItem(at: activeURL)
         _ = await store.start()
