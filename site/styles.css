@@ -271,29 +271,6 @@
     font-size: 0.98rem;
   }
 
-  .site-nav {
-    display: flex;
-    flex-wrap: wrap;
-    flex-wrap: balance;
-    align-items: safe center;
-    gap: 0.5rem 1rem;
-    font-size: 0.85rem;
-  }
-
-  .site-nav a {
-    display: inline-flex;
-    align-items: center;
-    min-block-size: 24px;
-    min-inline-size: 24px;
-    color: var(--muted);
-    text-decoration: none;
-    transition: color 120ms ease;
-  }
-
-  .site-nav a:hover {
-    color: var(--text);
-  }
-
   .hero-copy {
     text-align: center;
     max-inline-size: 45rem;
@@ -472,8 +449,14 @@
     color: var(--text);
   }
 
-  .site-nav {
-    margin-inline-end: auto;
+  .platform {
+    display: flex;
+    justify-content: center;
+    padding-block-end: 2.5rem;
+  }
+
+  .platform .eyebrow {
+    margin-block-end: 0;
   }
 
   .header-actions {
@@ -582,38 +565,6 @@
     vertical-align: 0.12em;
   }
 
-  .site-footer .footer-inner {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "meta links"
-      "pill pill";
-  }
-
-  .footer-meta {
-    grid-area: meta;
-  }
-
-  .footer-links {
-    grid-area: links;
-  }
-
-  .footer-pill {
-    grid-area: pill;
-    justify-self: start;
-    margin-block-end: 0;
-  }
-
-  @media (max-width: 40rem) {
-    .site-footer .footer-inner {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas:
-        "meta"
-        "links"
-        "pill";
-    }
-  }
-
   .suite-item h3 {
     font-size: 1rem;
     font-weight: 600;
@@ -626,12 +577,6 @@
     font-size: 0.88rem;
     line-height: 1.6;
     text-wrap: pretty;
-  }
-
-  @media (max-width: 60rem) {
-    .site-nav {
-      display: none;
-    }
   }
 
   @media (max-width: 56rem) {
