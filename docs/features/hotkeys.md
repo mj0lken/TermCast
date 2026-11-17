@@ -420,7 +420,8 @@ full sweep) into target-specific updates, clearing buffered carry immediately on
 - **Screen brightness targets only `NSScreen.underCursor`:** the cursor's `CGDirectDisplayID` is locked
   at gesture start and passed to `DisplayBrightnessService` (`HotKeys/Service/DisplayBrightnessService.swift`),
   never posted as a blind brightness media key (which macOS otherwise routes to the built-in display).
-  Apple and `DisplayServices`-capable displays step smoothly via `DisplayServicesSetBrightnessSmooth`
+  Apple and `DisplayServices`-capable displays step via `DisplayServicesSetBrightness` (the `Smooth`
+  variant reports success on macOS 26 but never moves the panel)
   and render macOS's native HUD on that exact `displayID` via `OSDManager`; non-Apple external monitors
   matched by EDID (`DisplayDDC` in `HotKeys/Model/DisplayDDC.swift`) write VCP `0x10` over Apple
   Silicon `IOAVService` I²C off-main (`50 ms`-coalesced) with the same per-display native HUD, and

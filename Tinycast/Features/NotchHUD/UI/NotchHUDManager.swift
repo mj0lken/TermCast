@@ -184,7 +184,7 @@ final class NotchHUDManager: HealthCheckable {
     func stepKeyboardBacklight(up: Bool, fine: Bool = false) {
         guard let outcome = keyboardBacklight.step(up: up, fine: fine) else { return }
         presentHUD(
-            metric: .keyboardBacklight(level: outcome.level, suppressed: outcome.isSuppressed),
+            metric: .keyboardBacklight(level: outcome.level),
             overshoot: outcome.overshoot)
     }
 
@@ -192,7 +192,7 @@ final class NotchHUDManager: HealthCheckable {
         let samples: [NotchHUDMetric] = [
             .volume(level: audioVolume.currentState()?.level ?? 0.65, muted: false),
             .screenBrightness(level: 0.75),
-            .keyboardBacklight(level: 0.5, suppressed: false)
+            .keyboardBacklight(level: 0.5)
         ]
         let metric = samples[previewStepIndex % samples.count]
         previewStepIndex += 1

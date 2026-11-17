@@ -99,11 +99,11 @@ struct NotchHUDTests {
             NotchHUDMetric.screenBrightness(level: 0.4).symbol == "sun.max.fill",
             "screen brightness uses sun glyph")
         expect(
-            NotchHUDMetric.keyboardBacklight(level: 0.5, suppressed: false).symbol == "light.max",
-            "active keyboard backlight uses light.max")
+            NotchHUDMetric.keyboardBacklight(level: 0.5).symbol == "light.max",
+            "lit keyboard backlight uses light.max")
         expect(
-            NotchHUDMetric.keyboardBacklight(level: 0.5, suppressed: true).symbol == "light.min",
-            "suppressed keyboard backlight uses light.min")
+            NotchHUDMetric.keyboardBacklight(level: 0).symbol == "light.min",
+            "unlit keyboard backlight uses light.min")
 
         expect(
             NotchHUDMetric.audioDeviceSymbol(for: "Malcolm’s AirPods Pro") == "airpodspro",
