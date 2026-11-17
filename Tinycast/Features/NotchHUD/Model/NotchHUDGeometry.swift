@@ -70,7 +70,7 @@ enum NotchHUDGeometry {
     static let idealTrackWidth: CGFloat = 72
     static let maxWingOvershootStretch: CGFloat = 4
     static let maxTrackOvershootCompression: CGFloat = 2
-    static let liveMaxLeftWingWidth: CGFloat = 60
+    static let liveMaxLeftWingWidth: CGFloat = 72
     static let liveMaxRightWingWidth: CGFloat = 66
 
     static func resolve(

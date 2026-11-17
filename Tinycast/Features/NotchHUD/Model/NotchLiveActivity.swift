@@ -6,7 +6,6 @@ enum NotchLiveActivity: Sendable, Equatable {
     case dictation
     case meeting(MeetingEvent)
     case timer(end: Date)
-    case terminal(runningCount: Int)
     case nowPlaying
 
     var symbol: String {
@@ -14,7 +13,6 @@ enum NotchLiveActivity: Sendable, Equatable {
         case .dictation: "mic.fill"
         case .meeting: "calendar"
         case .timer: "timer"
-        case .terminal: "apple.terminal"
         case .nowPlaying: "music.note"
         }
     }
@@ -24,7 +22,6 @@ enum NotchLiveActivity: Sendable, Equatable {
         case .dictation: 38
         case .meeting: 46
         case .timer: 50
-        case .terminal: 30
         case .nowPlaying: 30
         }
     }
@@ -40,19 +37,19 @@ struct NotchCaptureUse: Sendable, Equatable {
 
 struct NotchLivePresentation: Sendable, Equatable {
     static let glyphWidth: CGFloat = 30
-    static let terminalBadgeWidth: CGFloat = 30
+    /// The terminal glyph and its count, kept together on the leading wing.
+    static let terminalWidth: CGFloat = 42
     static let captureDotWidth: CGFloat = 16
 
     let activity: NotchLiveActivity?
-    /// Running terminal sessions, counted beside an activity that outranks them.
-    let terminalBadgeCount: Int
+    /// Running terminal sessions; they never compete for the wings, they sit beside the activity.
+    let terminalCount: Int
     let capture: NotchCaptureUse
 
-    var isEmpty: Bool { activity == nil && !capture.isActive }
+    var isEmpty: Bool { activity == nil && terminalCount == 0 && !capture.isActive }
 
     var leftWingWidth: CGFloat {
-        guard activity != nil else { return 0 }
-        return Self.glyphWidth + (terminalBadgeCount > 0 ? Self.terminalBadgeWidth : 0)
+        (terminalCount > 0 ? Self.terminalWidth : 0) + (activity == nil ? 0 : Self.glyphWidth)
     }
 
     var rightWingWidth: CGFloat {
@@ -70,15 +67,9 @@ struct NotchLiveInputs: Sendable, Equatable {
 
     /// What the user is doing right now outranks what is scheduled, which outranks what is ambient.
     func presentation(at now: Date) -> NotchLivePresentation {
-        let activity = activity(at: now)
-        let showsTerminalBadge: Bool
-        switch activity {
-        case .terminal, nil: showsTerminalBadge = false
-        case .dictation, .meeting, .timer, .nowPlaying: showsTerminalBadge = true
-        }
-        return NotchLivePresentation(
-            activity: activity,
-            terminalBadgeCount: showsTerminalBadge ? max(runningTerminalCount, 0) : 0,
+        NotchLivePresentation(
+            activity: activity(at: now),
+            terminalCount: max(runningTerminalCount, 0),
             capture: capture)
     }
 
@@ -86,7 +77,6 @@ struct NotchLiveInputs: Sendable, Equatable {
         if isDictating { return .dictation }
         if let meeting { return .meeting(meeting) }
         if let timerEnd, timerEnd > now { return .timer(end: timerEnd) }
-        if runningTerminalCount > 0 { return .terminal(runningCount: runningTerminalCount) }
         if isPlaying { return .nowPlaying }
         return nil
     }

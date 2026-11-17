@@ -57,13 +57,20 @@ struct NotchLiveActivityView: View {
             String(localized: "Upcoming meeting: \(event.title)")
         case .timer:
             String(localized: "Timer running")
-        case .terminal(let count):
-            String(localized: "\(count) terminal sessions running")
         case .nowPlaying:
             nowPlaying.snapshot.map { String(localized: "Now playing: \($0.title)") } ?? ""
         case nil:
-            String(localized: "Microphone or camera in use")
+            terminalOrCaptureSummary
         }
+    }
+}
+
+extension NotchLiveActivityView {
+    /// With no activity on the wings, what is left is the terminal mark or the capture dot.
+    fileprivate var terminalOrCaptureSummary: String {
+        let count = state.presentation.terminalCount
+        guard count > 0 else { return String(localized: "Microphone or camera in use") }
+        return String(localized: "\(count) terminal sessions running")
     }
 }
 
@@ -73,9 +80,9 @@ private struct NotchLiveLeadingWing: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if presentation.terminalBadgeCount > 0 {
-                NotchLiveTerminalCount(count: presentation.terminalBadgeCount, showsSymbol: true)
-                    .frame(width: NotchLivePresentation.terminalBadgeWidth)
+            if presentation.terminalCount > 0 {
+                NotchLiveTerminalCount(count: presentation.terminalCount)
+                    .frame(width: NotchLivePresentation.terminalWidth)
             }
             if let activity = presentation.activity {
                 glyph(for: activity)
@@ -101,7 +108,7 @@ private struct NotchLiveLeadingWing: View {
             symbol(activity.symbol, tint: Self.calendarTint(of: event))
         case .dictation:
             symbol(activity.symbol, tint: Color.red)
-        case .timer, .terminal:
+        case .timer:
             symbol(activity.symbol, tint: Theme.Colors.textPrimary)
         }
     }
@@ -159,27 +166,19 @@ private struct NotchLiveTrailingWing: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-        case .terminal(let count):
-            NotchLiveTerminalCount(count: count, showsSymbol: false)
         }
     }
 }
 
+/// Running terminal sessions: the terminal glyph lit in the brand's purple, and how many.
 private struct NotchLiveTerminalCount: View {
     let count: Int
-    let showsSymbol: Bool
 
     var body: some View {
-        HStack(spacing: 3) {
-            if showsSymbol {
-                Image(systemName: "apple.terminal")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                Circle()
-                    .fill(Theme.Colors.success)
-                    .frame(width: 6, height: 6)
-            }
+        HStack(spacing: 4) {
+            Image(systemName: "apple.terminal.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.Colors.brandSecondary)
             Text(verbatim: "\(count)")
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Theme.Colors.textPrimary)

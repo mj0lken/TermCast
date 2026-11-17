@@ -31,13 +31,8 @@ struct GeneralSettingsView: View {
                 }
                 Toggle(isOn: $settings.showInMenuBar) {
                     SettingsRowTitle(.generalGeneral, "Show in menu bar")
-                    if settings.notchShelfEnabled {
-                        Text("Hidden while Open Notch is on; use the app icon in the notch instead.")
-                    } else {
-                        Text("Shortcuts still work when the menu bar icon is hidden.")
-                    }
+                    Text("Shortcuts still work when the menu bar icon is hidden.")
                 }
-                .settingsEnabled(!settings.notchShelfEnabled)
                 Toggle(isOn: $settings.automaticallyCheckForUpdates) {
                     SettingsRowTitle(.generalGeneral, "Automatically check for updates")
                     Text("You can still check for updates manually.")

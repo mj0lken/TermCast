@@ -61,7 +61,10 @@ enum SettingsFileSchema {
         case .notchShowsCalendar: return bind(settings, \.notchShowsCalendar)
         case .notchHidesAllDayEvents: return bind(settings, \.notchHidesAllDayEvents)
         case .notchShowsBattery: return bind(settings, \.notchShowsBattery)
-        case .notchShowsClipboard: return bind(settings, \.notchShowsClipboard)
+        case .notchShortcuts:
+            return bind(settings, \.notchShortcuts) {
+                NotchShortcut.isValid($0) ? $0 : nil
+            }
         case .notchShowsLiveActivities: return bind(settings, \.notchShowsLiveActivities)
         case .notchInputSourceNotifications: return bind(settings, \.notchInputSourceNotifications)
         case .hyperKey: return bind(settings, \.hyperKey)
@@ -225,6 +228,7 @@ enum SettingsFileSchema {
 extension PopToRootTimeout: SettingsFileRawValue {}
 extension EscapeKeyBehavior: SettingsFileRawValue {}
 extension CommandID: SettingsFileRawValue {}
+extension NotchShortcut: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
 extension AppLanguage: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}

@@ -276,8 +276,8 @@ final class AppSettings {
         didSet { defaults.set(notchShowsBattery, forKey: Key.notchShowsBattery.rawValue) }
     }
 
-    var notchShowsClipboard: Bool {
-        didSet { defaults.set(notchShowsClipboard, forKey: Key.notchShowsClipboard.rawValue) }
+    var notchShortcuts: [NotchShortcut] {
+        didSet { defaults.set(notchShortcuts.map(\.rawValue), forKey: Key.notchShortcuts.rawValue) }
     }
 
     var notchShowsLiveActivities: Bool {
@@ -973,9 +973,9 @@ final class AppSettings {
         notchShowsBattery =
             defaults.object(forKey: Key.notchShowsBattery.rawValue) == nil
             || defaults.bool(forKey: Key.notchShowsBattery.rawValue)
-        notchShowsClipboard =
-            defaults.object(forKey: Key.notchShowsClipboard.rawValue) == nil
-            || defaults.bool(forKey: Key.notchShowsClipboard.rawValue)
+        notchShortcuts =
+            defaults.stringArray(forKey: Key.notchShortcuts.rawValue)
+            .flatMap(NotchShortcut.shortcuts(from:)) ?? NotchShortcut.defaults
         notchShowsLiveActivities =
             defaults.object(forKey: Key.notchShowsLiveActivities.rawValue) == nil
             || defaults.bool(forKey: Key.notchShowsLiveActivities.rawValue)

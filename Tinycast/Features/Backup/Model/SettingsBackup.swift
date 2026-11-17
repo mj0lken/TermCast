@@ -43,7 +43,7 @@ struct SettingsBackup: Codable {
         var notchShowsCalendar: Bool?
         var notchHidesAllDayEvents: Bool?
         var notchShowsBattery: Bool?
-        var notchShowsClipboard: Bool?
+        var notchShortcuts: [String]?
         var notchShowsLiveActivities: Bool?
         var notchInputSourceNotifications: Bool?
         var emojiSkinTone: String?
@@ -187,7 +187,7 @@ extension SettingsBackup {
             notchShowsCalendar: s.notchShowsCalendar,
             notchHidesAllDayEvents: s.notchHidesAllDayEvents,
             notchShowsBattery: s.notchShowsBattery,
-            notchShowsClipboard: s.notchShowsClipboard,
+            notchShortcuts: s.notchShortcuts.map(\.rawValue),
             notchShowsLiveActivities: s.notchShowsLiveActivities,
             notchInputSourceNotifications: s.notchInputSourceNotifications,
             emojiSkinTone: s.emojiSkinTone.rawValue,
@@ -460,8 +460,10 @@ extension SettingsBackup {
             settings.notchShowsBattery = flag
             count += 1
         }
-        if let flag = s.notchShowsClipboard {
-            settings.notchShowsClipboard = flag
+        if let identifiers = s.notchShortcuts,
+            let shortcuts = NotchShortcut.shortcuts(from: identifiers)
+        {
+            settings.notchShortcuts = shortcuts
             count += 1
         }
         if let flag = s.notchShowsLiveActivities {

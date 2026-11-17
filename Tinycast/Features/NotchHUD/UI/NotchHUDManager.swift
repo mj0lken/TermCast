@@ -25,6 +25,7 @@ final class NotchHUDManager: HealthCheckable {
     @ObservationIgnored var onOpenClipboard: (() -> Void)?
     @ObservationIgnored var onOpenNotes: (() -> Void)?
     @ObservationIgnored var onOpenCamera: (() -> Void)?
+    @ObservationIgnored var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
     @ObservationIgnored var terminalSessions: (() -> [NotchTerminalSession])?
     @ObservationIgnored var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
     @ObservationIgnored var onOpenTerminal: (() -> Void)?
@@ -437,10 +438,8 @@ final class NotchHUDManager: HealthCheckable {
         created.onOpenTerminalSession = { [weak self] id in self?.onOpenTerminalSession?(id) }
         created.onOpenTerminal = { [weak self] in self?.onOpenTerminal?() }
         created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
-        created.onOpenNotes = { [weak self] in self?.onOpenNotes?() }
-        created.onOpenClipboard = { [weak self] in self?.onOpenClipboard?() }
-        created.onOpenCamera = { [weak self] in self?.onOpenCamera?() }
-        created.onOpenSettings = { [weak self] in self?.onOpenSettings?() }
+        created.onShortcut = { [weak self] in self?.run($0) }
+        created.onRunWindowCommand = { [weak self] id in self?.onRunWindowCommand?(id) }
         created.onEnableCalendar = { [weak self] in self?.onEnableCalendar?() }
         created.onJoinMeeting = { [weak self] meeting in self?.onJoinMeeting?(meeting) }
         return created
@@ -454,6 +453,17 @@ final class NotchHUDManager: HealthCheckable {
         created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
         created.setDictating(isDictating)
         return created
+    }
+
+    private func run(_ shortcut: NotchShortcut) {
+        switch shortcut {
+        case .clipboard: onOpenClipboard?()
+        case .notebook: onOpenNotes?()
+        case .camera: onOpenCamera?()
+        case .settings: onOpenSettings?()
+        // Both are menus in the header, so neither arrives as a plain press.
+        case .windowManagement, .timer: break
+        }
     }
 
     private func recoverTap() {
@@ -484,7 +494,7 @@ final class NotchHUDManager: HealthCheckable {
             _ = settings.notchTintsAccent
             _ = settings.notchShowsBattery
             _ = settings.notchShowsMedia
-            _ = settings.notchShowsClipboard
+            _ = settings.notchShortcuts
             _ = settings.notchShowsLiveActivities
             _ = settings.notchInputSourceNotifications
             _ = settings.clipboardEnabled

@@ -3,6 +3,7 @@ import SwiftUI
 struct NotchSettingsView: View {
     @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var settings
+    @Environment(CalendarStore.self) private var calendarStore
 
     private static let hoverDelaysMs = [150, 250, 350, 500, 750]
 
@@ -18,6 +19,20 @@ struct NotchSettingsView: View {
                     Permissions.ensureAccessibility()
                 }
             })
+    }
+
+    /// The notch only shows what Calendar reads, so switching it on here switches Calendar on too.
+    private var showsCalendarBinding: Binding<Bool> {
+        Binding(
+            get: { settings.notchShowsCalendar },
+            set: { next in
+                settings.notchShowsCalendar = next
+                if next, needsCalendar { core.calendarCoordinator.setCalendarEnabled(true) }
+            })
+    }
+
+    private var needsCalendar: Bool {
+        !settings.calendarEnabled || calendarStore.access != .granted
     }
 
     var body: some View {
@@ -108,8 +123,19 @@ struct NotchSettingsView: View {
                 Toggle(isOn: $settings.notchShowsMedia) {
                     SettingsRowTitle(.notchContent, "Show Now Playing")
                 }
-                Toggle(isOn: $settings.notchShowsCalendar) {
+                Toggle(isOn: showsCalendarBinding) {
                     SettingsRowTitle(.notchContent, "Show calendar")
+                    Text("Shows this week's events and counts down to the next meeting. Needs the Calendar feature.")
+                }
+                if settings.notchShowsCalendar, needsCalendar {
+                    LabeledContent {
+                        Button("Enable Calendar…") {
+                            core.calendarCoordinator.setCalendarEnabled(true)
+                        }
+                    } label: {
+                        Text("Calendar is off, so the notch has no events to show.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Toggle(isOn: $settings.notchHidesAllDayEvents) {
                     SettingsRowTitle(.notchContent, "Hide all-day events")
@@ -118,15 +144,13 @@ struct NotchSettingsView: View {
                 Toggle(isOn: $settings.notchShowsBattery) {
                     SettingsRowTitle(.notchContent, "Show battery indicator")
                 }
-                Toggle(isOn: $settings.notchShowsClipboard) {
-                    SettingsRowTitle(.notchContent, "Show clipboard button")
-                    Text("Adds a quick Clipboard History button in the notch header.")
-                }
-                .settingsEnabled(settings.clipboardEnabled)
             } header: {
                 SettingsSectionHeader(.notchContent)
             }
             .settingsEnabled(settings.notchShelfEnabled)
+
+            NotchShortcutsSection()
+                .settingsEnabled(settings.notchShelfEnabled)
 
             Section {
                 LabeledContent {

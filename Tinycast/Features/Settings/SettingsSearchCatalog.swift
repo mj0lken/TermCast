@@ -497,8 +497,11 @@ enum SettingsSearchCatalog {
             .notchContent, "Show battery indicator",
             keywords: ["battery", "charge", "power"]),
         .init(
-            .notchContent, "Show clipboard button",
-            keywords: ["clipboard", "history", "paste", "icon", "notch"]),
+            group: .notchShortcuts, "Shortcuts",
+            keywords: [
+                "buttons", "header", "clipboard", "notebook", "notes", "camera", "window management",
+                "timer", "settings", "cog", "reorder"
+            ]),
         .init(
             .notchPreview, "Preview Notch HUD",
             keywords: ["notch", "hud", "test", "preview"]),

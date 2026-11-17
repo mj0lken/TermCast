@@ -7,7 +7,7 @@ import Observation
 final class NotchLiveActivityState {
     static let waveformBarCount = 5
 
-    var presentation = NotchLivePresentation(activity: nil, terminalBadgeCount: 0, capture: NotchCaptureUse())
+    var presentation = NotchLivePresentation(activity: nil, terminalCount: 0, capture: NotchCaptureUse())
     var layout: NotchHUDGeometry.Layout = NotchHUDGeometry.resolve(
         screen: NotchHUDGeometry.ScreenMetrics(
             frame: CGRect(x: 0, y: 0, width: 1512, height: 982),

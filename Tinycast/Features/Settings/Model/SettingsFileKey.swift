@@ -123,7 +123,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case notchShowsCalendar = "notch.showsCalendar"
     case notchHidesAllDayEvents = "notch.hidesAllDayEvents"
     case notchShowsBattery = "notch.showsBattery"
-    case notchShowsClipboard = "notch.showsClipboard"
+    case notchShortcuts = "notch.shortcuts"
     case notchShowsLiveActivities = "notch.showsLiveActivities"
     case notchInputSourceNotifications = "notch.inputSourceNotifications"
     case clipboardEnabled = "clipboard.enabled"

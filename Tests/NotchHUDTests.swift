@@ -45,6 +45,7 @@ struct NotchHUDTests {
         testMeetingCountdown()
         testTerminalSessions()
         testTimerPreset()
+        testNotchShortcuts()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -398,17 +399,14 @@ struct NotchHUDTests {
         expect(inputs.presentation(at: now).activity == .nowPlaying, "playback alone shows now playing")
 
         inputs.runningTerminalCount = 2
-        expect(
-            inputs.presentation(at: now).activity == .terminal(runningCount: 2),
-            "a running command outranks ambient playback")
-        expect(
-            inputs.presentation(at: now).terminalBadgeCount == 0,
-            "the terminal activity does not also badge itself")
+        let withTerminal = inputs.presentation(at: now)
+        expect(withTerminal.activity == .nowPlaying, "running sessions never take the wings from an activity")
+        expect(withTerminal.terminalCount == 2, "running sessions are counted beside the activity")
 
         inputs.timerEnd = now.addingTimeInterval(60)
-        let timed = inputs.presentation(at: now)
-        expect(timed.activity == .timer(end: now.addingTimeInterval(60)), "a running timer outranks the terminal")
-        expect(timed.terminalBadgeCount == 2, "running sessions stay counted beside a higher activity")
+        expect(
+            inputs.presentation(at: now).activity == .timer(end: now.addingTimeInterval(60)),
+            "a running timer outranks playback")
 
         inputs.meeting = standup
         expect(inputs.presentation(at: now).activity == .meeting(standup), "an imminent meeting outranks a timer")
@@ -419,6 +417,11 @@ struct NotchHUDTests {
         var expired = NotchLiveInputs()
         expired.timerEnd = now.addingTimeInterval(-1)
         expect(expired.presentation(at: now).isEmpty, "a timer that has ended is no longer shown")
+
+        var terminalOnly = NotchLiveInputs()
+        terminalOnly.runningTerminalCount = 1
+        let sessions = terminalOnly.presentation(at: now)
+        expect(sessions.activity == nil && !sessions.isEmpty, "running sessions alone still show")
 
         var captureOnly = NotchLiveInputs()
         captureOnly.capture.microphone = true
@@ -434,8 +437,15 @@ struct NotchHUDTests {
         expectCG(dotOnly.leftWingWidth, 0, "a lone capture dot needs no left wing")
         expectCG(dotOnly.rightWingWidth, NotchLivePresentation.captureDotWidth, "a lone dot is one dot wide")
 
+        var terminal = NotchLiveInputs()
+        terminal.runningTerminalCount = 3
+        let sessions = terminal.presentation(at: now)
+        expectCG(
+            sessions.leftWingWidth, NotchLivePresentation.terminalWidth,
+            "running sessions alone are one compact glyph and count")
+        expectCG(sessions.rightWingWidth, 0, "running sessions alone need no right wing")
+
         inputs.isPlaying = true
-        inputs.runningTerminalCount = 0
         let playing = inputs.presentation(at: now)
         expectCG(playing.leftWingWidth, NotchLivePresentation.glyphWidth, "an activity has one glyph on the left")
         expectCG(
@@ -443,13 +453,15 @@ struct NotchHUDTests {
             NotchLiveActivity.nowPlaying.readoutWidth + NotchLivePresentation.captureDotWidth,
             "the capture dot widens the readout wing")
 
-        inputs.timerEnd = now.addingTimeInterval(60)
         inputs.runningTerminalCount = 1
-        let badged = inputs.presentation(at: now)
+        let both = inputs.presentation(at: now)
         expectCG(
-            badged.leftWingWidth,
-            NotchLivePresentation.glyphWidth + NotchLivePresentation.terminalBadgeWidth,
-            "the terminal badge widens the glyph wing")
+            both.leftWingWidth,
+            NotchLivePresentation.glyphWidth + NotchLivePresentation.terminalWidth,
+            "running sessions widen the glyph wing")
+        expect(
+            both.leftWingWidth <= NotchHUDGeometry.liveMaxLeftWingWidth,
+            "the widest left wing fits the window sized for it")
     }
 
     static func testLiveGeometry() {
@@ -459,7 +471,7 @@ struct NotchHUDTests {
             auxiliaryTopLeft: CGRect(x: 0, y: 944, width: 650, height: 38),
             auxiliaryTopRight: CGRect(x: 862, y: 944, width: 650, height: 38))
         let narrow = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 30, rightWing: 30)
-        let wide = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 60, rightWing: 66)
+        let wide = NotchHUDGeometry.resolveLive(screen: notched, leftWing: 72, rightWing: 66)
         expect(narrow != nil, "a notched display hosts live activities")
         expect(narrow?.panelFrame == wide?.panelFrame, "swapping activities never resizes the window")
         expect(
@@ -539,5 +551,32 @@ struct NotchHUDTests {
         expect(
             NotchTimerPreset.end(afterMinutes: 0, from: now) == now.addingTimeInterval(60),
             "a timer is never shorter than a minute")
+    }
+
+    static func testNotchShortcuts() {
+        expect(NotchShortcut.isValid(NotchShortcut.defaults), "the default row is a valid one")
+        expect(
+            NotchShortcut.shortcuts(from: ["clipboard", "settings"]) == [.clipboard, .settings],
+            "a stored row decodes in order")
+        expect(NotchShortcut.shortcuts(from: ["clipboard", "nope"]) == nil, "an unknown name rejects the row")
+        expect(
+            NotchShortcut.shortcuts(from: ["camera", "camera"]) == nil, "a repeated shortcut rejects the row")
+        expect(
+            NotchShortcut.shortcuts(from: NotchShortcut.allCases.map(\.rawValue)) == nil,
+            "a row longer than the header holds is rejected")
+        expect(NotchShortcut.shortcuts(from: []) == [], "an empty row is allowed")
+
+        let row: [NotchShortcut] = [.clipboard, .notebook, .camera, .timer, .settings]
+        expect(
+            NotchShortcut.visible(row, showsBattery: false) { _ in true } == row,
+            "without the battery readout the header holds five")
+        expect(
+            NotchShortcut.visible(row, showsBattery: true) { _ in true }
+                == [.clipboard, .notebook, .camera, .timer],
+            "the battery readout takes the last slot")
+        expect(
+            NotchShortcut.visible(row, showsBattery: true) { $0 != .notebook }
+                == [.clipboard, .camera, .timer, .settings],
+            "a shortcut whose feature is off gives its slot to the next one")
     }
 }

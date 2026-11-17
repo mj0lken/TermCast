@@ -8,14 +8,13 @@ final class NotchTrayController {
     private static let hoverExitGrace: TimeInterval = 0.22
 
     var refreshCalendarState: (() -> (enabled: Bool, hasAccess: Bool, events: [MeetingEvent]))?
-    var onOpenClipboard: (() -> Void)?
-    var onOpenNotes: (() -> Void)?
-    var onOpenCamera: (() -> Void)?
+    /// A header shortcut that opens something; the two menu shortcuts never arrive here.
+    var onShortcut: ((NotchShortcut) -> Void)?
+    var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
     var terminalSessions: (() -> [NotchTerminalSession])?
     var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
     var onOpenTerminal: (() -> Void)?
     var meetingLeadMinutes: (() -> Int)?
-    var onOpenSettings: (() -> Void)?
     var onEnableCalendar: (() -> Void)?
     var onJoinMeeting: ((MeetingEvent) -> Void)?
 
@@ -97,7 +96,6 @@ final class NotchTrayController {
         let metrics = Self.metrics(for: screen)
         let layout = NotchHUDGeometry.resolveOpenTray(screen: metrics)
 
-        state.showsNotes = settings.notesEnabled
         state.showsTerminal = settings.terminalEnabled
         if let preferredTab {
             state.tab = preferredTab
@@ -110,7 +108,10 @@ final class NotchTrayController {
         state.showsMedia = settings.notchShowsMedia
         state.showsCalendar = settings.notchShowsCalendar
         state.showsBattery = settings.notchShowsBattery
-        state.showsClipboard = settings.notchShowsClipboard && settings.clipboardEnabled
+        state.shortcuts = NotchShortcut.visible(
+            settings.notchShortcuts,
+            showsBattery: settings.notchShowsBattery && battery.status.hasBattery,
+            isAvailable: isAvailable)
         state.hidesAllDayEvents = settings.notchHidesAllDayEvents
         state.style = NotchHUDStyle(
             showsPercentage: settings.notchShowsPercentage,
@@ -249,22 +250,14 @@ final class NotchTrayController {
                     self?.close()
                     self?.onOpenTerminal?()
                 }),
-            onOpenClipboard: { [weak self] in
-                self?.close()
-                self?.onOpenClipboard?()
-            },
-            onOpenNotes: { [weak self] in
-                self?.close()
-                self?.onOpenNotes?()
-            },
-            onOpenCamera: { [weak self] in
-                self?.close()
-                self?.onOpenCamera?()
-            },
-            menu: NotchAppMenuActions(
-                openNotchSettings: { [weak self] in
+            shortcuts: NotchShortcutActions(
+                open: { [weak self] shortcut in
                     self?.close()
-                    self?.onOpenSettings?()
+                    self?.onShortcut?(shortcut)
+                },
+                runWindowCommand: { [weak self] id in
+                    self?.close()
+                    self?.onRunWindowCommand?(id)
                 }),
             onEnableCalendar: { [weak self] in
                 self?.close()
@@ -288,6 +281,16 @@ final class NotchTrayController {
         }
         trayPanel = created
         return created
+    }
+
+    /// A shortcut whose feature is off draws nothing, and gives its slot to the next one.
+    private func isAvailable(_ shortcut: NotchShortcut) -> Bool {
+        switch shortcut {
+        case .clipboard: settings.clipboardEnabled
+        case .notebook: settings.notesEnabled
+        case .windowManagement: settings.windowManagementEnabled
+        case .camera, .timer, .settings: true
+        }
     }
 
     private func handleSensorHover(_ hovering: Bool) {

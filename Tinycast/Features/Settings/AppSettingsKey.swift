@@ -26,7 +26,7 @@ enum AppSettingsKey: String, CaseIterable {
     case notchShowsCalendar = "notchShowsCalendar"
     case notchHidesAllDayEvents = "notchHidesAllDayEvents"
     case notchShowsBattery = "notchShowsBattery"
-    case notchShowsClipboard = "notchShowsClipboard"
+    case notchShortcuts = "notchShortcuts"
     case notchShowsLiveActivities = "notchShowsLiveActivities"
     case notchInputSourceNotifications = "notchInputSourceNotifications"
     case emojiSkinTone = "emojiSkinTone"

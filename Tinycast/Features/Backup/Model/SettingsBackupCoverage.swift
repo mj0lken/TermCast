@@ -25,7 +25,7 @@ enum SettingsBackupCoverage {
         "notchShowsCalendar": .notchShowsCalendar,
         "notchHidesAllDayEvents": .notchHidesAllDayEvents,
         "notchShowsBattery": .notchShowsBattery,
-        "notchShowsClipboard": .notchShowsClipboard,
+        "notchShortcuts": .notchShortcuts,
         "notchShowsLiveActivities": .notchShowsLiveActivities,
         "notchInputSourceNotifications": .notchInputSourceNotifications,
         "showInMenuBar": .showInMenuBar,

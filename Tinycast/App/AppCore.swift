@@ -480,6 +480,9 @@ final class AppCore {
             notchHUD.onOpenClipboard = { [weak self] in
                 self?.paletteCoordinator.showPalette(mode: .clipboard)
             }
+            notchHUD.onRunWindowCommand = { [weak self] id in
+                self?.windowCommandCoordinator.runWindowCommand(id: id)
+            }
             notchHUD.onOpenNotes = { [weak self] in
                 self?.notesCoordinator.toggle()
             }

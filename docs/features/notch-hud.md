@@ -49,10 +49,17 @@ Hardware-blended inline Notch HUD, persistent closed-notch live activities, and 
 | `Features/NotchHUD/UI/NotchHUDController.swift` | Closed-notch inline HUD presentation, dwell extension and rubber-band snap-back |
 | `Features/NotchHUD/UI/NotchTrayController.swift` | Interactive Open-Notch hover/drag/click expansion, haptic alignment and auto-collapse |
 | `Features/NotchHUD/UI/NotchLiveActivityController.swift` | Closed-notch live wings: gathers the inputs, resolves one presentation, shows or retracts the panel |
-| `Features/NotchHUD/UI/NotchLiveActivityView.swift` | Left glyph (artwork, calendar, mic, timer, terminal) and right readout (equaliser, countdown, waveform, count, capture dot) |
+| `Features/NotchHUD/UI/NotchLiveActivityView.swift` | Left wing (the purple terminal glyph with its count, then the activity's glyph: artwork, calendar, mic or timer) and right readout (equaliser, countdown, waveform, capture dot) |
 | `Features/NotchHUD/UI/NotchEqualizerView.swift` | Core Animation equaliser bars |
-| `Features/NotchHUD/UI/NotchOpenTrayView.swift` | Expanded `Home` (Now Playing + Calendar/Upcoming), `Shelf` (AirDrop + Staging Tray), `Terminal` (live sessions), and header controls (Clipboard, Notes, Camera Mirror, Termcast menu with timers, Battery) |
+| `Features/NotchHUD/UI/NotchOpenTrayView.swift` | The expanded tray's shape and page switch, and the action bundles its pages are handed |
+| `Features/NotchHUD/UI/NotchTrayHeader.swift` | Header band: tabs, the shortcut row (buttons and the Window Management and Timer menus), battery readout and the inline HUD chip |
+| `Features/NotchHUD/UI/NotchTrayHomePage.swift` | `Home`: the Now Playing card, source label and scrubber |
+| `Features/NotchHUD/UI/NotchTrayCalendarCard.swift` | `Home`: the week strip, the selected day's events and the Join pill |
+| `Features/NotchHUD/UI/NotchTrayShelfPage.swift` | `Shelf`: the AirDrop target and the staged items |
+| `Features/NotchHUD/UI/NotchTrayTerminalPage.swift` | `Terminal`: the live sessions list |
+| `Features/NotchHUD/Model/NotchShortcut.swift` | Pure header shortcut list: the options, the stored row's validity, the limit and what is drawn |
 | `Features/NotchHUD/Settings/NotchSettingsView.swift` | **Settings → Features → Notch** controls and live HUD / Tray previews |
+| `Features/NotchHUD/Settings/NotchShortcutsSection.swift` | The pane's Shortcuts section: add, reorder and remove header shortcuts |
 
 ## Now Playing relay
 
@@ -78,10 +85,12 @@ While `notchShelfEnabled` and `notchShowsLiveActivities` are on, the closed notc
 activity on its wings: a glyph on the left, a compact readout on the right.
 
 - **One activity at a time, by priority.** `NotchLiveInputs.presentation(at:)` picks dictation, then an
-  imminent meeting, then a running timer, then running Terminal sessions, then playback. What the user is
-  doing outranks what is scheduled, which outranks what is ambient. Running sessions stay counted as a
-  badge beside any activity that outranks them, and microphone or camera use adds a dot (orange for the
+  imminent meeting, then a running timer, then playback. What the user is doing outranks what is
+  scheduled, which outranks what is ambient. Microphone or camera use adds a dot (orange for the
   microphone, green for the camera) beside whatever else is showing, or on its own.
+- **Running Terminal sessions never compete for the wings.** They are one compact mark on the leading
+  wing, the terminal glyph in `Theme.Colors.brandSecondary` with the count beside it, shown alone or
+  ahead of whichever activity has the wings.
 - **Now Playing** shows the artwork and an equaliser only while something is playing; a pause retracts
   the wings. A change of track peeks the title through the HUD as a `.notice`, never for the track found
   at launch and never while the tray is open.
@@ -91,7 +100,7 @@ activity on its wings: a glyph on the left, a compact readout on the right.
   Events are re-read on a calendar change, at each scheduled boundary and when the day changes.
 - **Dictation** mirrors `DictationCoordinator.onListeningChanged` and `onLevels`; the notch owns none of
   the recording.
-- **Timers** start from the Termcast menu in the tray header (`NotchTimerPreset.minutes`). One sleep on
+- **Timers** start from the Timer shortcut in the tray header (`NotchTimerPreset.minutes`). One sleep on
   the continuous clock ends the timer, so a lid-closed timer finishes on wake; it then plays a sound and
   shows a notice.
 - **Terminal sessions** come from a closure `AppCore` supplies over `TerminalStore`; the `Terminal` tab
@@ -104,3 +113,38 @@ activity on its wings: a glyph on the left, a compact readout on the right.
 finished timer, an app starting to use the microphone or camera, and a keyboard input-source switch
 (`notchInputSourceNotifications`, which needs `notchHUDEnabled`). The caller localizes the text, so the
 model stays pure. With the tray open a notice becomes the header's inline chip.
+
+## Header shortcuts
+
+The open notch's header holds the tabs on the leading side of the cutout and a row of shortcuts on the
+trailing side. `AppSettings.notchShortcuts` is that row, in order: any of Clipboard History, Notebook,
+Camera Mirror, Window Management, Timer and Notch Settings, edited in the pane's **Shortcuts** section
+and mirrored in `settings.json` as `notch.shortcuts`. The default is Clipboard, Notebook, Camera and
+Settings.
+
+- **The row is cut to what fits.** `NotchShortcut.limit(showsBattery:)` is five, or four while the
+  battery readout shares the side. `NotchShortcut.visible` drops a shortcut whose feature is off and
+  hands its slot to the next one, so the stored row is never rewritten by a feature toggle.
+- **Window Management and Timer are menus; the rest are buttons.** Window Management lists the halves,
+  quarters and sizing placements and runs one through `WindowCommandCoordinator` on the frontmost
+  window, which the non-activating tray never displaces. Every other shortcut closes the tray first.
+- **The app's own menu stays in the menu bar.** The notch carries no Termcast menu, so
+  `showInMenuBar` is independent of `notchShelfEnabled`.
+
+## What the notch depends on
+
+A notch option never switches another feature on silently; it says what is missing.
+
+| Notch option | Needs | When it is missing |
+| --- | --- | --- |
+| Replace system volume & brightness HUD | Accessibility | the pane's status row offers Grant Access |
+| Show calendar, and the meeting countdown | Calendar enabled and granted | turning it on asks to enable Calendar; the pane and the tray both offer Enable Calendar |
+| Clipboard History shortcut | `clipboardEnabled` | the shortcut is not drawn; its row reads Off with Turn On |
+| Notebook shortcut | `notesEnabled` | the same |
+| Window Management shortcut | `windowManagementEnabled` | the same |
+| Terminal tab and the terminal mark | `terminalEnabled` | neither appears |
+| Dictation activity | Dictation enabled | never appears |
+| Camera Mirror shortcut | camera access | macOS asks on first use |
+
+Now Playing, timers, the shelf and the microphone and camera dot need nothing beyond the notch's own
+switches.

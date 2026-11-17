@@ -23,8 +23,8 @@ final class NotchOpenTrayState {
     var showsMedia = true
     var showsCalendar = true
     var showsBattery = true
-    var showsClipboard = true
-    var showsNotes = false
+    /// The header's shortcut row as it is drawn: configured, available, and cut to what fits.
+    var shortcuts: [NotchShortcut] = []
     var showsTerminal = false
     var hidesAllDayEvents = false
     var meetingLeadMinutes = 10
