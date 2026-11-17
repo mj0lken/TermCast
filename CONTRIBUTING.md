@@ -1,9 +1,8 @@
 # Contributing to Tinycast
 
-Check existing [discussions](https://github.com/abue-ammar/tinycast/discussions),
-[issues](https://github.com/abue-ammar/tinycast/issues) and
-[pull requests](https://github.com/abue-ammar/tinycast/pulls) first. Only maintainers open issues:
-start a discussion, and a maintainer turns it into an issue once it is clear and confirmed.
+For Termcast, open an [issue](https://github.com/mj0lken/TermCast/issues) — bugs, ideas and questions
+all go there. Pull requests are open to collaborators only; anyone else's is closed unread, so describe
+the change in an issue instead.
 
 > **Don't hurry your code. Make sure it works well and is well designed. Don't worry about timing.**
 
