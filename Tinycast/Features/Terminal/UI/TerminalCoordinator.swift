@@ -1306,6 +1306,7 @@ final class TerminalCoordinator {
                                 self.palette.rewriteQuery(captured)
                             }
                         })
+                    handle.acknowledgeOutput()
                 case .exited(let status):
                     tab.handleSessionExited(status: status)
                 case .launchFailed(let message):

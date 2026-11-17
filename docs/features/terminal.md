@@ -29,6 +29,14 @@ the **Recent Folders** list. Because interactive shell preferences stay machine-
 - **Disabling Terminal closes all active tabs and stops running sessions.**
   `TerminalCoordinator.applyEnabled()` cancels any `PATH` scan, terminates open PTYs, unpins the
   launcher folder strip, and replaces `.terminal` with `.launcher`.
+- **PTY output is backpressured, so a flood can't grow memory.** The reader thread holds at most
+  `TerminalSessionRunner.maxQueuedOutputChunks` (4, about 48 KB each) unacknowledged `.output`
+  chunks, then stops reading and lets the shell block. Every consumer of an interactive handle calls
+  `acknowledgeOutput()` once per `.output` after handling it; a missed call stalls the session.
+  `terminate()` and stream cancellation release a blocked reader.
+- **Interactive input never blocks the main actor.** `writeBytes` and `interrupt` go through a
+  per-session serial queue that also closes the descriptor, so a shell that stops reading cannot
+  hang the UI and a late write never lands on a reused descriptor.
 
 ## Standard, Hybrid, and Terminal Modes
 

@@ -1883,6 +1883,15 @@ final class TerminalEmulator {
         }
     }
 
+    /// `!plainText().isEmpty` without building up to 4,000 lines of text to find out.
+    var hasText: Bool {
+        (0..<totalLines).reversed().contains { index in
+            withLine(at: index) { cells, _, isWrapped in
+                cells.contains { $0.width != 0 && (isWrapped || !$0.isSpace) }
+            } ?? false
+        }
+    }
+
     func plainText(includeScrollback: Bool = true) -> String {
         let start = includeScrollback ? 0 : scrollback.count
         guard start < totalLines else { return "" }
