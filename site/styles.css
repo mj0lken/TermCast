@@ -464,18 +464,6 @@
     border-color: var(--chevron-emerald);
   }
 
-  .hero-panel-figure {
-    margin-block-start: 1.55rem;
-    max-inline-size: 48rem;
-    margin-inline: auto;
-  }
-
-  .hero-shot {
-    inline-size: 100%;
-    aspect-ratio: 1500 / 920;
-    filter: drop-shadow(0 22px 42px var(--panel-shadow));
-  }
-
   .section-head {
     max-inline-size: 40rem;
     margin-block-end: 1rem;
