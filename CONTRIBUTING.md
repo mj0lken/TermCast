@@ -1,8 +1,7 @@
 # Contributing to Tinycast
 
 For Termcast, open an [issue](https://github.com/mj0lken/TermCast/issues) — bugs, ideas and questions
-all go there. Pull requests are open to collaborators only; anyone else's is closed unread, so describe
-the change in an issue instead.
+all go there. Only collaborators can open pull requests, so describe a change you want in an issue.
 
 > **Don't hurry your code. Make sure it works well and is well designed. Don't worry about timing.**
 
