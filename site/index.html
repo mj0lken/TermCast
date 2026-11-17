@@ -16,6 +16,7 @@
   <link rel="apple-touch-icon" href="./assets/icon.png">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./carousel.css">
+  <link rel="stylesheet" href="./carousel-notch.css">
   <link rel="stylesheet" href="./carousel-scenes.css">
   <script src="./app.js" defer></script>
   <script src="./carousel.js" defer></script>
@@ -29,16 +30,31 @@
         <span class="brand-name">TermCast</span>
       </a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="#pillars">Pillars</a>
-        <a href="#suite">Launcher Suite</a>
+        <a href="#suite">Features</a>
         <a href="https://github.com/mj0lken/TermCast/releases">Releases</a>
-        <a class="nav-github" href="https://github.com/mj0lken/TermCast">
-          <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
+      </nav>
+      <div class="header-actions">
+        <div class="brew-pill">
+          <span class="brew-prompt" aria-hidden="true">$</span>
+          <pre><code id="build-cmd">brew install --cask mj0lken/tap/termcast</code></pre>
+          <button id="copy-btn" class="copy-btn" type="button">
+            <span id="copy-label">Copy</span>
+            <span class="visually-hidden"> Homebrew install command</span>
+          </button>
+          <span id="copy-status" class="visually-hidden" aria-live="polite"></span>
+        </div>
+        <a class="icon-btn" href="https://github.com/mj0lken/TermCast" aria-label="TermCast source on GitHub">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
             <path d="M8 0C3.58 0 0 3.58 0 8a8.01 8.01 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
           </svg>
-          <span>GitHub</span>
         </a>
-      </nav>
+        <a id="download-cta" class="btn btn-primary" href="https://github.com/mj0lken/TermCast/releases/latest">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2.25v7.5m0 0-3-3m3 3 3-3M2.75 12.75h10.5"/>
+          </svg>
+          <span id="download-label">Download</span>
+        </a>
+      </div>
     </div>
   </header>
 
@@ -46,50 +62,15 @@
     <section class="hero">
       <div class="shell">
         <div class="hero-copy">
-          <p class="eyebrow">
-            <span class="chevron-pair" aria-hidden="true">
-              <svg viewBox="0 0 100 100" width="14" height="14">
-                <path fill="#10b981" d="M 71.880 58.449 L 37.880 40.449 A 5.600 5.600 0 0 1 37.880 30.551 L 71.880 12.551 A 5.600 5.600 0 0 1 79.449 14.880 A 5.600 5.600 0 0 1 77.120 22.449 L 55.474 33.909 A 1.800 1.800 0 0 0 55.474 37.091 L 77.120 48.551 A 5.600 5.600 0 0 1 79.449 56.120 A 5.600 5.600 0 0 1 71.880 58.449 Z"/>
-                <path fill="#863bff" d="M 28.120 41.551 L 62.120 59.551 A 5.600 5.600 0 0 1 62.120 69.449 L 28.120 87.449 A 5.600 5.600 0 0 1 20.551 85.120 A 5.600 5.600 0 0 1 22.880 77.551 L 44.526 66.091 A 1.800 1.800 0 0 0 44.526 62.909 L 22.880 51.449 A 5.600 5.600 0 0 1 20.551 43.880 A 5.600 5.600 0 0 1 28.120 41.551 Z"/>
-              </svg>
-            </span>
-            macOS 26+ · Swift 6 · Zero Dependencies · AGPL-3.0
-          </p>
           <h1 id="main-heading" tabindex="-1">TermCast <span class="title-sub">— a Tinycast fork</span></h1>
           <p class="lead">
             A native macOS menu-bar launcher built on <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> with four flagship upgrades: a <strong>live multi-tab PTY terminal</strong>, a <strong>Notch HUD and tray</strong>, <strong>Hyper Key trackpad sliders</strong> for per-display brightness &amp; volume, and <strong>drag-to-snap + traffic-light window management</strong>.
           </p>
 
-          <div class="cta-row">
-            <a id="download-cta" class="btn btn-primary" href="https://github.com/mj0lken/TermCast/releases/latest">
-              <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 2.25v7.5m0 0-3-3m3 3 3-3M2.75 12.75h10.5"/>
-              </svg>
-              <span id="download-label">Download DMG</span>
-            </a>
-            <a class="btn btn-secondary" href="https://github.com/mj0lken/TermCast">
-              <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8a8.01 8.01 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
-              </svg>
-              <span>Source on GitHub</span>
-            </a>
-          </div>
-
-          <div class="brew-wrap">
-            <div class="brew-pill">
-              <span class="brew-prompt" aria-hidden="true">$</span>
-              <pre><code id="build-cmd">brew install --cask mj0lken/tap/termcast</code></pre>
-              <button id="copy-btn" class="copy-btn" type="button">
-                <span id="copy-label">Copy</span>
-                <span class="visually-hidden"> Homebrew install command</span>
-              </button>
-              <span id="copy-status" class="visually-hidden" aria-live="polite"></span>
-            </div>
-          </div>
         </div>
 
         <section class="showcase" data-carousel aria-roledescription="carousel" aria-label="Termcast feature highlights">
-          <div class="showcase-viewport" data-carousel-track tabindex="0" aria-label="Feature slides, use the arrow keys to switch">
+          <div class="showcase-viewport" data-carousel-track tabindex="0" aria-label="Feature slides. Drag, swipe or use the arrow keys to switch.">
             <article class="slide" data-slide data-title="Terminal" role="group" aria-roledescription="slide" aria-label="1 of 4: Terminal">
               <div class="scene scene-shot">
                 <img
@@ -98,85 +79,110 @@
                   width="1500"
                   height="920"
                   fetchpriority="high"
+                  draggable="false"
                 >
               </div>
               <div class="slide-caption">
-                <span class="pillar-kicker kicker-emerald">01 · Terminal</span>
+                <span class="kicker kicker-emerald">01 · Terminal</span>
                 <h2 class="slide-title">Live shell tabs, right in the launcher</h2>
                 <p class="slide-line">Type a command and it runs in a real <code>zsh</code> PTY. Hybrid mode keeps search open while your sessions stay live in <kbd>⌘1–9</kbd> tabs.</p>
               </div>
             </article>
 
             <article class="slide" data-slide data-title="Notch" role="group" aria-roledescription="slide" aria-label="2 of 4: Notch">
-              <div class="scene scene-notch" role="img" aria-label="The open notch tray showing Now Playing and today's calendar, above two closed-notch states: a volume HUD and a live activity">
-                <div class="menubar"><span class="menubar-items"><i></i><i></i><i></i><i></i></span><span class="menubar-status"><i></i><i></i><i></i></span></div>
-                <div class="notch-tray">
-                  <div class="tray-head">
-                    <span class="tray-tabs"><span class="tray-tab is-active">Home</span><span class="tray-tab">Shelf</span><span class="tray-tab">Terminal</span></span>
-                    <span class="tray-battery">87%<span class="battery"><span></span></span></span>
+              <div class="scene scene-notch" role="img" aria-label="The open notch tray on its Home page, with Now Playing and today's calendar, above two closed-notch states: the volume HUD and a live activity">
+                <div class="mac-menubar">
+                  <span class="mac-menubar-left"></span>
+                  <span class="mac-menubar-right"><span>10:24</span></span>
+                </div>
+
+                <div class="tray">
+                  <div class="tray-header">
+                    <span class="tray-tabs">
+                      <span class="tray-tab is-selected"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1.4 1.2 7.1c-.4.4-.2 1.1.4 1.1H3v5.7c0 .4.3.7.7.7h2.8v-4h3v4h2.8c.4 0 .7-.3.7-.7V8.2h1.4c.6 0 .8-.7.4-1.1z"/></svg></span>
+                      <span class="tray-tab"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M3.4 2h9.2c.5 0 1 .3 1.2.8L15.5 8v4.6c0 .8-.6 1.4-1.4 1.4H1.9c-.8 0-1.4-.6-1.4-1.4V8l1.7-5.2c.2-.5.7-.8 1.2-.8zm-.9 5.8h2.9c.4 0 .8.3.9.7l.2.6c.1.4.5.7.9.7h1.2c.4 0 .8-.3.9-.7l.2-.6c.1-.4.5-.7.9-.7h2.9L12.3 3.5H3.7z"/></svg></span>
+                      <span class="tray-tab"><svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="2.5" width="14" height="11" rx="2.4" fill="currentColor"/><path d="m4.2 6.2 2.1 1.8-2.1 1.8M7.8 10.2h3.8" fill="none" stroke="#000" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>2</b></span>
+                    </span>
+                    <span class="tray-cutout"><i></i></span>
+                    <span class="tray-actions">
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M11.2 5.6 6.3 10.5a1.3 1.3 0 0 1-1.9-1.8l5.4-5.4a2.4 2.4 0 0 1 3.4 3.4l-5.7 5.7a3.6 3.6 0 0 1-5.1-5.1l4.9-4.9"/></svg>
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3.5 2.2h8.8v9.3H4.7a1.2 1.2 0 0 0 0 2.4h7.6M3.5 2.2v10.5"/></svg>
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="7" r="4.6"/><circle cx="8" cy="7" r="1.5"/><path d="M5 14h6"/></svg>
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="5" stroke-width="2.4" stroke-dasharray="1.96 1.96"/><circle cx="8" cy="8" r="3.4" stroke-width="1.4"/><circle cx="8" cy="8" r="1.2" stroke-width="1.2"/></svg>
+                      <span class="tray-battery">87%<span class="battery-icon"><span></span></span></span>
+                    </span>
                   </div>
-                  <div class="tray-body">
-                    <div class="tray-card now-playing">
-                      <span class="np-art">
-                        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M6 12.2V3.6l7-1.6v8.4"/><circle cx="4.2" cy="12.2" r="1.9"/><circle cx="11.2" cy="10.4" r="1.9"/><path d="M6 3.6l7-1.6v2L6 5.6z"/></svg>
-                      </span>
-                      <span class="np-meta">
+
+                  <div class="tray-home">
+                    <div class="np">
+                      <span class="np-cover"></span>
+                      <span class="np-info">
                         <span class="np-title">Night Drive</span>
                         <span class="np-artist">Analog Coast</span>
-                        <span class="np-scrub"><span></span></span>
-                        <span class="np-controls">
-                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M3.5 3h1.6v10H3.5zM13 3.2v9.6L5.8 8z"/></svg>
-                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4 2.5h2.8v11H4zM9.2 2.5H12v11H9.2z"/></svg>
-                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M10.9 3h1.6v10h-1.6zM3 3.2v9.6L10.2 8z"/></svg>
+                        <span class="np-source"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Music</span>
+                        <span class="np-scrubber"><span class="np-track"><span></span></span><span class="np-times"><span>1:42</span><span>3:58</span></span></span>
+                        <span class="np-transport">
+                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 3.2v9.6L1.2 8zM15 3.2v9.6L8.2 8z"/></svg>
+                          <svg class="np-play" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="3.4" y="2.4" width="3.2" height="11.2" rx="0.8"/><rect x="9.4" y="2.4" width="3.2" height="11.2" rx="0.8"/></svg>
+                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 3.2v9.6L14.8 8zM1 3.2v9.6L7.8 8z"/></svg>
                         </span>
                       </span>
                     </div>
-                    <div class="tray-card calendar">
-                      <span class="cal-week">
-                        <span>M<b>16</b></span><span class="is-today">T<b>17</b></span><span>W<b>18</b></span><span>T<b>19</b></span><span>F<b>20</b></span><span>S<b>21</b></span>
+                    <span class="tray-divider"></span>
+                    <div class="agenda">
+                      <span class="agenda-head">
+                        <span class="agenda-month"><b>November</b><span>2026</span></span>
+                        <span class="agenda-week">
+                          <span><i>Mon</i><b>16</b></span>
+                          <span class="is-selected"><i>Tue</i><b>17</b></span>
+                          <span><i>Wed</i><b>18</b></span>
+                          <span><i>Thu</i><b>19</b></span>
+                          <span><i>Fri</i><b>20</b></span>
+                          <span><i>Sat</i><b>21</b></span>
+                        </span>
                       </span>
-                      <span class="cal-event">
-                        <span class="cal-bar"></span>
-                        <span class="cal-text"><span class="cal-name">Design review</span><span class="cal-time">10:30 – 11:00</span></span>
-                        <span class="cal-join">Join</span>
+                      <span class="agenda-row is-live">
+                        <span class="agenda-bar"></span>
+                        <span class="agenda-text"><b>Design review</b><span>in 6 min · Video call</span></span>
+                        <span class="agenda-join">Join</span>
                       </span>
-                    </div>
-                    <div class="tray-card shelf">
-                      <span class="tray-card-title">Shelf</span>
-                      <span class="shelf-items"><span class="shelf-file">roadmap.pdf</span><span class="shelf-file">mockup.png</span><span class="shelf-drop">AirDrop</span></span>
-                    </div>
-                    <div class="tray-card sessions">
-                      <span class="tray-card-title">Terminal</span>
-                      <span class="session is-running">bun run dev</span>
-                      <span class="session">docker compose ps</span>
+                      <span class="agenda-row">
+                        <span class="agenda-bar"></span>
+                        <span class="agenda-text"><b>Lunch with Sam</b><span>Café Lindqvist</span></span>
+                        <span class="agenda-times"><b>12:30</b><span>13:30</span></span>
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div class="notch-states">
-                  <div class="notch-state">
-                    <span class="mini-screen">
-                      <span class="mini-notch">
-                        <svg class="wing-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6.3 6.3 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                        <span class="cam"></span>
-                        <span class="wing-level"><span></span></span>
+
+                <div class="closed-states">
+                  <div class="closed-state">
+                    <span class="closed-crop">
+                      <span class="closed-notch">
+                        <span class="wing wing-left"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6.3 6.3 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                        <span class="wing-cutout"></span>
+                        <span class="wing wing-right wing-hud"><span class="hud-bar"><span></span></span><span class="hud-value">62%</span></span>
                       </span>
                     </span>
-                    <span class="notch-label">Volume &amp; brightness HUD</span>
+                    <span class="closed-label">Volume HUD, closed notch</span>
                   </div>
-                  <div class="notch-state">
-                    <span class="mini-screen">
-                      <span class="mini-notch">
-                        <span class="wing-term">&gt;_<sup>2</sup></span>
-                        <span class="cam"></span>
-                        <span class="wing-eq"><span></span><span></span><span></span><span></span></span>
+                  <div class="closed-state">
+                    <span class="closed-crop">
+                      <span class="closed-notch">
+                        <span class="wing wing-left wing-live">
+                          <span class="live-term"><svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="2.5" width="14" height="11" rx="2.4" fill="currentColor"/><path d="m4.2 6.2 2.1 1.8-2.1 1.8M7.8 10.2h3.8" fill="none" stroke="#000" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>2</span>
+                          <span class="live-cover"></span>
+                        </span>
+                        <span class="wing-cutout"></span>
+                        <span class="wing wing-right wing-eq"><span></span><span></span><span></span><span></span></span>
                       </span>
                     </span>
-                    <span class="notch-label">Live activities</span>
+                    <span class="closed-label">Live activity, closed notch</span>
                   </div>
                 </div>
               </div>
               <div class="slide-caption">
-                <span class="pillar-kicker kicker-violet">02 · Notch</span>
+                <span class="kicker kicker-violet">02 · Notch</span>
                 <h2 class="slide-title">Your notch, finally doing something</h2>
                 <p class="slide-line">Volume and brightness wrap around the camera, hovering opens a tray with Now Playing, your calendar, a file shelf and terminal sessions, and live activities ride the wings.</p>
               </div>
@@ -213,7 +219,7 @@
                 <span class="level-meter"><span class="level-fill"></span></span>
               </div>
               <div class="slide-caption">
-                <span class="pillar-kicker kicker-emerald">03 · Hyper Key + Trackpad</span>
+                <span class="kicker kicker-emerald">03 · Hyper Key + Trackpad</span>
                 <h2 class="slide-title">One key for every chord, and sliders on your trackpad</h2>
                 <p class="slide-line">Caps Lock becomes <kbd>⌃⌥⇧⌘</kbd>. Hold it and two-finger scroll to set display brightness, keyboard backlight or volume, depending on where your fingers land.</p>
               </div>
@@ -250,188 +256,55 @@
                 </span>
               </div>
               <div class="slide-caption">
-                <span class="pillar-kicker kicker-violet">04 · Window Management</span>
+                <span class="kicker kicker-violet">04 · Window Management</span>
                 <h2 class="slide-title">Snap windows the way you already move them</h2>
                 <p class="slide-line">Drag to an edge or corner, hover the green button for a tiling menu, or bind any of 45 halves, quarters, thirds and sizing commands to a shortcut.</p>
               </div>
             </article>
           </div>
 
-          <div class="carousel-controls" data-carousel-controls hidden>
-            <button class="carousel-btn" type="button" data-carousel-prev aria-label="Previous feature">
-              <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
-            </button>
-            <span class="carousel-dots" role="group" aria-label="Choose a feature">
-              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Terminal"><span class="dot-track"><span class="dot-fill"></span></span></button>
-              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Notch"><span class="dot-track"><span class="dot-fill"></span></span></button>
-              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Hyper Key and Trackpad"><span class="dot-track"><span class="dot-fill"></span></span></button>
-              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Window management"><span class="dot-track"><span class="dot-fill"></span></span></button>
-            </span>
-            <button class="carousel-btn" type="button" data-carousel-next aria-label="Next feature">
-              <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>
-            </button>
-            <button class="carousel-btn carousel-toggle" type="button" data-carousel-toggle aria-label="Pause slideshow">
-              <svg class="icon-pause" aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M4 2.5h2.8v11H4zM9.2 2.5H12v11H9.2z"/></svg>
-              <svg class="icon-play" aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M4.5 2.5v11L13 8z"/></svg>
-            </button>
+          <div class="slide-progress" aria-hidden="true" data-carousel-progress>
+            <span class="is-active"><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span>
           </div>
           <p class="visually-hidden" aria-live="polite" data-carousel-status></p>
         </section>
       </div>
     </section>
 
-    <section id="pillars" class="pillars">
+    <section id="suite" class="suite" aria-labelledby="suite-heading">
       <div class="shell">
-        <div class="section-head">
-          <h2>Three built-in power tools, zero background bloat</h2>
-          <p>Replaces a standalone drop-down terminal, a trackpad brightness/DDC utility, and a tiling window manager inside a single &lt;100 MB accessory app.</p>
+        <div class="suite-head">
+          <p class="suite-eyebrow">Also in the box</p>
+          <h2 id="suite-heading">The whole Tinycast launcher, too</h2>
+          <p>Everything the launcher already did ships alongside the four upgrades above, and Clipboard and Notebook have both been rebuilt for this release.</p>
         </div>
 
-        <div class="pillar-grid">
-          <article class="pillar-card">
-            <div class="pillar-top">
-              <span class="pillar-kicker kicker-emerald">01 · Terminal Mode</span>
-              <h3>Multi-Tab Live PTY Terminal</h3>
-              <p>
-                Type any shell command in the root launcher to switch into monospace, cycle recent working folders with <kbd>⇧⇥</kbd>, and stream real <code>zsh</code> PTY output with interactive stdin, ANSI themes, and VM-slab scrollback.
-              </p>
-            </div>
-
-            <div class="mini-visual visual-terminal" aria-hidden="true">
-              <div class="term-tabs">
-                <span class="term-tab is-active">1 · ~/Projects/termcast</span>
-                <span class="term-tab">2 · server</span>
-              </div>
-              <div class="term-line"><span class="term-prompt">❯</span> git status -sb</div>
-              <div class="term-out">## main...origin/main</div>
-            </div>
-
-            <div class="chip-row">
-              <span class="chip"><kbd>⇧↵</kbd> Run inline</span>
-              <span class="chip"><kbd>&gt;</kbd> Terminal</span>
-              <span class="chip"><kbd>⇧⇥</kbd> Folders</span>
-              <span class="chip"><kbd>⌘1–9</kbd> Tabs</span>
-            </div>
-          </article>
-
-          <article class="pillar-card">
-            <div class="pillar-top">
-              <span class="pillar-kicker kicker-violet">02 · Hyper Key + Trackpad</span>
-              <h3>Per-Display Brightness &amp; Volume Sliders</h3>
-              <p>
-                Remap <code>Caps Lock</code> to Hyper (<kbd>⌃⌥⌘⇧</kbd>), then hold Hyper and two-finger scroll vertically on your trackpad. Brightness targets <strong>only the display under your cursor</strong>—Apple displays via <code>DisplayServices</code> and external monitors via DDC/CI.
-              </p>
-            </div>
-
-            <div class="mini-visual visual-trackpad" aria-hidden="true">
-              <div class="pad-zone">
-                <span class="pad-glyph">☀︎</span>
-                <span class="pad-name">Display</span>
-                <span class="pad-sub">Cursor / DDC</span>
-              </div>
-              <div class="pad-zone">
-                <span class="pad-glyph">⌨︎</span>
-                <span class="pad-name">Backlight</span>
-                <span class="pad-sub">1/64 steps</span>
-              </div>
-              <div class="pad-zone">
-                <span class="pad-glyph">🔊</span>
-                <span class="pad-name">Volume</span>
-                <span class="pad-sub">AVRCP-paced</span>
-              </div>
-            </div>
-
-            <div class="chip-row">
-              <span class="chip"><kbd>✦</kbd> + 2-finger scroll</span>
-              <span class="chip">DDC/CI external</span>
-              <span class="chip">Zone lock</span>
-            </div>
-          </article>
-
-          <article class="pillar-card">
-            <div class="pillar-top">
-              <span class="pillar-kicker kicker-emerald">03 · Window Management</span>
-              <h3>Drag-to-Snap, Green Button &amp; Grids</h3>
-              <p>
-                Drag windows to screen edges or corners with live Liquid Glass previews and drag-away size restore, hover any window's green zoom button for a tiling popover, or draw custom tiles on a <code>6×4</code>, <code>12×8</code>, or <code>24×12</code> grid.
-              </p>
-            </div>
-
-            <div class="mini-visual visual-wm" aria-hidden="true">
-              <div class="wm-screen">
-                <div class="wm-dots">
-                  <span class="wm-dot"></span>
-                  <span class="wm-dot"></span>
-                  <span class="wm-dot is-green"></span>
-                </div>
-                <div class="wm-tiles">
-                  <span class="wm-tile is-primary"></span>
-                  <span class="wm-tile"></span>
-                  <span class="wm-tile"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="chip-row">
-              <span class="chip">Edge drag-snap</span>
-              <span class="chip">Traffic-light menu</span>
-              <span class="chip">Rooms &amp; layouts</span>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="suite" class="features">
-      <div class="shell">
-        <div class="section-head">
-          <h2>Plus the entire Tinycast launcher suite</h2>
-          <p>Compatible with Raycast store extensions out of the box, with portable <code>.termcast</code> backups and two-way <code>settings.json</code> sync.</p>
-        </div>
-
-        <div class="card-grid">
-          <article class="card">
-            <h3>
-              <span class="dot dot-violet" aria-hidden="true"></span>
-              Raycast Extensions &amp; AI
-            </h3>
-            <p>
-              Runs Raycast store extensions natively in JavaScriptCore alongside Quick AI, AI Chat, local CLI providers (Claude, Codex, Antigravity, OpenCode), and MCP tool servers.
-            </p>
-            <div class="chip-row">
-              <span class="chip">JavaScriptCore</span>
-              <span class="chip">MCP + Local CLIs</span>
-            </div>
-          </article>
-
-          <article class="card">
-            <h3>
-              <span class="dot dot-emerald" aria-hidden="true"></span>
-              Clipboard, Snippets &amp; Notes
-            </h3>
-            <p>
-              Searchable text &amp; image clipboard history, keyword snippet expansion, floating Markdown scratchpad, quicklinks, emoji search, and live unit/currency/timezone math.
-            </p>
-            <div class="chip-row">
-              <span class="chip">SQLite history</span>
-              <span class="chip">Live FX &amp; units</span>
-            </div>
-          </article>
-
-          <article class="card">
-            <h3>
-              <span class="dot dot-violet" aria-hidden="true"></span>
-              Portable Backups &amp; Dotfiles
-            </h3>
-            <p>
-              Export single-file <code>.termcast</code> backups, import <code>.termcast</code>, <code>.tinycast</code>, or Raycast <code>.rayconfig</code> archives, and mirror preferences to <code>~/.config/termcast/settings.json</code>.
-            </p>
-            <div class="chip-row">
-              <span class="chip"><code>.termcast</code></span>
-              <span class="chip"><code>settings.json</code></span>
-            </div>
-          </article>
-        </div>
+        <ul class="suite-grid">
+          <li class="suite-item">
+            <h3>Raycast extensions</h3>
+            <p>Store extensions run natively in JavaScriptCore, right inside the launcher.</p>
+          </li>
+          <li class="suite-item">
+            <h3>AI chat and Quick AI</h3>
+            <p>Use local CLI providers such as Claude, Codex, Antigravity and OpenCode, and connect MCP tool servers.</p>
+          </li>
+          <li class="suite-item">
+            <h3>Clipboard history <span class="suite-new">New</span></h3>
+            <p>A category sidebar sorts text, links, colours, images, code, PDFs and other files, with a preview drawer and search that ranks titles first.</p>
+          </li>
+          <li class="suite-item">
+            <h3>Notebook <span class="suite-new">New</span></h3>
+            <p>Plain Markdown notes as a launcher screen: search filters every note and the editor renders Markdown in place. You can also open it from the notch.</p>
+          </li>
+          <li class="suite-item">
+            <h3>Snippets and inline maths</h3>
+            <p>Keyword snippet expansion, plus units, live currency rates and time zones answered as you type.</p>
+          </li>
+          <li class="suite-item">
+            <h3>Portable settings</h3>
+            <p>Single-file <code>.termcast</code> backups, imports from Tinycast and Raycast, and an optional <code>settings.json</code> mirror.</p>
+          </li>
+        </ul>
       </div>
     </section>
   </main>
@@ -440,6 +313,15 @@
     <div class="shell footer-inner">
       <p class="footer-meta">
         <strong>TermCast</strong> · A <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> fork · Licensed under <a href="https://github.com/mj0lken/TermCast/blob/main/LICENSE">AGPL-3.0</a>
+      </p>
+      <p class="eyebrow footer-pill">
+        <span class="chevron-pair" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="14" height="14">
+            <path fill="#10b981" d="M 71.880 58.449 L 37.880 40.449 A 5.600 5.600 0 0 1 37.880 30.551 L 71.880 12.551 A 5.600 5.600 0 0 1 79.449 14.880 A 5.600 5.600 0 0 1 77.120 22.449 L 55.474 33.909 A 1.800 1.800 0 0 0 55.474 37.091 L 77.120 48.551 A 5.600 5.600 0 0 1 79.449 56.120 A 5.600 5.600 0 0 1 71.880 58.449 Z"/>
+            <path fill="#863bff" d="M 28.120 41.551 L 62.120 59.551 A 5.600 5.600 0 0 1 62.120 69.449 L 28.120 87.449 A 5.600 5.600 0 0 1 20.551 85.120 A 5.600 5.600 0 0 1 22.880 77.551 L 44.526 66.091 A 1.800 1.800 0 0 0 44.526 62.909 L 22.880 51.449 A 5.600 5.600 0 0 1 20.551 43.880 A 5.600 5.600 0 0 1 28.120 41.551 Z"/>
+          </svg>
+        </span>
+        macOS 26+ · Swift 6 · Zero Dependencies · AGPL-3.0
       </p>
       <nav class="footer-links" aria-label="Footer">
         <a href="https://github.com/mj0lken/TermCast">

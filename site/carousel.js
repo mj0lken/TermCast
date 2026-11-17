@@ -3,36 +3,35 @@
   if (!root) return;
 
   const track = root.querySelector("[data-carousel-track]");
-  const controls = root.querySelector("[data-carousel-controls]");
-  const prevBtn = root.querySelector("[data-carousel-prev]");
-  const nextBtn = root.querySelector("[data-carousel-next]");
-  const toggleBtn = root.querySelector("[data-carousel-toggle]");
   const status = root.querySelector("[data-carousel-status]");
+  const progress = root.querySelector("[data-carousel-progress]");
   const slides = Array.from(root.querySelectorAll("[data-slide]"));
-  const dots = Array.from(root.querySelectorAll("[data-carousel-dot]"));
+  if (!track || !status || !progress || slides.length < 2) return;
 
-  if (!track || !controls || !prevBtn || !nextBtn || !toggleBtn || !status) return;
-  if (slides.length < 2 || dots.length !== slides.length) return;
+  const segments = Array.from(progress.children);
+  if (segments.length !== slides.length) return;
 
-  const PROGRESS_ANIMATION = "carousel-progress";
+  const PROGRESS_ANIMATION = "slide-progress";
   const SCROLL_SETTLE_MS = 120;
+  const DRAG_START_PX = 4;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let index = 0;
   let settleTimer = 0;
-  let isHovered = false;
   let isFocused = false;
-  let isUserPaused = false;
+  let drag = null;
 
   const wrap = (i) => (i + slides.length) % slides.length;
+  const clamp = (i) => Math.min(Math.max(i, 0), slides.length - 1);
+  const slideLeft = (i) => i * track.clientWidth;
 
   function render(shouldAnnounce) {
     slides.forEach((slide, i) => {
       slide.inert = i !== index;
     });
-    dots.forEach((dot, i) => {
-      if (i === index) dot.setAttribute("aria-current", "true");
-      else dot.removeAttribute("aria-current");
+    segments.forEach((segment, i) => {
+      segment.classList.toggle("is-done", i < index);
+      segment.classList.toggle("is-active", i === index);
     });
     if (shouldAnnounce) {
       const title = slides[index].dataset.title || "";
@@ -41,22 +40,21 @@
   }
 
   function goTo(target, shouldAnnounce) {
-    index = wrap(target);
+    index = target;
     render(shouldAnnounce);
     track.scrollTo({
-      left: index * track.clientWidth,
+      left: slideLeft(index),
       behavior: reducedMotion.matches ? "auto" : "smooth",
     });
   }
 
-  function syncPlayback() {
-    const canAutoplay = !reducedMotion.matches && !isUserPaused;
-    root.dataset.autoplay = canAutoplay ? "on" : "off";
-    root.toggleAttribute("data-paused", isHovered || isFocused || document.hidden);
+  function syncAutoplay() {
+    root.dataset.autoplay = reducedMotion.matches ? "off" : "on";
+    root.toggleAttribute("data-paused", isFocused || drag !== null || document.hidden);
+  }
 
-    toggleBtn.hidden = reducedMotion.matches;
-    toggleBtn.setAttribute("aria-label", isUserPaused ? "Play slideshow" : "Pause slideshow");
-    toggleBtn.dataset.state = isUserPaused ? "paused" : "playing";
+  function settleFreeScroll() {
+    root.removeAttribute("data-free-scroll");
   }
 
   track.addEventListener(
@@ -64,7 +62,9 @@
     () => {
       window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(() => {
-        const settled = wrap(Math.round(track.scrollLeft / track.clientWidth));
+        if (drag) return;
+        settleFreeScroll();
+        const settled = clamp(Math.round(track.scrollLeft / track.clientWidth));
         if (settled === index) return;
         index = settled;
         render(true);
@@ -73,23 +73,51 @@
     { passive: true }
   );
 
-  prevBtn.addEventListener("click", () => goTo(index - 1, true));
-  nextBtn.addEventListener("click", () => goTo(index + 1, true));
-  dots.forEach((dot, i) => dot.addEventListener("click", () => goTo(i, true)));
-
-  toggleBtn.addEventListener("click", () => {
-    isUserPaused = !isUserPaused;
-    syncPlayback();
+  track.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" || event.button !== 0) return;
+    drag = { id: event.pointerId, startX: event.clientX, startLeft: track.scrollLeft, hasMoved: false };
+    syncAutoplay();
   });
 
-  controls.addEventListener("animationend", (event) => {
-    if (event.animationName === PROGRESS_ANIMATION) goTo(index + 1, false);
+  track.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.id) return;
+    const dx = event.clientX - drag.startX;
+    if (!drag.hasMoved) {
+      if (Math.abs(dx) < DRAG_START_PX) return;
+      drag.hasMoved = true;
+      root.setAttribute("data-dragging", "");
+      root.setAttribute("data-free-scroll", "");
+      track.setPointerCapture(drag.id);
+    }
+    track.scrollLeft = drag.startLeft - dx;
   });
+
+  function endDrag(event) {
+    if (!drag || event.pointerId !== drag.id) return;
+    const { startX, hasMoved } = drag;
+    drag = null;
+    root.removeAttribute("data-dragging");
+    syncAutoplay();
+    if (!hasMoved) return;
+    const dx = event.clientX - startX;
+    const threshold = Math.min(80, track.clientWidth * 0.12);
+    const step = dx < -threshold ? 1 : dx > threshold ? -1 : 0;
+    const target = clamp(index + step);
+    if (Math.abs(track.scrollLeft - slideLeft(target)) < 1) settleFreeScroll();
+    goTo(target, step !== 0);
+  }
+
+  progress.addEventListener("animationend", (event) => {
+    if (event.animationName === PROGRESS_ANIMATION) goTo(wrap(index + 1), false);
+  });
+
+  track.addEventListener("pointerup", endDrag);
+  track.addEventListener("pointercancel", endDrag);
 
   root.addEventListener("keydown", (event) => {
     const keyTargets = {
-      ArrowLeft: index - 1,
-      ArrowRight: index + 1,
+      ArrowLeft: clamp(index - 1),
+      ArrowRight: clamp(index + 1),
       Home: 0,
       End: slides.length - 1,
     };
@@ -98,27 +126,19 @@
     goTo(keyTargets[event.key], true);
   });
 
-  root.addEventListener("pointerenter", () => {
-    isHovered = true;
-    syncPlayback();
-  });
-  root.addEventListener("pointerleave", () => {
-    isHovered = false;
-    syncPlayback();
-  });
-  root.addEventListener("focusin", () => {
-    isFocused = true;
-    syncPlayback();
+  // A mouse click or drag focuses the slider too; only keyboard focus should hold autoplay.
+  root.addEventListener("focusin", (event) => {
+    isFocused = event.target.matches(":focus-visible");
+    syncAutoplay();
   });
   root.addEventListener("focusout", (event) => {
     if (root.contains(event.relatedTarget)) return;
     isFocused = false;
-    syncPlayback();
+    syncAutoplay();
   });
-  document.addEventListener("visibilitychange", syncPlayback);
-  reducedMotion.addEventListener("change", syncPlayback);
+  document.addEventListener("visibilitychange", syncAutoplay);
+  reducedMotion.addEventListener("change", syncAutoplay);
 
-  controls.hidden = false;
   render(false);
-  syncPlayback();
+  syncAutoplay();
 })();
