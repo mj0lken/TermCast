@@ -7,6 +7,8 @@ struct NoteEditorView: NSViewRepresentable {
     let onSourceChange: (String) -> Void
     let onCharacterCountChange: (NoteEditorInput, Int) -> Void
     let onFormattingChange: (NoteEditorInput, NoteFormatting) -> Void
+    var onFocusChange: (Bool) -> Void = { _ in }
+    var onCommand: (NoteEditorCommand) -> Void = { _ in }
     let onReady: (NoteTextView) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -20,7 +22,7 @@ struct NoteEditorView: NSViewRepresentable {
         scrollView.scrollerStyle = .overlay
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
-        // `NotesView` lays out its own title-bar band, so AppKit must not inset this a second time.
+        // The palette lays out its own header and bars, so AppKit must not inset this a second time.
         scrollView.automaticallyAdjustsContentInsets = false
 
         let textView = NoteTextView(usingTextLayoutManager: true)
@@ -91,6 +93,8 @@ struct NoteEditorView: NSViewRepresentable {
                 textView.selectedRange().location,
                 (input.source as NSString).length)
             isInstalling = true
+            let filename = URL(fileURLWithPath: input.id.rawValue).deletingPathExtension().lastPathComponent
+            renderer.titlesFirstLine = NoteTitle.isUnnamed(filename)
             textView.string = input.source
             if wasEmpty != input.source.isEmpty { textView.needsDisplay = true }
             textView.setSelectedRange(NSRange(location: selectionLocation, length: 0))
@@ -171,6 +175,7 @@ struct NoteEditorView: NSViewRepresentable {
 
         func focusChanged() {
             renderer.selectionDidChange()
+            parent.onFocusChange(textView?.isFocused == true)
         }
 
         func appearanceChanged() {
@@ -179,6 +184,10 @@ struct NoteEditorView: NSViewRepresentable {
 
         func dragSelectionEnded() {
             renderer.selectionDidChange()
+        }
+
+        func perform(_ command: NoteEditorCommand) {
+            parent.onCommand(command)
         }
 
         /// `NSTextStorage.length` is maintained by TextKit, so the counter costs nothing per edit.

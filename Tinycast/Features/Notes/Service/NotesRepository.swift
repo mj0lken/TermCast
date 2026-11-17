@@ -40,7 +40,7 @@ struct NotesRepository: Sendable {
         try mappedError(at: notesDirectory) {
             try ensureDirectory()
             let keys: Set<URLResourceKey> = [
-                .contentModificationDateKey, .isHiddenKey, .isRegularFileKey,
+                .contentModificationDateKey, .creationDateKey, .isHiddenKey, .isRegularFileKey,
                 .isSymbolicLinkKey
             ]
             return try FileManager.default.contentsOfDirectory(
@@ -57,11 +57,15 @@ struct NotesRepository: Sendable {
                     let url = try? validatedFileURL(candidate)
                 else { return nil }
                 let title = url.deletingPathExtension().lastPathComponent
+                let isUnnamed = NoteTitle.isUnnamed(title)
+                let head = head(of: url)
                 return NoteSummary(
                     id: NoteID(rawValue: url.lastPathComponent),
                     title: title,
-                    firstLine: NoteTitle.isUnnamed(title) ? firstLine(of: url) : nil,
-                    modifiedAt: values.contentModificationDate ?? .distantPast)
+                    firstLine: isUnnamed ? head.flatMap(NoteTitle.firstLine(of:)) : nil,
+                    preview: head.flatMap { NoteTitle.preview(of: $0, skippingTitle: isUnnamed) },
+                    modifiedAt: values.contentModificationDate ?? .distantPast,
+                    createdAt: values.creationDate)
             }
             .sorted(by: summaryPrecedes)
         }
@@ -178,8 +182,8 @@ struct NotesRepository: Sendable {
         notesDirectory.appendingPathComponent(id.rawValue)
     }
 
-    /// Only an unnamed note pays for this, and only for the head of its file.
-    private func firstLine(of url: URL) -> String? {
+    /// Every row shows a preview, so every note pays for this, but only for the head of its file.
+    private func head(of url: URL) -> String? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
         guard let head = try? handle.read(upToCount: NoteTitle.headByteCount), !head.isEmpty
@@ -187,7 +191,7 @@ struct NotesRepository: Sendable {
         // A fixed-size read can land mid-character, so back off to the last complete one.
         for dropped in 0...3 where head.count > dropped {
             if let text = String(bytes: head.dropLast(dropped), encoding: .utf8) {
-                return NoteTitle.firstLine(of: text)
+                return text
             }
         }
         return nil

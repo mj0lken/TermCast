@@ -265,6 +265,9 @@ final class ClipboardCoordinator {
             }
             Paster.copy(edited, store: clipboardStore)
             guard palette.mode == .clipboard else { return }
+            if !palette.clipboardCategory.matches(edited) {
+                palette.clipboardCategory = .all
+            }
             if !palette.clipboardFilter.matches(edited) { palette.clipboardFilter = .all }
             if clipboardStore.rowIndex(of: edited, in: palette.query, filter: palette.clipboardFilter) == nil
             {

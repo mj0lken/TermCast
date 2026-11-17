@@ -1,7 +1,7 @@
 enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, navigation, notes,
-        calendar, emoji, dictation, ai, quickActions, extensions, permissions, backup, about
+        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, notch, navigation,
+        notes, calendar, emoji, dictation, ai, quickActions, extensions, permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
 
@@ -25,6 +25,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .snippets: "snippets"
         case .fileSearch: "file-search"
         case .windowManagement: "window-management"
+        case .notch: "notch"
         case .navigation: "navigation"
         case .notes: "notes"
         case .calendar: "calendar"
@@ -58,6 +59,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .snippets: return String(localized: "Snippets")
         case .navigation: return String(localized: "Navigation")
         case .windowManagement: return String(localized: "Window Management")
+        case .notch: return String(localized: "Notch")
         case .clipboard: return String(localized: "Clipboard")
         case .emoji: return String(localized: "Emoji & Symbols")
         case .terminal: return String(localized: "Terminal")
@@ -87,7 +89,8 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .snippets: return "curlybraces"
         case .navigation: return "arrow.left.arrow.right"
         case .windowManagement: return "macwindow"
-        case .clipboard: return "doc.on.clipboard"
+        case .notch: return "menubar.dock.rectangle"
+        case .clipboard: return "paperclip"
         case .emoji: return "face.smiling"
         case .terminal: return "apple.terminal"
         case .calendar: return "calendar"
@@ -125,8 +128,8 @@ enum SettingsSection: CaseIterable, Identifiable {
         case .features:
             // Everyday tools first; AI and extensions are opt-in extras.
             return [
-                .clipboard, .snippets, .terminal, .fileSearch, .windowManagement, .navigation,
-                .notes, .calendar, .emoji, .dictation, .ai, .quickActions, .extensions
+                .clipboard, .snippets, .terminal, .fileSearch, .windowManagement, .notch,
+                .navigation, .notes, .calendar, .emoji, .dictation, .ai, .quickActions, .extensions
             ]
         case .advanced: return [.backup, .about]
         }

@@ -541,3 +541,30 @@ extension AliasField {
         self.init(key: entry.preferenceKey, name: entry.name)
     }
 }
+
+/// A reorder or remove glyph on a settings row, with a hit target larger than the glyph itself.
+struct SettingsRowIconButton: View {
+    let title: LocalizedStringResource
+    let systemImage: String
+    let action: () -> Void
+
+    init(_ title: LocalizedStringResource, systemImage: String, action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.action = action
+    }
+
+    /// A borderless button hits only its glyph's bounds, and a chevron's is a few points tall.
+    var body: some View {
+        Button(action: action) {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+            }
+            .frame(width: Theme.Size.settingsRowButton, height: Theme.Size.settingsRowButton)
+            .contentShape(Rectangle())
+        }
+        .help(Text(title))
+    }
+}

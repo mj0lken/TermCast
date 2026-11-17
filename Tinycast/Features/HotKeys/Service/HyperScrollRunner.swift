@@ -26,18 +26,30 @@ final class HyperScrollRunner {
     private var lastEventAt: TimeInterval = 0
     private var lastPostedAt: TimeInterval = 0
 
-    convenience init() {
-        let brightness = DisplayBrightnessService()
+    convenience init(
+        displayBrightness: DisplayBrightnessService = DisplayBrightnessService(),
+        postMediaKey: @escaping (MediaKeyPoster.Key, Bool) -> Void = { key, fine in
+            MediaKeyPoster.post(key, fineStep: fine)
+        },
+        resetKeyboardBrightness: @escaping () -> Void = {},
+        isBluetoothAudio: (() -> Bool)? = nil
+    ) {
         self.init(
             now: { ProcessInfo.processInfo.systemUptime },
             cursorDisplayID: { NSScreen.underCursor?.displayID },
             stepDisplayBrightness: { displayID, delta in
-                brightness.step(on: displayID, delta: delta)
+                displayBrightness.step(on: displayID, delta: delta)
             },
-            resetDisplayBrightness: { brightness.resetGesture() },
-            stopDisplayBrightness: { brightness.cancelPendingWork() },
-            postMediaKey: { key, fine in MediaKeyPoster.post(key, fineStep: fine) },
-            isBluetoothAudio: { Self.defaultOutputUsesBluetooth() })
+            resetDisplayBrightness: {
+                displayBrightness.resetGesture()
+                resetKeyboardBrightness()
+            },
+            stopDisplayBrightness: {
+                displayBrightness.cancelPendingWork()
+                resetKeyboardBrightness()
+            },
+            postMediaKey: postMediaKey,
+            isBluetoothAudio: isBluetoothAudio ?? { Self.defaultOutputUsesBluetooth() })
     }
 
     init(

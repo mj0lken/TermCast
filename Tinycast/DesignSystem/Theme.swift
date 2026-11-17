@@ -69,27 +69,20 @@ enum Theme {
     enum Size {
         static let panelWidth: CGFloat = 750
         static let panelHeight: CGFloat = 475
-        /// Opening size on a first run and the floor: below it the title bar's own parts collide.
-        static let noteWindow = CGSize(width: 440, height: 180)
-        static let noteWindowMaxHeight: CGFloat = 860
         static let noteEditorInset: CGFloat = 16
-        /// Shorter than the horizontal inset, so the first line sits close under the title bar.
+        /// Shorter than the horizontal inset, so the first line sits close under the header.
         static let noteEditorTopInset: CGFloat = 6
-        static let noteSearchHeight: CGFloat = 34
-        /// The switcher popover, sized independently of a note window that can be 180pt tall.
-        static let noteSwitcher = CGSize(width: 300, height: 240)
-        static let noteSwitcherEmptyHeight: CGFloat = 96
-        static let noteSwitcherDrop: CGFloat = 56
+        /// A quarter narrower than the clipboard's list: a note's editor wants the room more.
+        static let noteListWidth: CGFloat = 218
+        static let noteListMinWidth: CGFloat = 150
+        /// Leaves the editor pane room for the whole formatting bar at the palette's width.
+        static let noteListMaxWidth: CGFloat = 340
+        /// The strip either side of the hairline that drags it.
+        static let noteSplitHandleWidth: CGFloat = 10
+        static let noteInfoCardWidth: CGFloat = 240
         /// Fixed like every menu's width; the height is exactly four heading rows.
         static let noteHeadingMenu = CGSize(
             width: 220, height: menuRowHeight * 4 + menuRowSpacing * 3 + Spacing.sm * 2)
-        static let noteFooterHeight: CGFloat = 28
-        /// Holds the launcher's 36-point action capsule with the same margin its own bar gives it.
-        static let noteTitlebar: CGFloat = 52
-        /// Symmetric, so the title stays centred on the window while clearing lights and capsule.
-        static let noteTitleInset: CGFloat = 120
-        /// Nine points crowds the palette's 26-point corner, so Notes seats its lights further in.
-        static let noteTrafficLightInset: CGFloat = 20
         /// Fraction of visible height above the palette's top edge; it grows downward.
         static let paletteTopMarginFraction: CGFloat = 0.18
         /// The search row; padded alike above and below, it is the compact bar's whole height.
@@ -139,7 +132,6 @@ enum Theme {
         static let heroKeyCap: CGFloat = 22
         static let menuButton: CGFloat = 36
         static let noteGlyph: CGFloat = 16
-        static let noteEmptyGlyph: CGFloat = 28
         /// Hit target for a chat message footer glyph; its caption symbol floats inside it.
         static let chatMessageAction: CGFloat = 16
         static let hairline: CGFloat = 1
@@ -293,6 +285,10 @@ enum Theme {
         static let hudHeight: CGFloat = 100
         static let dictationPanel = CGSize(width: 144, height: 44)
         static let dictationWaveBar: CGFloat = 2
+        /// Hardware-locked notch HUD icon, track and tabular readout slots.
+        static let notchHUDIcon: CGFloat = 15
+        static let notchHUDTrackHeight: CGFloat = 5
+        static let notchHUDReadoutWidth: CGFloat = 38
         /// Read-only volume bar geometry used by the HUD.
         static let volumeTrackHeight: CGFloat = 6
         /// Fixed slot for the level readout, sized to the widest string it ever holds.
@@ -372,6 +368,12 @@ enum Theme {
             0.16, 1, 0.3, 1, duration: Theme.Duration.menuChevron)
     }
 
+    enum NotchMotion {
+        /// Heavy, damped spring so wings and bar fill grow organically out of the camera bezel.
+        static let wing = Animation.interpolatingSpring(mass: 1.0, stiffness: 260, damping: 24)
+        static let bar = Animation.interpolatingSpring(mass: 1.0, stiffness: 260, damping: 24)
+    }
+
     enum Typography {
         /// One size, two frameworks: `TextTrailingDragHandle` measures what the field renders.
         static let searchFieldSize: CGFloat = 20
@@ -407,7 +409,6 @@ enum Theme {
         static let menuIcon = Font.body
         static let menuSymbolSize: CGFloat = 14
         static let menuSymbolWeight = Font.Weight.medium
-        static let noteTitle = Font.headline
         static let composerSymbol = Font.system(size: 13, weight: .medium)
         static let composerSend = Font.system(size: 13, weight: .bold)
         static let composerStop = Font.system(size: 10, weight: .bold)
@@ -525,6 +526,8 @@ enum Theme {
         /// The command output window's page: a flat surface the log sits directly on.
         static let terminalSurface = adaptive(
             dark: .srgbInk(0.07, alpha: 1), light: .srgbInk(0.99, alpha: 1))
+        /// Pure optical black to match the physical camera cutout in both Light and Dark modes.
+        static let notchHardwareBlack = Color.black
 
         enum Syntax {
             static let keyword = pair(dark: 0xFC5FA3, light: 0xAD3DA4)

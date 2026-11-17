@@ -139,8 +139,7 @@ Tinycast is an all-in-one launcher, not a full window manager. Its window tools 
 
 ## Notes
 
-- **More than one Notes window.** One window, many notes. ([#863](https://github.com/abue-ammar/tinycast/issues/863))
-- **Turn off "always on top".** Most people want Notes to float. ([#670](https://github.com/abue-ammar/tinycast/issues/670))
+- **A Notes window, or more than one.** Notes is one launcher screen holding many notes. ([#863](https://github.com/abue-ammar/tinycast/issues/863), [#670](https://github.com/abue-ammar/tinycast/issues/670))
 - **Collect everything you copy into a note (AutoPaste).** ([#307](https://github.com/abue-ammar/tinycast/issues/307))
 
 ## AI and dictation

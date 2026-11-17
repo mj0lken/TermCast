@@ -31,118 +31,9 @@ struct NotesEditorTests {
         testTasks()
         testTaskEdits()
         testMarkersFollowAWrappedFirstWord()
-        testTextHeight(rendersMarkdown: false)
-        testTextHeight(rendersMarkdown: true)
-        testHeightBeforeDraw()
+        testFirstLineTitle()
         print(failures == 0 ? "Notes editor tests passed" : "\(failures) tests failed")
         exit(failures == 0 ? 0 : 1)
-    }
-
-    private static func testTextHeight(rendersMarkdown: Bool) {
-        let input = NoteEditorInput(id: NoteID(rawValue: "Sizing.md"), source: "", epoch: 0)
-        let editor = makeEditor(input: input, rendersMarkdown: rendersMarkdown)
-        let emptyHeight = editor.textView.textHeight(upTo: .infinity)
-        check(
-            "an empty note measures shorter than the visible area", emptyHeight < editor.textView.frame.height
-        )
-
-        let lines = String(repeating: "A line of text\n", count: 20)
-        editor.textView.insertText(lines, replacementRange: editor.textView.selectedRange())
-        let multilineHeight = editor.textView.textHeight(upTo: .infinity)
-        check("new lines grow the measured height at once", multilineHeight > emptyHeight)
-
-        let wrappedText = String(repeating: "wrapped words ", count: 80)
-        editor.textView.insertText(wrappedText, replacementRange: editor.textView.selectedRange())
-        let wrappedHeight = editor.textView.textHeight(upTo: .infinity)
-        check("wrapped text grows the measured height without a newline", wrappedHeight > multilineHeight)
-
-        let pasteboard = NSPasteboard.withUniqueName()
-        defer { pasteboard.releaseGlobally() }
-        paste("\n" + lines, into: editor.textView, from: pasteboard)
-        check("paste grows the measured height", editor.textView.textHeight(upTo: .infinity) > wrappedHeight)
-
-        editor.textView.selectAll(nil)
-        editor.textView.deleteBackward(nil)
-        check(
-            "deleting the text shrinks the measured height back",
-            editor.textView.textHeight(upTo: .infinity) == emptyHeight)
-    }
-
-    /// The fit reads before any draw, so each height here is read right after its edit returns.
-    private static func testHeightBeforeDraw() {
-        let mixed = [
-            "# Title", "Intro", "", "## Section", "- item", "- [ ] task", "1. one", "> quote", "---", "```",
-            "let x = 1", "```", "| a | b |", "| --- | --- |", "| 1 | 2 |", "", "last"
-        ].joined(separator: "\n")
-        let notes = [
-            ("list", "Ideas:\n- First\n- Second\n- Third"), ("mixed", mixed), ("trailing newline", "a\n- b\n")
-        ]
-        for rendersMarkdown in [true, false] {
-            for (name, source) in notes {
-                checkHeightBeforeDraw(
-                    of: "\(rendersMarkdown ? "rendered" : "literal") \(name) note", source: source,
-                    rendersMarkdown: rendersMarkdown)
-            }
-        }
-
-        let long = makeEditor(
-            input: NoteEditorInput(
-                id: NoteID(rawValue: "Long.md"), source: String(repeating: "- Item\n", count: 60), epoch: 0),
-            rendersMarkdown: true)
-        let limit = Theme.Size.noteWindowMaxHeight
-        let measured = long.textView.textHeight(upTo: limit)
-        check("a note taller than the window still measures past its limit", measured >= limit)
-        check(
-            "measuring stops near the limit instead of laying out the rest",
-            measured < laidOutHeight(of: long.textView))
-    }
-
-    private static func checkHeightBeforeDraw(of note: String, source: String, rendersMarkdown: Bool) {
-        let editor = makeEditor(
-            input: NoteEditorInput(id: NoteID(rawValue: "Heights.md"), source: source, epoch: 0),
-            rendersMarkdown: rendersMarkdown)
-        let textView = editor.textView
-        let length = { (textView.string as NSString).length }
-        func edit(_ name: String, at location: Int? = nil, _ change: () -> Void) {
-            if let location { textView.setSelectedRange(NSRange(location: location, length: 0)) }
-            change()
-            let measured = textView.textHeight(upTo: Theme.Size.noteWindowMaxHeight)
-            check(
-                "\(name) in a \(note) measures its height before a draw",
-                measured == laidOutHeight(of: textView))
-        }
-        edit("typing at the end", at: length()) {
-            textView.insertText("x", replacementRange: textView.selectedRange())
-        }
-        edit("Return at the end") { textView.insertNewline(nil) }
-        edit("Return in the middle", at: length() / 2) { textView.insertNewline(nil) }
-        edit("typing in the middle") { textView.insertText("y", replacementRange: textView.selectedRange()) }
-        edit("Delete in the middle") { textView.deleteBackward(nil) }
-        edit("Delete at a line's start") { textView.deleteBackward(nil) }
-        edit("a second Delete there") { textView.deleteBackward(nil) }
-        edit("Return at the start", at: 0) { textView.insertNewline(nil) }
-        edit("undo") { editor.coordinator.editorUndoManager.undo() }
-        edit("switching notes") {
-            editor.coordinator.update(
-                NoteEditorInput(id: NoteID(rawValue: "Other.md"), source: source, epoch: 0))
-        }
-        edit("deleting everything") {
-            textView.selectAll(nil)
-            textView.deleteBackward(nil)
-        }
-        withExtendedLifetime(editor) {}
-    }
-
-    /// Where the last line sits once the whole note is laid out, as a draw would leave it.
-    private static func laidOutHeight(of textView: NSTextView) -> CGFloat {
-        guard let manager = textView.textLayoutManager else { return -1 }
-        manager.ensureLayout(for: manager.documentRange)
-        var bottom: CGFloat = 0
-        manager.enumerateTextLayoutFragments(from: manager.documentRange.endLocation, options: [.reverse]) {
-            bottom = $0.layoutFragmentFrame.maxY
-            return false
-        }
-        return bottom + textView.textContainerInset.height * 2
     }
 
     private static func testLiteralEditingAndNativeCommands(rendersMarkdown: Bool) {
@@ -1050,6 +941,52 @@ struct NotesEditorTests {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         _ = textView.readSelection(from: pasteboard)
+    }
+
+    private static func testFirstLineTitle() {
+        func font(_ editor: NoteTextView, at location: Int) -> NSFont? {
+            editor.textStorage?.attribute(.font, at: location, effectiveRange: nil) as? NSFont
+        }
+        let source = "Trip plan\nbook flights"
+        let bodyStart = (source as NSString).range(of: "book").location
+
+        let unnamed = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled 3.md"), source: source, epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "an unnamed note's first line is set as its title",
+            font(unnamed.textView, at: 0) == NoteMarkdownTypography.title)
+        check(
+            "the line under the title stays body text",
+            font(unnamed.textView, at: bodyStart) == NoteMarkdownTypography.body)
+        check("title styling leaves the source alone", unnamed.textView.string == source)
+
+        unnamed.textView.setSelectedRange(NSRange(location: 0, length: 0))
+        unnamed.textView.insertText("Intro\n", replacementRange: unnamed.textView.selectedRange())
+        check(
+            "a line typed above takes the title over",
+            font(unnamed.textView, at: 0) == NoteMarkdownTypography.title
+                && font(unnamed.textView, at: 6) == NoteMarkdownTypography.body)
+
+        let named = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Plan.md"), source: source, epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "a named note keeps its filename as the title, so its first line is body text",
+            font(named.textView, at: 0) == NoteMarkdownTypography.body)
+
+        let heading = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled.md"), source: "# Trip\nplan", epoch: 1),
+            rendersMarkdown: true)
+        check(
+            "a heading on the first line keeps its own style",
+            font(heading.textView, at: 2) == NoteMarkdownTypography.heading1)
+
+        let literal = makeEditor(
+            input: NoteEditorInput(id: NoteID(rawValue: "Untitled.md"), source: source, epoch: 1))
+        check(
+            "the literal editor sets no title",
+            font(literal.textView, at: 0) == NoteMarkdownTypography.body)
     }
 
     private static func makeEditor(

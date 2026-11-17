@@ -12,6 +12,10 @@ protocol TerminalKeyInputView: AnyObject {
     func selectAllTerminalText()
 }
 
+/// A strip a screen lets the pointer drag sideways; the panel gives it the resize cursor.
+@MainActor
+protocol PaletteResizeHandleView: AnyObject {}
+
 final class PalettePanel: NSPanel, AnimatedPanel {
     enum HeaderFieldBoundary {
         case leading
@@ -162,11 +166,18 @@ final class PalettePanel: NSPanel, AnimatedPanel {
     }
 
     func cursor(at point: NSPoint) -> NSCursor {
+        if let contentView, isResizeHandle(in: contentView, at: point) { return .resizeLeftRight }
         if let contentView, isEditableText(in: contentView, at: point) { return .iBeam }
         guard paletteState?.mode.isNativeEditor != true else { return .arrow }
         // Outset: the field editor AppKit installs is a point taller than the field it serves.
         let text = searchFieldRect.insetBy(dx: -Self.fieldEditorSlack, dy: -Self.fieldEditorSlack)
         return text.contains(point) ? .iBeam : .arrow
+    }
+
+    private func isResizeHandle(in view: NSView, at point: NSPoint) -> Bool {
+        guard !view.isHidden, view.bounds.contains(view.convert(point, from: nil)) else { return false }
+        if view is PaletteResizeHandleView { return true }
+        return view.subviews.contains { isResizeHandle(in: $0, at: point) }
     }
 
     private func isEditableText(in view: NSView, at point: NSPoint) -> Bool {

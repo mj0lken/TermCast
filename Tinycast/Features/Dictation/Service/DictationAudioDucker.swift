@@ -42,6 +42,10 @@ final class DictationAudioDucker {
 
     isolated deinit { transition?.cancel() }
 
+    var isActive: Bool {
+        snapshot != nil || transition != nil
+    }
+
     func recover() {
         schedule { _ = try await $0.recoverSavedVolume() }
     }

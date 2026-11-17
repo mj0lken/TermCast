@@ -97,6 +97,12 @@ extension SettingsAnchor {
     static let windowManagementOptions = Self(tab: .windowManagement, title: "Options")
     static let windowManagementCustomSizes = Self(tab: .windowManagement, title: "Custom Sizes")
 
+    static let notchNotch = Self(tab: .notch, title: "Notch")
+    static let notchShelf = Self(tab: .notch, title: "Open Notch & Shelf")
+    static let notchContent = Self(tab: .notch, title: "Content")
+    static let notchShortcuts = Self(tab: .notch, title: "Shortcuts")
+    static let notchPreview = Self(tab: .notch, title: "Preview")
+
     static let clipboardClipboard = Self(tab: .clipboard, title: "Clipboard")
     static let clipboardCommands = Self(tab: .clipboard, title: "Commands")
     static let clipboardHistory = Self(tab: .clipboard, title: "History")

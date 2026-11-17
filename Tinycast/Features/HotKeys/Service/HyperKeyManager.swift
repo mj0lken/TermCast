@@ -21,6 +21,10 @@ final class HyperKeyManager: HealthCheckable {
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let hotKeys: HotKeyManager
+    @ObservationIgnored private let displayBrightness: DisplayBrightnessService
+    @ObservationIgnored private let routeMediaKey: (MediaKeyPoster.Key, Bool) -> Bool
+    @ObservationIgnored private let resetKeyboardBrightness: () -> Void
+    @ObservationIgnored private let isBluetoothAudio: (() -> Bool)?
     @ObservationIgnored private let tap = HyperKeyTap()
     @ObservationIgnored private lazy var scrollRunner = makeScrollRunner()
     @ObservationIgnored private lazy var remapper = KeyboardRemapper(instanceLock: instanceLock)
@@ -37,9 +41,20 @@ final class HyperKeyManager: HealthCheckable {
         case asleep, screenLocked, sessionInactive
     }
 
-    init(settings: AppSettings, hotKeys: HotKeyManager) {
+    init(
+        settings: AppSettings,
+        hotKeys: HotKeyManager,
+        displayBrightness: DisplayBrightnessService = DisplayBrightnessService(),
+        routeMediaKey: @escaping (MediaKeyPoster.Key, Bool) -> Bool = { _, _ in false },
+        resetKeyboardBrightness: @escaping () -> Void = {},
+        isBluetoothAudio: (() -> Bool)? = nil
+    ) {
         self.settings = settings
         self.hotKeys = hotKeys
+        self.displayBrightness = displayBrightness
+        self.routeMediaKey = routeMediaKey
+        self.resetKeyboardBrightness = resetKeyboardBrightness
+        self.isBluetoothAudio = isBluetoothAudio
     }
 
     func start() {
@@ -158,7 +173,16 @@ final class HyperKeyManager: HealthCheckable {
 
     private func makeScrollRunner() -> HyperScrollRunner {
         hasScrollRunner = true
-        return HyperScrollRunner()
+        let routeMediaKey = routeMediaKey
+        return HyperScrollRunner(
+            displayBrightness: displayBrightness,
+            postMediaKey: { key, fine in
+                if !routeMediaKey(key, fine) {
+                    MediaKeyPoster.post(key, fineStep: fine)
+                }
+            },
+            resetKeyboardBrightness: resetKeyboardBrightness,
+            isBluetoothAudio: isBluetoothAudio)
     }
 
     private func resetScrollGestureIfLoaded() {

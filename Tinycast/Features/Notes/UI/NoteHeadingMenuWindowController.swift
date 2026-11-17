@@ -6,6 +6,7 @@ import SwiftUI
 final class NoteHeadingMenuWindowController {
     private unowned let coordinator: NotesCoordinator
     private var panel: NotesPanel?
+    private var pressMonitor: Any?
 
     init(coordinator: NotesCoordinator) {
         self.coordinator = coordinator
@@ -18,14 +19,30 @@ final class NoteHeadingMenuWindowController {
             panel.parent?.removeChildWindow(panel)
             host.addChildWindow(panel, ordered: .above)
         }
+        // A child of the palette has to sit at its level, or the palette's own level buries it.
+        panel.level = host.level
         panel.orderFront(nil)
         panel.invalidateShadow()
+        watchPresses(in: host)
     }
 
     func hide() {
+        if let pressMonitor { NSEvent.removeMonitor(pressMonitor) }
+        pressMonitor = nil
         guard let panel else { return }
         panel.parent?.removeChildWindow(panel)
         panel.orderOut(nil)
+    }
+
+    /// Any press in the host closes the menu, the heading button's own included.
+    private func watchPresses(in host: NSWindow) {
+        guard pressMonitor == nil else { return }
+        pressMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self, weak host] event in
+            if event.window === host { self?.coordinator.noteWindowMouseDown() }
+            return event
+        }
     }
 
     private func ensurePanel() -> NotesPanel {
@@ -33,12 +50,7 @@ final class NoteHeadingMenuWindowController {
         let hosting = NSHostingView(
             rootView: NoteHeadingMenuView().environment(coordinator).motionScope())
         hosting.sizingOptions = []
-        let panel = NotesPanel(
-            content: hosting,
-            size: Theme.Size.noteHeadingMenu,
-            styleMask: .borderless,
-            acceptsMain: false)
-        panel.acceptsKey = false
+        let panel = NotesPanel(content: hosting, size: Theme.Size.noteHeadingMenu)
         self.panel = panel
         return panel
     }

@@ -9,7 +9,11 @@ struct NoteSummary: Identifiable, Sendable, Equatable {
     let title: String
     /// Stands in for `title` while the note is still unnamed; nil once the user names it.
     let firstLine: String?
+    /// The text a list row shows under the title, already flattened to one run.
+    let preview: String?
     let modifiedAt: Date
+    /// Nil on a volume that keeps no creation date.
+    var createdAt: Date?
 
     var displayTitle: String { firstLine ?? NoteTitle.displayName(title) }
 }

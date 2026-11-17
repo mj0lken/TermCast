@@ -184,6 +184,7 @@ run CalendarTests          Tinycast/Features/Calendar/Model/*.swift \
 run ClipboardTests         Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
                            Tinycast/Platform/Images/ImageDerivative.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Tinycast/Features/Clipboard/Model/ClipboardCategory.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
                            Tinycast/Features/Clipboard/Model/ColorValue.swift \
                            Tinycast/Features/Clipboard/Model/ColorFormat.swift \
@@ -309,6 +310,7 @@ run PaletteNavigationTests Tinycast/Palette/PaletteState.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
                            Tinycast/Platform/Images/ImageDerivative.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Tinycast/Features/Clipboard/Model/ClipboardCategory.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
                            Tinycast/Features/FileSearch/Model/FileSearchFilter.swift \
                            Tinycast/Features/Clipboard/Model/ColorValue.swift \
@@ -448,6 +450,9 @@ run SystemActionTests      Tinycast/Features/SystemActions/Model/SystemAction.sw
 run MicrophoneMuteTests    Tinycast/Features/SystemActions/Service/SystemActionFailure.swift \
                            Tinycast/Features/SystemActions/Service/SystemActionRunner+Microphone.swift
 run VolumeTests            Tinycast/Features/SystemActions/Model/VolumeLevel.swift
+run NotchHUDTests          Tinycast/Features/NotchHUD/Model/*.swift \
+                           Tinycast/Features/Calendar/Model/MeetingEvent.swift \
+                           Tinycast/Features/Calendar/Model/MeetingLink.swift
 run WindowCommandTests     Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
                            Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
                            Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \

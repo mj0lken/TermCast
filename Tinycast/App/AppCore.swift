@@ -18,6 +18,7 @@ final class AppCore {
         fileURL: AppPaths.applicationSupport().appendingPathComponent("room-parking.json"))
     let roomSession = RoomSession()
     let clipboardStore = ClipboardStore()
+    let clipboardMetadata = ClipboardMetadataCache()
     @ObservationIgnored private var clipboardTextIndexer: ClipboardTextIndexer?
     let clipboardManager: ClipboardManager
     let snippetsStore: SnippetsStore
@@ -26,10 +27,28 @@ final class AppCore {
     let textInjector: TextInjector
     let hotKeys = HotKeyManager()
     let dictationAudioDucker = DictationAudioDucker()
+    let displayBrightness = DisplayBrightnessService()
     @ObservationIgnored private(set) lazy var dictationModels =
         DictationModelStore(idleRelease: settings.dictationIdleRelease)
+    @ObservationIgnored private(set) lazy var notchHUD = NotchHUDManager(
+        settings: settings,
+        displayBrightness: displayBrightness,
+        isSuppressingExternalAudioHUD: { [unowned self] in
+            self.dictationAudioDucker.isActive
+        })
     @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
-        settings: settings, hotKeys: hotKeys)
+        settings: settings,
+        hotKeys: hotKeys,
+        displayBrightness: displayBrightness,
+        routeMediaKey: { [unowned self] key, fine in
+            self.notchHUD.handleMediaKeyFromScroll(key, fine: fine)
+        },
+        resetKeyboardBrightness: { [unowned self] in
+            self.notchHUD.resetBacklightGesture()
+        },
+        isBluetoothAudio: { [unowned self] in
+            self.notchHUD.isBluetoothOutput()
+        })
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     let windowMover = WindowMover()
     @ObservationIgnored private(set) lazy var windowDragMonitor = WindowDragMonitor(
@@ -172,7 +191,7 @@ final class AppCore {
         settings: settings, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
         visibility: visibility, ranking: launcherRanking, aliases: aliases,
         paletteCoordinator: paletteCoordinator, core: self)
-    /// Window state, not a preference: it rides `UserDefaults` like the active note's filename.
+    /// Screen state, not a preference: it rides `UserDefaults` like the active note's filename.
     private nonisolated static let noteFormattingBarKey = "notesFormattingBarExpanded"
     @ObservationIgnored private(set) lazy var notesCoordinator = NotesCoordinator(
         store: notesStore,
@@ -368,6 +387,7 @@ final class AppCore {
             updateCoordinator.applyAutomaticChecking()
 
             hyperKey.healthTicker = healthTicker
+            notchHUD.healthTicker = healthTicker
             dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
             windowDragMonitor.healthTicker = healthTicker
@@ -444,6 +464,65 @@ final class AppCore {
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()
+            notchHUD.refreshCalendarState = { [weak self] in
+                guard let self else { return (false, false, []) }
+                self.calendarStore.refreshAccess()
+                let hasAccess = self.calendarStore.access == .granted
+                let enabled = self.settings.calendarEnabled
+                guard enabled, hasAccess else { return (enabled, hasAccess, []) }
+                let interval = NotchWeekStrip.dateInterval(around: Date())
+                return (enabled, hasAccess, self.calendarStore.events(in: interval))
+            }
+            notchHUD.onOpenCamera = { [weak self] in
+                guard let self else { return }
+                Task { await self.cameraCoordinator.show() }
+            }
+            notchHUD.onOpenClipboard = { [weak self] in
+                self?.paletteCoordinator.showPalette(mode: .clipboard)
+            }
+            notchHUD.onRunWindowCommand = { [weak self] id in
+                self?.windowCommandCoordinator.runWindowCommand(id: id)
+            }
+            notchHUD.onOpenNotes = { [weak self] in
+                self?.notesCoordinator.toggle()
+            }
+            notchHUD.terminalSessions = { [weak self] in
+                guard let self, self.settings.terminalEnabled else { return [] }
+                let home = self.terminalStore.homeDirectory
+                return self.terminalStore.tabs.filter(\.isSessionAlive).map { tab in
+                    NotchTerminalSession(
+                        id: tab.id,
+                        title: tab.title(homeDirectory: home),
+                        directory: RecentFolders.displayPath(tab.workingDirectory, homeDirectory: home),
+                        isRunning: tab.isRunning)
+                }
+            }
+            notchHUD.onOpenTerminalSession = { [weak self] id in
+                self?.terminalCoordinator.openSession(id: id)
+            }
+            notchHUD.onOpenTerminal = { [weak self] in
+                self?.terminalCoordinator.showTerminal()
+            }
+            notchHUD.isOwnCameraLive = { CameraSession.liveSessionCount > 0 }
+            notchHUD.meetingLeadMinutes = { [weak self] in
+                self?.settings.joinWindowMinutes.rawValue ?? 10
+            }
+            dictationCoordinator.onListeningChanged = { [weak self] in
+                self?.notchHUD.dictationDidChange(isListening: $0)
+            }
+            dictationCoordinator.onLevels = { [weak self] in
+                self?.notchHUD.dictationLevelsDidChange($0)
+            }
+            notchHUD.onOpenSettings = { [weak self] in
+                self?.settingsCoordinator.showSettings(tab: .notch)
+            }
+            notchHUD.onEnableCalendar = { [weak self] in
+                self?.calendarCoordinator.setCalendarEnabled(true)
+            }
+            notchHUD.onJoinMeeting = { [weak self] meeting in
+                self?.calendarCoordinator.join(meeting)
+            }
+            notchHUD.start()
             dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             dictationKey.start()
             windowDragMonitor.start()
@@ -623,6 +702,7 @@ final class AppCore {
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
+        notchHUD.prepareForTermination()
         dictationKey.prepareForTermination()
         windowDragMonitor.prepareForTermination()
         windowGreenButtonMonitor.prepareForTermination()

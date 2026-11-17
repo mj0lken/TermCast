@@ -47,6 +47,26 @@ enum SettingsFileSchema {
             }
         case .openOnCursorScreen: return bind(settings, \.openOnCursorScreen)
         case .paletteDraggable: return bind(settings, \.paletteDraggable)
+        case .notchHUDEnabled: return bind(settings, \.notchHUDEnabled)
+        case .notchShelfEnabled: return bind(settings, \.notchShelfEnabled)
+        case .notchOpenOnHover: return bind(settings, \.notchOpenOnHover)
+        case .notchHoverDelayMs:
+            return bind(settings, \.notchHoverDelayMs) { (100...1000).contains($0) ? $0 : nil }
+        case .notchHapticsEnabled: return bind(settings, \.notchHapticsEnabled)
+        case .notchRemembersLastTab: return bind(settings, \.notchRemembersLastTab)
+        case .notchBatteryNotifications: return bind(settings, \.notchBatteryNotifications)
+        case .notchShowsPercentage: return bind(settings, \.notchShowsPercentage)
+        case .notchTintsAccent: return bind(settings, \.notchTintsAccent)
+        case .notchShowsMedia: return bind(settings, \.notchShowsMedia)
+        case .notchShowsCalendar: return bind(settings, \.notchShowsCalendar)
+        case .notchHidesAllDayEvents: return bind(settings, \.notchHidesAllDayEvents)
+        case .notchShowsBattery: return bind(settings, \.notchShowsBattery)
+        case .notchShortcuts:
+            return bind(settings, \.notchShortcuts) {
+                NotchShortcut.isValid($0) ? $0 : nil
+            }
+        case .notchShowsLiveActivities: return bind(settings, \.notchShowsLiveActivities)
+        case .notchInputSourceNotifications: return bind(settings, \.notchInputSourceNotifications)
         case .hyperKey: return bind(settings, \.hyperKey)
         case .hyperKeyIncludesShift: return bind(settings, \.hyperKeyIncludesShift)
         case .hyperKeyQuickPress: return bind(settings, \.hyperKeyQuickPress)
@@ -169,6 +189,7 @@ enum SettingsFileSchema {
         case .clipboardEnabled: return bind(settings, \.clipboardEnabled)
         case .clipboardRetention: return bind(settings, \.clipboardRetention)
         case .clipboardDefaultAction: return bind(settings, \.clipboardDefaultAction)
+        case .clipboardShowsEmptyCategories: return bind(settings, \.clipboardShowsEmptyCategories)
         case .clipboardDisabledApps: return bind(settings, \.clipboardDisabledApps)
         case .clipboardCommands: return launcher.commandsBinding(for: key, owner: .clipboard)
         case .emojiSkinTone: return bind(settings, \.emojiSkinTone)
@@ -208,6 +229,7 @@ enum SettingsFileSchema {
 extension PopToRootTimeout: SettingsFileRawValue {}
 extension EscapeKeyBehavior: SettingsFileRawValue {}
 extension CommandID: SettingsFileRawValue {}
+extension NotchShortcut: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
 extension AppLanguage: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}

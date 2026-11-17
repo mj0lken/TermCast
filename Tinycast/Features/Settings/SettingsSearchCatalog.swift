@@ -110,8 +110,8 @@ enum SettingsSearchCatalog {
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
-        + windowManagement + navigation + notes + calendar + emoji + ai + quickActions + dictation
-        + extensions + permissions
+        + windowManagement + notch + navigation + notes + calendar + emoji + ai + quickActions
+        + dictation + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -444,6 +444,72 @@ enum SettingsSearchCatalog {
             keywords: ["reveal", "finder", "markdown", "files", "location", "path", "dotfiles"])
     ]
 
+    private static let notch: [SettingsSearchEntry] = [
+        .init(
+            pane: .notch,
+            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island", "shelf"]),
+        .init(
+            .notchNotch, "Replace system volume & brightness HUD",
+            keywords: ["notch", "hud", "osd", "volume", "brightness", "backlight", "dynamic island", "sound"]),
+        .init(
+            .notchNotch, "Show power & charging notifications",
+            keywords: ["battery", "magsafe", "charger", "plugged", "power"]),
+        .init(
+            .notchNotch, "Show input source changes",
+            keywords: ["keyboard", "language", "layout", "input", "switch"]),
+        .init(
+            .notchShelf, "Show live activities around the closed notch",
+            keywords: [
+                "live", "activity", "music", "equalizer", "meeting", "countdown", "timer", "dictation",
+                "microphone", "camera", "terminal", "dynamic island"
+            ]),
+        .init(
+            .notchShelf, "Enable Open Notch (Media, Calendar & Shelf)",
+            keywords: ["now playing", "music", "spotify", "calendar", "upcoming", "shelf", "airdrop", "tray"]),
+        .init(
+            .notchShelf, "Open notch on hover",
+            keywords: ["hover", "cursor", "mouse", "expand"]),
+        .init(
+            .notchShelf, "Hover delay",
+            keywords: ["delay", "dwell", "hover"]),
+        .init(
+            .notchShelf, "Haptic feedback",
+            keywords: ["trackpad", "vibration", "taptic"]),
+        .init(
+            .notchShelf, "Remember last tab",
+            keywords: ["tab", "home", "shelf"]),
+        .init(
+            .notchNotch, "Show percentage",
+            keywords: ["percent", "number", "hud"]),
+        .init(
+            .notchNotch, "Tint progress bar with accent colour",
+            keywords: ["accent", "color", "colour", "tint", "bar"]),
+        .init(
+            .notchContent, "Show Now Playing",
+            keywords: ["media", "music", "spotify", "player"]),
+        .init(
+            .notchContent, "Show calendar",
+            keywords: ["events", "meetings", "agenda"]),
+        .init(
+            .notchContent, "Hide all-day events",
+            keywords: ["all day", "birthdays", "holidays"]),
+        .init(
+            .notchContent, "Show battery indicator",
+            keywords: ["battery", "charge", "power"]),
+        .init(
+            group: .notchShortcuts, "Shortcuts",
+            keywords: [
+                "buttons", "header", "clipboard", "notebook", "notes", "camera", "window management",
+                "timer", "settings", "cog", "reorder"
+            ]),
+        .init(
+            .notchPreview, "Preview Notch HUD",
+            keywords: ["notch", "hud", "test", "preview"]),
+        .init(
+            .notchPreview, "Preview Open Notch",
+            keywords: ["open", "tray", "shelf", "media", "preview"])
+    ]
+
     private static let navigation: [SettingsSearchEntry] = [
         .init(
             pane: .navigation,
@@ -583,6 +649,9 @@ enum SettingsSearchCatalog {
         .init(
             .clipboardHistory, "Default action",
             keywords: ["enter", "return", "paste", "copy", "primary"]),
+        .init(
+            .clipboardHistory, "Show empty categories",
+            keywords: ["sidebar", "filter", "apps", "code", "documents", "files", "hidden", "all"]),
         .init(
             group: .clipboardDisabledApplications, "Excluded Applications",
             keywords: ["exclude", "password manager", "ignore", "privacy"]),

@@ -1,6 +1,6 @@
 import Foundation
 
-struct NoteSwitcherRenameState: Sendable, Equatable {
+struct NoteListRenameState: Sendable, Equatable {
     private(set) var id: NoteID?
     private(set) var draft = ""
 
@@ -29,7 +29,7 @@ struct NoteSwitcherRenameState: Sendable, Equatable {
     }
 }
 
-enum NoteSwitcherSelection {
+enum NoteListSelection {
     static func replacement(
         afterRemoving removed: NoteID,
         from orderedIDs: [NoteID],

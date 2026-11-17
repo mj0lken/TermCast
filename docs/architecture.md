@@ -29,6 +29,9 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ RaycastDecoder · Scrypt · AppSettingsKey · SettingsBackupCoverage          │
 │ SettingsFile{JSON,Key,Value,Format,Binding,Issue,Identity} ·               │
 │ HotKeySpelling · HyperScroll{Zone,Engine} · DisplayDDC ·                   │
+│ NotchHUD{Metric,Geometry} · Notch{Tab,ShelfItem,WeekStrip} ·               │
+│ NowPlaying{Snapshot,RelayMessage} · MediaKeyEvent ·                        │
+│ NotchLiveActivity · NotchMeetingCountdown · NotchTerminalSession ·         │
 │ WindowManagementFileFormat ·                                               │
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft ·                                              │
@@ -46,6 +49,9 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ SnippetKeywordListener · NotesRepository · CurrencyRateStore · Paster ·    │
 │ HotKeyCenter · HyperKeyTap · HyperScrollRunner · KeyboardRemapper ·        │
 │ ModifierTapMonitor · TrackpadTouchMonitor · MediaKeyPoster ·               │
+│ MediaKeyInterceptorTap · AudioVolumeService · KeyboardBacklightService ·   │
+│ NowPlaying{Service,Monitor} · NotchShelfStore · BatteryStatusService ·     │
+│ MediaCaptureMonitor · InputSourceMonitor · NotchTimer ·                    │
 │ DisplayBrightnessService · SecureInputMonitor · RunningAppsMonitor ·       │
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ AXMenuAccess · WindowZOrder · WindowSwitchSweep ·                          │
@@ -149,11 +155,11 @@ driven imperatively from AppKit. Extension menu extras are dynamic `NSStatusItem
   unreliable for accessory apps, so this is deliberate. Their lifecycles are independent of the
   palette's in both directions. Onboarding stays accessory rather than registering Dock ownership,
   so completing it can open the palette without an activation-policy change stealing focus.
-- **Notes** — a persistent, titled, non-activating `NotesPanel` managed by `NotesWindowController`.
-  Its height fits the note up to 860pt and AppKit autosaves the frame; its TextKit 2 editor renders
-  Markdown over the literal source, switches among local Markdown files and stays visible on focus
-  loss. The displayed string is the canonical file source; there is no source/display mapping.
-  See [features/notes.md](features/notes.md).
+- **Notes** — not a window: `PaletteMode.notes` is a palette screen, a note list beside the editor,
+  owned by `NotesCoordinator` and leaving with the palette. Its TextKit 2 editor renders Markdown
+  over the literal source and switches among local Markdown files. The displayed string is the
+  canonical file source; there is no source/display mapping. `NotesPanel` is only the borderless
+  child window its heading menu is drawn in. See [features/notes.md](features/notes.md).
 - **AI Chat** — a titled `AppWindowController` window owned by `AIChatCoordinator`: an
   `NSSplitViewController` with a collapsible sidebar of saved chats beside the open conversation, as
   Settings is built. The conversation lives on `AppCore.aiChats`, not the window, so closing it cancels

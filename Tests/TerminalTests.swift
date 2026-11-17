@@ -642,6 +642,7 @@ struct TerminalTests {
             switch event {
             case .output(let bytes):
                 interactiveEmu.feed(bytes)
+                interactive.acknowledgeOutput()
                 for resp in interactiveEmu.takePendingResponses() {
                     interactive.writeBytes(resp)
                 }
@@ -796,6 +797,68 @@ struct TerminalTests {
             "clearScrollback drops all chunked scrollback slabs",
             graphemeEmu.scrollback.isEmpty && graphemeEmu.scrollback.count == 0)
 
+        let textEmu = TerminalEmulator(cols: 20, rows: 4)
+        let blankHasNoText = !textEmu.hasText && textEmu.plainText().isEmpty
+        textEmu.feed("   \r\n\r\n")
+        let spacesHaveNoText = !textEmu.hasText && textEmu.plainText().isEmpty
+        textEmu.feed("  hi")
+        check(
+            "hasText agrees with plainText for blank, space-only and printed screens",
+            blankHasNoText && spacesHaveNoText
+                && textEmu.hasText && !textEmu.plainText().isEmpty)
+
+        // MARK: - Interactive Output Backpressure
+
+        let gate = probeOutputCredits()
+        check("output credits block the reader once the limit is reached", gate.blockedWhenFull)
+        check("an acknowledged chunk lets the blocked reader continue", gate.resumedOnRelease)
+        check("cancelling output credits releases a blocked reader", gate.resumedOnCancel)
+
+        let flood = TerminalSessionRunner.startInteractive(
+            workingDirectory: sandbox.path,
+            homeDirectory: tempHome.path,
+            loadsShellEnvironment: false,
+            rows: 24,
+            cols: 80)
+        let floodEmu = TerminalEmulator(cols: 80, rows: 24)
+        let floodSize = 2_000_000
+        var floodStarted = false
+        var isReleasing = false
+        var heldChunks = 0
+        var maxHeldChunks = 0
+        var floodBytes = 0
+        var releaseTask: Task<Void, Never>?
+        for await event in flood.events {
+            guard case .output(let bytes) = event else { continue }
+            guard floodStarted else {
+                floodEmu.feed(bytes)
+                flood.acknowledgeOutput()
+                if floodEmu.bracketedPaste {
+                    floodStarted = true
+                    flood.writeText("head -c \(floodSize) /dev/zero | tr '\\0' x; exit\r")
+                    releaseTask = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(500))
+                        isReleasing = true
+                        for _ in 0..<heldChunks { flood.acknowledgeOutput() }
+                        heldChunks = 0
+                    }
+                }
+                continue
+            }
+            floodBytes += bytes.lazy.filter { $0 == UInt8(ascii: "x") }.count
+            if isReleasing {
+                flood.acknowledgeOutput()
+            } else {
+                heldChunks += 1
+                maxHeldChunks = max(maxHeldChunks, heldChunks)
+            }
+        }
+        await releaseTask?.value
+        check(
+            "unacknowledged output pauses the PTY reader at the chunk limit",
+            maxHeldChunks == TerminalSessionRunner.maxQueuedOutputChunks)
+        check("a paused flood still delivers every byte once acknowledged", floodBytes >= floodSize)
+
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         Foundation.exit(failures == 0 ? 0 : 1)
     }
@@ -804,6 +867,29 @@ struct TerminalTests {
         var output = ""
         var termination: ShellCommandTermination?
         var updatedDirectory: String?
+    }
+
+    private static func probeOutputCredits() -> (
+        blockedWhenFull: Bool, resumedOnRelease: Bool, resumedOnCancel: Bool
+    ) {
+        let credits = TerminalOutputCredits(limit: 1)
+        let acquired = DispatchSemaphore(value: 0)
+        let acquireInBackground = {
+            DispatchQueue.global().async {
+                credits.acquire()
+                acquired.signal()
+            }
+        }
+        credits.acquire()
+        acquireInBackground()
+        let blockedWhenFull = acquired.wait(timeout: .now() + 0.2) == .timedOut
+        credits.release()
+        let resumedOnRelease = acquired.wait(timeout: .now() + 2) == .success
+        acquireInBackground()
+        let blockedAgain = acquired.wait(timeout: .now() + 0.2) == .timedOut
+        credits.cancel()
+        let resumedOnCancel = acquired.wait(timeout: .now() + 2) == .success
+        return (blockedWhenFull && blockedAgain, resumedOnRelease, resumedOnCancel)
     }
 
     private static func collect(_ handle: TerminalRunHandle) async -> RunSummary {

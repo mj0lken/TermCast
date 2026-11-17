@@ -7,6 +7,8 @@ final class NoteMarkdownRenderer: NSObject, @MainActor NSTextStorageDelegate {
     private(set) var revealed = IndexSet()
     /// The Render Markdown setting; flipping it takes effect on the next `reset()`.
     var isEnabled: Bool
+    /// True for a note titled by its first line; takes effect on the next `reset()`.
+    var titlesFirstLine = false
     weak var textView: NoteTextView? {
         didSet { textView?.textStorage?.delegate = self }
     }
@@ -156,7 +158,8 @@ final class NoteMarkdownRenderer: NSObject, @MainActor NSTextStorageDelegate {
             restyle(span) { _ in
                 for index in lines {
                     let style = NoteMarkdownStyler.style(
-                        at: index, in: markdown, text: text, isRevealed: revealed.contains(index))
+                        at: index, in: markdown, text: text, isRevealed: revealed.contains(index),
+                        isTitle: titlesFirstLine && index == 0)
                     textView.textStorage?.setAttributes(style.base, range: markdown.lines[index].range)
                     for run in style.runs {
                         textView.textStorage?.addAttributes(run.attributes, range: run.range)

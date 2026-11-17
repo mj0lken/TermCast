@@ -86,9 +86,9 @@ Where a reset leaves the highlight is the screen's to say too. Every reset — a
 new filter — goes through `RootPaletteView.land()`, which reads `landingSelection`, so handlers that
 fire in one update agree whatever order they run in. `onAppear` lands as well: the first show builds
 the view after `prepare` has run, so no change handler ever sees that reset. The landing is row 0 on
-every screen but two: the clipboard lands past its pins
-([clipboard.md](clipboard.md#pinned-entries)), and Search Quicklinks lands on the row a prompt names
-([quicklinks.md](quicklinks.md)).
+every screen but three: the clipboard lands past its pins
+([clipboard.md](clipboard.md#pinned-entries)), Search Quicklinks lands on the row a prompt names
+([quicklinks.md](quicklinks.md)), and Notes lands on the open note's row ([notes.md](notes.md#the-list)).
 
 | Mode                   | Screen                      | Inner list                                                                                               |
 | ---------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -108,6 +108,7 @@ every screen but two: the clipboard lands past its pins
 | `.snippets`            | `SnippetsScreen`            | `SnippetsList` + preview (see [snippets.md](snippets.md#search-snippets))                                |
 | `.snippetEditor`       | `SnippetEditorScreen`       | `SnippetEditorView` (see [snippets.md](snippets.md#launcher-editor))                                     |
 | `.dictionary`          | `DictionaryScreen`          | `DictionaryEntryView` (see [dictionary.md](dictionary.md))                                               |
+| `.notes`               | `NotesScreen`               | `NotesList` + editor (see [notes.md](notes.md#the-screen))                                               |
 | `.extensionCommand`    | `ExtensionCommandScreen`    | `ExtensionCommandView` (see [extensions.md](extensions.md))                                              |
 
 **Tab rings the three surfaces a reader opens directly — launcher → AI chat → clipboard → launcher**
@@ -158,7 +159,9 @@ query, so Escape hands focus back to the search field first — the query that f
 still there to be cleared by the next press. A bare backspace in an empty field takes the same step
 **but never closes**: on a root screen summoned by its own hotkey it falls to the root search, which
 is the step Escape would have taken had that screen been reached by typing its name. ⌘esc skips the
-whole stack for that same root search from any depth.
+whole stack for that same root search from any depth. The Notes screen is offered Escape before any of
+this, and takes it while it has a layer of its own to undo
+([notes.md](notes.md#focus-and-escape)).
 
 `EscapeKeyBehavior` (General settings) can trade the walk back for the old behavior: under
 `closeAndPopToRoot` an empty field closes the window and resets it immediately, whatever Pop to Root
@@ -250,7 +253,7 @@ button per configured `AppSettings.compactBarCommands` entry whose feature
 `AppIndex.isCommandEnabled` reports on. General settings shows **Compact Shortcuts** only
 when Compact is selected: an ordered list of zero to four unique commands, with add, replace,
 remove and move controls. The default is Clipboard History and Emoji & Symbols, both on for a new
-install, then Search Files and Search Quicklinks; Search Snippets, Show Notes, My Schedule and Quick
+install, then Search Files and Search Quicklinks; Search Snippets, Notebook, My Schedule and Quick
 AI are also available. Disabled features retain their configured positions but disappear from the
 bar until re-enabled; Settings still offers them, under **Off** in both menus and marked Off in the
 list, so a slot can be ready before its feature is.
@@ -271,8 +274,8 @@ over it. The glyph stays above `GlassEffectContainer` so a morph cannot smear it
 
 Mouse and keyboard activation synchronously call `LauncherCoordinator.runCommand` in a transaction
 with animations disabled. No merge animation or delayed activation survives beneath the destination
-screen. Palette screens push over root search as before; Show Notes closes the palette and opens
-its existing window. The summon reveal still animates independently.
+screen. Palette screens push over root search as before, Notebook's among them. The summon reveal
+still animates independently.
 The compact bar lays `panelScrim` over its capsule and buttons through a mask that follows the
 reveal, as the expanded panel lays it over its glass; the selected button stays out of the mask so
 its tint reads undimmed.
@@ -442,8 +445,9 @@ responder, so neither of the other two paths would fire.
 
 ## The panel settles the pointer itself
 
-`PalettePanel.applyCursorPolicy` sets the cursor after every mouse event: the I-beam inside editable
-text controls or the search field's frame, the arrow elsewhere. Without it the pointer sticks over the
+`PalettePanel.applyCursorPolicy` sets the cursor after every mouse event: the left-right resize
+cursor over a view marked `PaletteResizeHandleView` (the Notes list's divider), the I-beam inside
+editable text controls or the search field's frame, the arrow elsewhere. Without it the pointer sticks over the
 whole window and flickers along the field's edge — the two AppKit mechanisms that claim a cursor here
 disagree, and neither yields.
 
@@ -688,12 +692,6 @@ app:
   stay open and frontmost (used by "paste keeping window open").
 
 Both require the Accessibility permission (`Permissions.ensureAccessibility()`).
-
-Ordering the palette out makes AppKit pass key to the next of our panels that accepts it, and a
-non-activating panel holds the keyboard even while another app is active. So `hide` sets
-`NotesPanel.refusesInheritedKey` around the order-out unless `previousOwnWindow` is still visible:
-over another app the keyboard returns to that app, and a paste or the next keystroke cannot land in an
-open note. Summoned from a note, the note takes key back, so a paste lands there.
 
 The same show also mirrors that app into `PaletteState.pasteTarget` (a `PasteTarget`: localized
 name + bundle path), so Clipboard and Emoji can name it — the footer pill reads "Paste to Notes" and

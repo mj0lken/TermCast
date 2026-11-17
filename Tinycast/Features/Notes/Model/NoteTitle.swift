@@ -14,6 +14,7 @@ enum NoteTitle {
 
     private static let scanLimit = 1024
     private static let displayLimit = 120
+    private static let previewLimit = 240
 
     /// True only for the names `create` claims — `Untitled`, `Untitled 2`, … — never a typed one.
     static func isUnnamed(_ title: String) -> Bool {
@@ -27,15 +28,24 @@ enum NoteTitle {
 
     /// The first line carrying visible text, without its Markdown markers and capped to one row.
     static func firstLine(of source: String) -> String? {
+        visibleLines(of: source).first.map { String($0.prefix(displayLimit)) }
+    }
+
+    /// What a list row shows under its title; an unnamed note's first line is already its title.
+    static func preview(of source: String, skippingTitle: Bool) -> String? {
+        let lines = visibleLines(of: source).dropFirst(skippingTitle ? 1 : 0)
+        guard !lines.isEmpty else { return nil }
+        return String(lines.joined(separator: " ").prefix(previewLimit))
+    }
+
+    /// Bounded by `scanLimit`, so reading every line of the head costs a row nothing worth saving.
+    private static func visibleLines(of source: String) -> [String] {
         let head = String(source.prefix(scanLimit))
         let text = head as NSString
         let markdown = NoteMarkdownParser.parse(head)
-        for line in markdown.lines {
-            let title = visibleText(of: line, in: markdown, text: text)
-            guard !title.isEmpty else { continue }
-            return String(title.prefix(displayLimit))
-        }
-        return nil
+        return markdown.lines
+            .map { visibleText(of: $0, in: markdown, text: text) }
+            .filter { !$0.isEmpty }
     }
 
     /// A line as it reads when rendered, with the setting on or off: syntax never titles a note.

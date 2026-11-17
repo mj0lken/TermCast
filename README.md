@@ -91,7 +91,7 @@ Built on upstream [Tinycast](https://github.com/abue-ammar/tinycast), including:
 
 - **Fuzzy Launcher & Per-App Hotkeys** — Instant app, file, menu-bar item, and system-action search with learned local ranking.
 - **Raycast Extensions & AI** — Native JavaScriptCore runtime for Raycast extensions, plus Quick AI, AI Chat, local CLI providers (Claude, Codex, Antigravity, OpenCode), and MCP tool servers.
-- **Clipboard, Snippets, Notes & Calculator** — Searchable text/image clipboard history, keyword text expansion, floating Markdown scratchpad, quicklinks, emoji picker, and live currency/unit/timezone math.
+- **Clipboard, Snippets, Notes & Calculator** — Searchable text/image clipboard history, keyword text expansion, a Markdown notebook in the launcher, quicklinks, emoji picker, and live currency/unit/timezone math.
 - **Portable `.termcast` Backups & `settings.json`** — Export/import `.termcast`, `.tinycast`, and Raycast `.rayconfig` archives, or sync preferences with `~/.config/termcast/settings.json`.
 
 ---

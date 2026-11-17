@@ -23,6 +23,7 @@ struct SettingsBackup: Codable {
         var clipboardEnabled: Bool?
         var clipboardRetentionDays: Int?
         var clipboardDefaultAction: String?
+        var clipboardShowsEmptyCategories: Bool?
         var clipboardDisabledApps: [String]?
         var launchAtLogin: Bool?
         var hyperKey: String?
@@ -30,6 +31,22 @@ struct SettingsBackup: Codable {
         var hyperKeyQuickPress: String?
         var hyperKeySecureInputCompatibility: Bool?
         var hyperKeyTrackpadSliders: Bool?
+        var notchHUDEnabled: Bool?
+        var notchShelfEnabled: Bool?
+        var notchOpenOnHover: Bool?
+        var notchHoverDelayMs: Int?
+        var notchHapticsEnabled: Bool?
+        var notchRemembersLastTab: Bool?
+        var notchBatteryNotifications: Bool?
+        var notchShowsPercentage: Bool?
+        var notchTintsAccent: Bool?
+        var notchShowsMedia: Bool?
+        var notchShowsCalendar: Bool?
+        var notchHidesAllDayEvents: Bool?
+        var notchShowsBattery: Bool?
+        var notchShortcuts: [String]?
+        var notchShowsLiveActivities: Bool?
+        var notchInputSourceNotifications: Bool?
         var emojiSkinTone: String?
         var emojiGridColumns: Int?
         var showInMenuBar: Bool?
@@ -151,6 +168,7 @@ extension SettingsBackup {
             clipboardEnabled: s.clipboardEnabled,
             clipboardRetentionDays: s.clipboardRetention.rawValue,
             clipboardDefaultAction: s.clipboardDefaultAction.rawValue,
+            clipboardShowsEmptyCategories: s.clipboardShowsEmptyCategories,
             clipboardDisabledApps: s.clipboardDisabledApps,
             launchAtLogin: s.launchAtLogin,
             hyperKey: s.hyperKey.rawValue,
@@ -158,6 +176,22 @@ extension SettingsBackup {
             hyperKeyQuickPress: s.hyperKeyQuickPress.rawValue,
             hyperKeySecureInputCompatibility: s.hyperKeySecureInputCompatibility,
             hyperKeyTrackpadSliders: s.hyperKeyTrackpadSliders,
+            notchHUDEnabled: s.notchHUDEnabled,
+            notchShelfEnabled: s.notchShelfEnabled,
+            notchOpenOnHover: s.notchOpenOnHover,
+            notchHoverDelayMs: s.notchHoverDelayMs,
+            notchHapticsEnabled: s.notchHapticsEnabled,
+            notchRemembersLastTab: s.notchRemembersLastTab,
+            notchBatteryNotifications: s.notchBatteryNotifications,
+            notchShowsPercentage: s.notchShowsPercentage,
+            notchTintsAccent: s.notchTintsAccent,
+            notchShowsMedia: s.notchShowsMedia,
+            notchShowsCalendar: s.notchShowsCalendar,
+            notchHidesAllDayEvents: s.notchHidesAllDayEvents,
+            notchShowsBattery: s.notchShowsBattery,
+            notchShortcuts: s.notchShortcuts.map(\.rawValue),
+            notchShowsLiveActivities: s.notchShowsLiveActivities,
+            notchInputSourceNotifications: s.notchInputSourceNotifications,
             emojiSkinTone: s.emojiSkinTone.rawValue,
             emojiGridColumns: s.emojiGridColumns.rawValue,
             showInMenuBar: s.showInMenuBar,
@@ -352,6 +386,10 @@ extension SettingsBackup {
             settings.clipboardDefaultAction = action
             count += 1
         }
+        if let flag = s.clipboardShowsEmptyCategories {
+            settings.clipboardShowsEmptyCategories = flag
+            count += 1
+        }
         if let launch = s.launchAtLogin {
             settings.launchAtLogin = launch
             count += 1
@@ -374,6 +412,72 @@ extension SettingsBackup {
         }
         if let flag = s.hyperKeyTrackpadSliders {
             settings.hyperKeyTrackpadSliders = flag
+            count += 1
+        }
+        if let flag = s.notchHUDEnabled {
+            settings.notchHUDEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchShelfEnabled {
+            settings.notchShelfEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchOpenOnHover {
+            settings.notchOpenOnHover = flag
+            count += 1
+        }
+        if let ms = s.notchHoverDelayMs, (100...1000).contains(ms) {
+            settings.notchHoverDelayMs = ms
+            count += 1
+        }
+        if let flag = s.notchHapticsEnabled {
+            settings.notchHapticsEnabled = flag
+            count += 1
+        }
+        if let flag = s.notchRemembersLastTab {
+            settings.notchRemembersLastTab = flag
+            count += 1
+        }
+        if let flag = s.notchBatteryNotifications {
+            settings.notchBatteryNotifications = flag
+            count += 1
+        }
+        if let flag = s.notchShowsPercentage {
+            settings.notchShowsPercentage = flag
+            count += 1
+        }
+        if let flag = s.notchTintsAccent {
+            settings.notchTintsAccent = flag
+            count += 1
+        }
+        if let flag = s.notchShowsMedia {
+            settings.notchShowsMedia = flag
+            count += 1
+        }
+        if let flag = s.notchShowsCalendar {
+            settings.notchShowsCalendar = flag
+            count += 1
+        }
+        if let flag = s.notchHidesAllDayEvents {
+            settings.notchHidesAllDayEvents = flag
+            count += 1
+        }
+        if let flag = s.notchShowsBattery {
+            settings.notchShowsBattery = flag
+            count += 1
+        }
+        if let identifiers = s.notchShortcuts,
+            let shortcuts = NotchShortcut.shortcuts(from: identifiers)
+        {
+            settings.notchShortcuts = shortcuts
+            count += 1
+        }
+        if let flag = s.notchShowsLiveActivities {
+            settings.notchShowsLiveActivities = flag
+            count += 1
+        }
+        if let flag = s.notchInputSourceNotifications {
+            settings.notchInputSourceNotifications = flag
             count += 1
         }
         if let raw = s.emojiSkinTone, let tone = EmojiSkinTone(rawValue: raw) {

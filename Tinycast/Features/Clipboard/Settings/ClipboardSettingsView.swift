@@ -41,6 +41,10 @@ struct ClipboardSettingsView: View {
                     SettingsRowTitle(.clipboardHistory, "Default action")
                     Text("↵ does this, and Paste takes its shortcut.")
                 }
+                Toggle(isOn: $settings.clipboardShowsEmptyCategories) {
+                    SettingsRowTitle(.clipboardHistory, "Show empty categories")
+                    Text("Lists every category in the sidebar, not only those with items.")
+                }
             } header: {
                 SettingsSectionHeader(.clipboardHistory)
             }

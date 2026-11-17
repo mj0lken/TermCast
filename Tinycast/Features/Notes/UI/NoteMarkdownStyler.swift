@@ -39,7 +39,7 @@ enum NoteMarkdownStyler {
 
     /// Colours the fragment draws with are resolved now, under the caller's drawing appearance.
     static func style(
-        at index: Int, in markdown: NoteMarkdown, text: NSString, isRevealed: Bool
+        at index: Int, in markdown: NoteMarkdown, text: NSString, isRevealed: Bool, isTitle: Bool = false
     ) -> LineStyle {
         let line = markdown.lines[index]
         var base = literal
@@ -48,7 +48,10 @@ enum NoteMarkdownStyler {
 
         switch line.kind {
         case .blank, .paragraph:
-            break
+            guard isTitle else { break }
+            base[.font] = NoteMarkdownTypography.title
+            base[.foregroundColor] = color(Theme.Colors.textPrimary)
+            base[.paragraphStyle] = paragraph { $0.paragraphSpacing = Theme.Spacing.xs }
         case .heading(let level):
             base[.font] = NoteMarkdownTypography.heading(level)
             base[.paragraphStyle] = paragraph {

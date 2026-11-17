@@ -44,7 +44,7 @@ final class TerminalTab: Identifiable {
     }
 
     var hasOutput: Bool {
-        !emulator.plainText(includeScrollback: true).isEmpty
+        emulator.hasText
     }
 
     func title(homeDirectory: String) -> String {

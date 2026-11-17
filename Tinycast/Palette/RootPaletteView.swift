@@ -134,6 +134,9 @@ struct RootPaletteView: View {
                 vm: vm, openActions: openActions, metrics: metrics)
         case .dictionary:
             return DictionaryScreen(session: dictionary, core: core, vm: vm)
+        case .notes:
+            return NotesScreen(
+                notes: core.notesCoordinator, core: core, vm: vm, openActions: openActions)
         case .calculatorHistory:
             return CalculatorHistoryScreen(
                 history: calcHistory, currencyRates: currencyRates, core: core, vm: vm,
@@ -177,15 +180,26 @@ struct RootPaletteView: View {
 
     // MARK: - Popover menu content
 
-    /// The clipboard type filter's rows; activating one is the only way the filter changes.
+    /// One answer for the ⌘P filter's rows and the row it opens on.
+    private var clipboardCategories: [ClipboardCategory.SidebarEntry] {
+        ClipboardCategory.visibleCategories(
+            in: store.items,
+            active: vm.clipboardCategory,
+            knownDirectories: core.clipboardMetadata.knownDirectories,
+            showsEmpty: settings.clipboardShowsEmptyCategories)
+    }
+
+    /// The clipboard category filter's rows for ⌘P, matching the narrow left sidebar.
     private var clipboardFilterContent: PopoverMenuContent {
-        PopoverMenuContent(
-            items: ClipboardFilter.allCases.enumerated().map { index, filter in
+        let visible = clipboardCategories
+        return PopoverMenuContent(
+            items: visible.enumerated().map { index, entry in
                 PopoverMenuItem(
-                    title: filter.title, systemImage: filter.systemImage,
+                    title: entry.category.title,
+                    systemImage: entry.category.systemImage,
                     startsSection: index == 1
                 ) {
-                    vm.clipboardFilter = filter
+                    vm.clipboardCategory = entry.category
                 }
             })
     }
@@ -471,6 +485,7 @@ struct RootPaletteView: View {
             .modifier(ExtensionSelectionForwarder(screen: extensionScreen, selection: vm.selection))
             // A narrower list means the old index points at a different row, or at none.
             .onChange(of: vm.clipboardFilter) { land(restoringSelection: true) }
+            .onChange(of: vm.clipboardCategory) { land(restoringSelection: true) }
             // The filter is part of the query, so narrowing re-runs it rather than thinning rows.
             .onChange(of: vm.fileSearchFilter) {
                 land()
@@ -479,6 +494,8 @@ struct RootPaletteView: View {
             .onChange(of: vm.mode) { oldMode, newMode in
                 terminalCoordinator.noteModeChanged(from: oldMode, to: newMode)
                 vm.clipboardFilter = .all
+                vm.clipboardCategory = .all
+                vm.clipboardPreviewExpanded = false
                 vm.fileSearchFilter = .all
                 vm.emojiCategoryFilter = .all
                 vm.emojiGridColumnsOverride = nil
@@ -699,6 +716,8 @@ struct RootPaletteView: View {
                 // ⇥ inside an open list belongs to the list, not to the form's field order.
                 if vm.isControlListOpen || menuOpen { return .handled }
                 if vm.isComposing { return .ignored }
+                // A focused note indents with ⇥, so the palette's focus ring stays out of it.
+                if vm.mode == .notes, vm.isEditingField { return .ignored }
                 let shift = press.modifiers.contains(.shift) || press.key == KeyEquivalent("\u{19}")
                 advanceTabFocus(backwards: shift)
                 return .handled
@@ -713,6 +732,8 @@ struct RootPaletteView: View {
                 else { return .ignored }
                 // A control's open list owns the screen, so a second panel may never open over it.
                 guard !vm.isControlListOpen else { return .handled }
+                // In a focused note ⌘K is the note's own link chord.
+                if vm.mode == .notes, vm.isEditingField { return .ignored }
                 // The Actions menu has no anchor in the compact bar, so swallow ⌘K there.
                 guard !isCollapsed else { return .handled }
                 let screen = screen
@@ -879,12 +900,6 @@ struct RootPaletteView: View {
                 headerGutter(width: metrics.spacing.md)
                 quickAITabHint
             }
-            if !isCollapsed, vm.mode == .clipboard {
-                headerGutter(width: metrics.spacing.md)
-                ClipboardFilterButton(
-                    filter: vm.clipboardFilter, isOpen: openMenu == .clipboardFilter,
-                    action: toggleClipboardFilter)
-            }
             if !isCollapsed, vm.mode == .fileSearch {
                 headerGutter(width: metrics.spacing.md)
                 HeaderMenuButton(
@@ -909,6 +924,10 @@ struct RootPaletteView: View {
                     isOpen: openMenu == .dictionaryScope,
                     help: String(localized: "Dictionary or thesaurus  ⌘P"),
                     action: toggleDictionaryScope)
+            }
+            if !isCollapsed, vm.mode == .notes {
+                headerGutter(width: metrics.spacing.md)
+                NotesHeaderControls()
             }
             if !isCollapsed, vm.mode == .ai {
                 headerGutter(width: metrics.spacing.md)
@@ -1288,7 +1307,8 @@ struct RootPaletteView: View {
             closeMenus()
             return
         }
-        let active = ClipboardFilter.allCases.firstIndex(of: vm.clipboardFilter) ?? 0
+        let visible = clipboardCategories
+        let active = visible.firstIndex { $0.category == vm.clipboardCategory } ?? 0
         open(.clipboardFilter, highlighting: active)
     }
 
@@ -1731,6 +1751,8 @@ struct RootPaletteView: View {
         panel.onShiftTab = {
             if vm.isControlListOpen || menuOpen { return true }
             if vm.isComposing { return false }
+            // A focused note outdents with ⇧⇥; cycling the mode from under it would lose the place.
+            if vm.mode == .notes, vm.isEditingField { return false }
             advanceTabFocus(backwards: true)
             return true
         }

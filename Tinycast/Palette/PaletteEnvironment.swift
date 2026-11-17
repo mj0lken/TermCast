@@ -42,6 +42,7 @@ extension View {
             .environment(core.terminalStore)
             .environment(core.terminalCoordinator)
             .environment(core.updateCoordinator)
+            .environment(core.notesCoordinator)
             .motionScope()
     }
 }

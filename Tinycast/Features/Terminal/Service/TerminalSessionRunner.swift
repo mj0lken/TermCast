@@ -20,6 +20,8 @@ enum TerminalInteractiveEvent: Sendable {
 
 struct TerminalInteractiveHandle: Sendable {
     let events: AsyncStream<TerminalInteractiveEvent>
+    /// Each `.output` must be acknowledged once handled, or the reader stops after a few chunks.
+    let acknowledgeOutput: @Sendable () -> Void
     let writeBytes: @Sendable ([UInt8]) -> Void
     let resize: @Sendable (Int, Int) -> Void
     let interrupt: @Sendable () -> Void
@@ -37,6 +39,7 @@ enum TerminalSessionRunner {
     private static let readSize = 16 * 1024
     private static let flushInterval: Duration = .milliseconds(35)
     private static let interactiveFlushInterval: Duration = .milliseconds(12)
+    static let maxQueuedOutputChunks = 4
     private static let stopGrace: DispatchTimeInterval = .seconds(2)
     private static let cwdTargetFD: Int32 = 9
     private static let queue = DispatchQueue(
@@ -108,6 +111,7 @@ enum TerminalSessionRunner {
                         .launchFailed(String(localized: "The shell could not be started.")))
                     continuation.finish()
                 },
+                acknowledgeOutput: {},
                 writeBytes: { _ in },
                 resize: { _, _ in },
                 interrupt: {},
@@ -115,24 +119,31 @@ enum TerminalSessionRunner {
                 hasChildProcesses: { false })
         }
 
+        let credits = TerminalOutputCredits(limit: maxQueuedOutputChunks)
+        let writer = TerminalInputWriter(terminal: terminal)
         let events = AsyncStream<TerminalInteractiveEvent> { continuation in
+            continuation.onTermination = { _ in credits.cancel() }
             queue.async {
-                drainInteractive(terminal, into: continuation)
+                drainInteractive(terminal, writer: writer, credits: credits, into: continuation)
             }
         }
 
         return TerminalInteractiveHandle(
             events: events,
+            acknowledgeOutput: {
+                credits.release()
+            },
             writeBytes: { bytes in
-                terminal.writeBytes(bytes)
+                writer.write(bytes)
             },
             resize: { newRows, newCols in
                 terminal.resize(rows: newRows, cols: newCols)
             },
             interrupt: {
-                terminal.writeBytes([0x03])
+                writer.write([0x03])
             },
             terminate: {
+                credits.cancel()
                 terminal.signalSession(SIGHUP)
                 terminal.signalSession(SIGTERM)
                 queue.asyncAfter(deadline: .now() + stopGrace) {
@@ -146,6 +157,8 @@ enum TerminalSessionRunner {
 
     nonisolated private static func drainInteractive(
         _ terminal: PseudoTerminal,
+        writer: TerminalInputWriter,
+        credits: TerminalOutputCredits,
         into continuation: AsyncStream<TerminalInteractiveEvent>.Continuation
     ) {
         var buffer = [UInt8](repeating: 0, count: readSize)
@@ -153,11 +166,16 @@ enum TerminalSessionRunner {
         pending.reserveCapacity(readSize)
         var lastYield = ContinuousClock().now
 
+        func flush() {
+            credits.acquire()
+            continuation.yield(.output(pending))
+            pending.removeAll(keepingCapacity: true)
+            lastYield = ContinuousClock().now
+        }
+
         while true {
             if !pending.isEmpty, !hasOutput(terminal.parentEnd, within: interactiveFlushInterval) {
-                continuation.yield(.output(pending))
-                pending.removeAll(keepingCapacity: true)
-                lastYield = ContinuousClock().now
+                flush()
                 continue
             }
             let count = Darwin.read(terminal.parentEnd, &buffer, readSize)
@@ -167,16 +185,14 @@ enum TerminalSessionRunner {
             if pending.count >= 32_768
                 || ContinuousClock().now - lastYield >= interactiveFlushInterval
             {
-                continuation.yield(.output(pending))
-                pending.removeAll(keepingCapacity: true)
-                lastYield = ContinuousClock().now
+                flush()
             }
         }
         if !pending.isEmpty {
-            continuation.yield(.output(pending))
+            flush()
         }
         let status = terminal.wait()
-        terminal.close()
+        writer.close()
         continuation.yield(.exited(status: status))
         continuation.finish()
     }
@@ -524,6 +540,72 @@ enum TerminalSessionRunner {
             lock.lock()
             marked = true
             lock.unlock()
+        }
+    }
+}
+
+/// Bounds the chunks waiting on the main actor: a flood pauses the shell instead of growing RAM.
+final class TerminalOutputCredits: @unchecked Sendable {
+    private let condition = NSCondition()
+    private let limit: Int
+    private var available: Int
+    private var isCancelled = false
+
+    init(limit: Int) {
+        self.limit = max(limit, 1)
+        self.available = self.limit
+    }
+
+    /// Blocks the reader until a chunk is acknowledged; once cancelled it never blocks again.
+    func acquire() {
+        condition.lock()
+        defer { condition.unlock() }
+        while available == 0 && !isCancelled {
+            condition.wait()
+        }
+        if !isCancelled {
+            available -= 1
+        }
+    }
+
+    func release() {
+        condition.lock()
+        available = min(available + 1, limit)
+        condition.signal()
+        condition.unlock()
+    }
+
+    func cancel() {
+        condition.lock()
+        isCancelled = true
+        condition.broadcast()
+        condition.unlock()
+    }
+}
+
+/// A shell that stops reading input blocks `write`, so it must never block the main actor.
+private final class TerminalInputWriter: @unchecked Sendable {
+    private let terminal: PseudoTerminal
+    private let queue = DispatchQueue(label: "com.tinycast.terminal-input", qos: .userInitiated)
+    private var isClosed = false
+
+    init(terminal: PseudoTerminal) {
+        self.terminal = terminal
+    }
+
+    func write(_ bytes: [UInt8]) {
+        guard !bytes.isEmpty else { return }
+        queue.async { [self] in
+            guard !isClosed else { return }
+            terminal.writeBytes(bytes)
+        }
+    }
+
+    /// Closing on the same queue keeps a late write from landing on a reused descriptor.
+    func close() {
+        queue.async { [self] in
+            isClosed = true
+            terminal.close()
         }
     }
 }
