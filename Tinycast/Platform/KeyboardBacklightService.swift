@@ -7,7 +7,6 @@ import ObjectiveC
 final class KeyboardBacklightService {
     struct StepOutcome: Sendable, Equatable {
         let level: Double
-        let isSuppressed: Bool
         let overshoot: Double
     }
 
@@ -30,13 +29,6 @@ final class KeyboardBacklightService {
         let keyboardID = resolvedKeyboardID(using: bridge)
         guard let keyboardID else { return nil }
 
-        if bridge.isSuppressed(keyboardID: keyboardID) {
-            return StepOutcome(
-                level: 0,
-                isSuppressed: true,
-                overshoot: delta >= 0 ? 1 : -1)
-        }
-
         let current = cachedLevel ?? bridge.brightness(keyboardID: keyboardID) ?? 0
         let raw = current + delta
         let next = min(max(raw, 0), 1)
@@ -58,7 +50,7 @@ final class KeyboardBacklightService {
             return nil
         }
         cachedLevel = next
-        return StepOutcome(level: next, isSuppressed: false, overshoot: overshoot)
+        return StepOutcome(level: next, overshoot: overshoot)
     }
 
     private func resolvedKeyboardID(using bridge: CoreBrightnessBridge) -> UInt64? {
@@ -83,13 +75,11 @@ private final class CoreBrightnessBridge {
     private let client: NSObject
     private let copyIDsSel = NSSelectorFromString("copyKeyboardBacklightIDs")
     private let isBuiltInSel = NSSelectorFromString("isKeyboardBuiltIn:")
-    private let isSuppressedSel = NSSelectorFromString("isBacklightSuppressedOnKeyboard:")
     private let getBrightnessSel = NSSelectorFromString("brightnessForKeyboard:")
     private let setBrightnessSel = NSSelectorFromString("setBrightness:fadeSpeed:commit:forKeyboard:")
 
     private let copyIDsFn: CopyIDsFn
     private let isBuiltInFn: BoolForIDFn
-    private let isSuppressedFn: BoolForIDFn
     private let getBrightnessFn: FloatForIDFn
     private let setBrightnessFn: SetBrightnessFn
 
@@ -99,7 +89,6 @@ private final class CoreBrightnessBridge {
             let clientClass = NSClassFromString("KeyboardBrightnessClient") as? NSObject.Type,
             let copyMethod = class_getInstanceMethod(clientClass, copyIDsSel),
             let builtInMethod = class_getInstanceMethod(clientClass, isBuiltInSel),
-            let suppressedMethod = class_getInstanceMethod(clientClass, isSuppressedSel),
             let getMethod = class_getInstanceMethod(clientClass, getBrightnessSel),
             let setMethod = class_getInstanceMethod(clientClass, setBrightnessSel)
         else { return nil }
@@ -107,8 +96,6 @@ private final class CoreBrightnessBridge {
         client = clientClass.init()
         copyIDsFn = unsafeBitCast(method_getImplementation(copyMethod), to: CopyIDsFn.self)
         isBuiltInFn = unsafeBitCast(method_getImplementation(builtInMethod), to: BoolForIDFn.self)
-        isSuppressedFn = unsafeBitCast(
-            method_getImplementation(suppressedMethod), to: BoolForIDFn.self)
         getBrightnessFn = unsafeBitCast(method_getImplementation(getMethod), to: FloatForIDFn.self)
         setBrightnessFn = unsafeBitCast(
             method_getImplementation(setMethod), to: SetBrightnessFn.self)
@@ -120,10 +107,6 @@ private final class CoreBrightnessBridge {
         else { return nil }
         let ids = rawArray.map(\.uint64Value)
         return ids.first { isBuiltInFn(client, isBuiltInSel, $0) } ?? ids.first
-    }
-
-    func isSuppressed(keyboardID: UInt64) -> Bool {
-        isSuppressedFn(client, isSuppressedSel, keyboardID)
     }
 
     func brightness(keyboardID: UInt64) -> Double? {

@@ -4,7 +4,7 @@ import Foundation
 enum NotchHUDMetric: Sendable, Equatable {
     case volume(level: Double, muted: Bool)
     case screenBrightness(level: Double)
-    case keyboardBacklight(level: Double, suppressed: Bool)
+    case keyboardBacklight(level: Double)
     case audioDeviceConnected(name: String, symbol: String, level: Double, muted: Bool)
     case battery(percentage: Int, isPluggedIn: Bool)
     /// A one-line announcement whose text the caller has already localized.
@@ -74,8 +74,8 @@ enum NotchHUDMetric: Sendable, Equatable {
             Self.volumeSymbol(level: level, muted: muted)
         case .screenBrightness:
             "sun.max.fill"
-        case .keyboardBacklight(_, let suppressed):
-            suppressed ? "light.min" : "light.max"
+        case .keyboardBacklight(let level):
+            level > 0 ? "light.max" : "light.min"
         case .audioDeviceConnected(_, let symbol, _, _):
             symbol
         case .battery(_, let isPluggedIn):
@@ -89,10 +89,8 @@ enum NotchHUDMetric: Sendable, Equatable {
         switch self {
         case .volume(let level, let muted), .audioDeviceConnected(_, _, let level, let muted):
             muted ? 0 : Self.clamp(level)
-        case .screenBrightness(let level):
+        case .screenBrightness(let level), .keyboardBacklight(let level):
             Self.clamp(level)
-        case .keyboardBacklight(let level, let suppressed):
-            suppressed ? 0 : Self.clamp(level)
         case .battery(let percentage, _):
             Self.clamp(Double(percentage) / 100.0)
         case .notice:

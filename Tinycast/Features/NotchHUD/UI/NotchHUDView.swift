@@ -65,8 +65,7 @@ struct NotchHUDView: View {
             return String(localized: "Volume \(state.metric.percentageText())")
         case .screenBrightness:
             return String(localized: "Brightness \(state.metric.percentageText())")
-        case .keyboardBacklight(_, let suppressed):
-            if suppressed { return String(localized: "Keyboard brightness unavailable") }
+        case .keyboardBacklight:
             return String(localized: "Keyboard brightness \(state.metric.percentageText())")
         case .audioDeviceConnected(let name, _, _, _):
             return String(localized: "\(name) connected")

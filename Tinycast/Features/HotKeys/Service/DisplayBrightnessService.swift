@@ -220,7 +220,7 @@ private enum NativeDisplayAPI {
     private struct Functions {
         let canChange: CanChange
         let get: GetBrightness
-        let setSmooth: SetBrightness
+        let set: SetBrightness
     }
 
     private nonisolated static let functions: Functions? = {
@@ -228,12 +228,13 @@ private enum NativeDisplayAPI {
         guard let handle = dlopen(path, RTLD_LAZY),
             let canChange = dlsym(handle, "DisplayServicesCanChangeBrightness"),
             let get = dlsym(handle, "DisplayServicesGetBrightness"),
-            let setSmooth = dlsym(handle, "DisplayServicesSetBrightnessSmooth")
+            // SetBrightnessSmooth reports success on macOS 26 yet never changes the panel.
+            let set = dlsym(handle, "DisplayServicesSetBrightness")
         else { return nil }
         return Functions(
             canChange: unsafeBitCast(canChange, to: CanChange.self),
             get: unsafeBitCast(get, to: GetBrightness.self),
-            setSmooth: unsafeBitCast(setSmooth, to: SetBrightness.self))
+            set: unsafeBitCast(set, to: SetBrightness.self))
     }()
 
     static func brightness(of displayID: CGDirectDisplayID) -> Float? {
@@ -245,7 +246,7 @@ private enum NativeDisplayAPI {
 
     static func setBrightness(displayID: CGDirectDisplayID, level: Float) -> Bool {
         guard let functions else { return false }
-        return functions.setSmooth(displayID, level) == 0
+        return functions.set(displayID, level) == 0
     }
 }
 
