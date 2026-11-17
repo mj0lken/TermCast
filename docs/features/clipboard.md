@@ -295,8 +295,10 @@ with a bottom-third `ClipboardBottomPreviewPane` that opens on the right side wh
 clicked. **⌘P** still opens the `PopoverMenu` filter picker from `RootPaletteView`, highlighting the
 active `ClipboardCategory` so keyboard-only switching keeps the exact same muscle memory.
 
-`ClipboardCategory` owns the thirteen sidebar buckets (`All`, `Pinned`, `Text`, `Links`, `Emails`,
-`Colors`, `Images`, `Videos`, `Audio`, `PDFs`, `Apps`, `Folders`, `Other Files`), hiding empty
+`ClipboardCategory` owns the nineteen sidebar buckets (`All`, `Pinned`, `Text`, `Links`, `Emails`,
+`Colors`, `Images`, `Videos`, `Audio`, `Documents`, `PDFs`, `Spreadsheets`, `Presentations`,
+`Code`, `Apps` — including `.app`, `.dmg` and `.pkg` installers — `Archives`, `Fonts`, `Folders`,
+`Other Files`), hiding empty
 categories (other than `All` and the currently active category) so the sidebar stays compact, while
 `ClipboardFilter` continues to back `ClipboardStore.search(_:filter:)` over SQLite FTS and `item_text`.
 When a search query is active, `ClipboardCategory.filterAndRank` ranks title matches (first line or

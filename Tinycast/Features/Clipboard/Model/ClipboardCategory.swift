@@ -11,8 +11,14 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
     case images
     case videos
     case audio
+    case documents
     case pdfs
+    case spreadsheets
+    case presentations
+    case code
     case apps
+    case archives
+    case fonts
     case folders
     case otherFiles
 
@@ -49,7 +55,8 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
             .email
         case .colors:
             .color
-        case .videos, .audio, .pdfs, .apps, .folders, .otherFiles:
+        case .videos, .audio, .documents, .pdfs, .spreadsheets, .presentations,
+             .code, .apps, .archives, .fonts, .folders, .otherFiles:
             .file
         }
     }
@@ -65,8 +72,14 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         case .images: return String(localized: "Images")
         case .videos: return String(localized: "Videos")
         case .audio: return String(localized: "Audio")
+        case .documents: return String(localized: "Documents")
         case .pdfs: return String(localized: "PDFs")
+        case .spreadsheets: return String(localized: "Spreadsheets")
+        case .presentations: return String(localized: "Presentations")
+        case .code: return String(localized: "Code")
         case .apps: return String(localized: "Apps")
+        case .archives: return String(localized: "Archives")
+        case .fonts: return String(localized: "Fonts")
         case .folders: return String(localized: "Folders")
         case .otherFiles: return String(localized: "Other Files")
         }
@@ -83,8 +96,14 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         case .images: return "photo"
         case .videos: return "film"
         case .audio: return "waveform"
+        case .documents: return "doc.text"
         case .pdfs: return "doc.richtext"
+        case .spreadsheets: return "tablecells"
+        case .presentations: return "rectangle.on.rectangle"
+        case .code: return "chevron.left.forwardslash.chevron.right"
         case .apps: return "app.badge"
+        case .archives: return "archivebox"
+        case .fonts: return "textformat.abc"
         case .folders: return "folder"
         case .otherFiles: return "doc"
         }
@@ -101,8 +120,14 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         case .images: return String(localized: "No images in clipboard history")
         case .videos: return String(localized: "No videos in clipboard history")
         case .audio: return String(localized: "No audio files in clipboard history")
+        case .documents: return String(localized: "No documents in clipboard history")
         case .pdfs: return String(localized: "No PDFs in clipboard history")
-        case .apps: return String(localized: "No apps in clipboard history")
+        case .spreadsheets: return String(localized: "No spreadsheets in clipboard history")
+        case .presentations: return String(localized: "No presentations in clipboard history")
+        case .code: return String(localized: "No code files in clipboard history")
+        case .apps: return String(localized: "No apps or disk images in clipboard history")
+        case .archives: return String(localized: "No archives in clipboard history")
+        case .fonts: return String(localized: "No fonts in clipboard history")
         case .folders: return String(localized: "No folders in clipboard history")
         case .otherFiles: return String(localized: "No files in clipboard history")
         }
@@ -124,16 +149,27 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
             return item.textForm == .color
         case .images:
             if item.kind == .image { return true }
-            guard item.kind == .file, let path = item.filePath else { return false }
-            return ClipboardFileKind.of(path: path, isDirectory: knownDirectories.contains(path)) == .image
+            return fileKind(of: item, knownDirectories: knownDirectories) == .image
         case .videos:
             return fileKind(of: item, knownDirectories: knownDirectories) == .movie
         case .audio:
             return fileKind(of: item, knownDirectories: knownDirectories) == .audio
+        case .documents:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .document
         case .pdfs:
             return fileKind(of: item, knownDirectories: knownDirectories) == .pdf
+        case .spreadsheets:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .spreadsheet
+        case .presentations:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .presentation
+        case .code:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .code
         case .apps:
             return fileKind(of: item, knownDirectories: knownDirectories) == .app
+        case .archives:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .archive
+        case .fonts:
+            return fileKind(of: item, knownDirectories: knownDirectories) == .font
         case .folders:
             return fileKind(of: item, knownDirectories: knownDirectories) == .folder
         case .otherFiles:
@@ -141,6 +177,7 @@ enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Shows every core category when `alwaysShowCore` is true, or only non-empty categories otherwise.
     static func visibleCategories(
         in items: [ClipboardItem],
         active: ClipboardCategory,

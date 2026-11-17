@@ -873,6 +873,17 @@ struct ClipboardTests {
         expect(
             ClipboardFileKind.of(path: "/Applications/Safari.app", isDirectory: true) == .app,
             "an .app bundle is an app even when directory flag is set")
+        expect(ClipboardFileKind.of(path: "/Downloads/Termcast.dmg") == .app, "a .dmg is in Apps")
+        expect(ClipboardFileKind.of(path: "/Downloads/Installer.pkg") == .app, "a .pkg is in Apps")
+        expect(ClipboardFileKind.of(path: "/Downloads/archive.zip") == .archive, "a .zip is an archive")
+        expect(ClipboardFileKind.of(path: "/Downloads/backup.7z") == .archive, "a .7z is an archive")
+        expect(ClipboardFileKind.of(path: "/src/App.swift") == .code, "a .swift file is code")
+        expect(ClipboardFileKind.of(path: "/src/index.ts") == .code, "a .ts file is code, not video")
+        expect(ClipboardFileKind.of(path: "/docs/spec.docx") == .document, "a .docx is a document")
+        expect(ClipboardFileKind.of(path: "/docs/Notes.pages", isDirectory: true) == .document, "a .pages package is a document")
+        expect(ClipboardFileKind.of(path: "/docs/sheet.xlsx") == .spreadsheet, "an .xlsx is a spreadsheet")
+        expect(ClipboardFileKind.of(path: "/docs/deck.pptx") == .presentation, "a .pptx is a presentation")
+        expect(ClipboardFileKind.of(path: "/fonts/Inter.woff2") == .font, "a .woff2 is a font")
         expect(ClipboardFileKind.of(path: "/a/README") == .other, "a bare name is not a folder")
         expect(ClipboardFileKind.of(path: "/a/b", isDirectory: true) == .folder, "a folder is one")
     }
@@ -962,16 +973,26 @@ struct ClipboardTests {
             text: "Annual Budget Plan\nDetails",
             sourceBundleID: nil)
         let appItem = ClipboardItem(filePath: "/Applications/Safari.app", sourceBundleID: nil)
+        let dmgItem = ClipboardItem(filePath: "/Users/me/Downloads/Termcast.dmg", sourceBundleID: nil)
+        let zipItem = ClipboardItem(filePath: "/Users/me/Downloads/release.zip", sourceBundleID: nil)
+        let codeItem = ClipboardItem(filePath: "/Users/me/src/main.swift", sourceBundleID: nil)
+        let docItem = ClipboardItem(filePath: "/Users/me/Docs/notes.md", sourceBundleID: nil)
         let audioItem = ClipboardItem(filePath: "/Users/me/Music/demo.mp3", sourceBundleID: nil)
 
-        let items = [plainBodyMatch, titleSubstringMatch, titlePrefixMatch, appItem, audioItem]
+        let items = [
+            plainBodyMatch, titleSubstringMatch, titlePrefixMatch,
+            appItem, dmgItem, zipItem, codeItem, docItem, audioItem
+        ]
         let visible = ClipboardCategory.visibleCategories(
             in: items,
             active: .all,
             knownDirectories: ["/Applications/Safari.app"])
         expect(
-            visible.map(\.category) == [.all, .text, .audio, .apps],
+            visible.map(\.category) == [.all, .text, .audio, .documents, .code, .apps, .archives],
             "sidebar hides empty categories while keeping populated ones in canonical order")
+        expect(
+            visible.first { $0.category == .apps }?.count == 2,
+            "Apps counts both .app bundles and .dmg disk images")
 
         let ranked = ClipboardCategory.filterAndRank(
             [plainBodyMatch, titleSubstringMatch, titlePrefixMatch],
