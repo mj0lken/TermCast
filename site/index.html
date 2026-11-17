@@ -15,7 +15,10 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="apple-touch-icon" href="./assets/icon.png">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./carousel.css">
+  <link rel="stylesheet" href="./carousel-scenes.css">
   <script src="./app.js" defer></script>
+  <script src="./carousel.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -54,7 +57,7 @@
           </p>
           <h1 id="main-heading" tabindex="-1">TermCast <span class="title-sub">— a Tinycast fork</span></h1>
           <p class="lead">
-            A native macOS menu-bar launcher built on <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> with three flagship upgrades: a <strong>live multi-tab PTY terminal</strong>, <strong>Hyper Key trackpad sliders</strong> for per-display brightness &amp; volume, and <strong>drag-to-snap + traffic-light window management</strong>.
+            A native macOS menu-bar launcher built on <a href="https://github.com/abue-ammar/tinycast">Tinycast</a> with four flagship upgrades: a <strong>live multi-tab PTY terminal</strong>, a <strong>Notch HUD and tray</strong>, <strong>Hyper Key trackpad sliders</strong> for per-display brightness &amp; volume, and <strong>drag-to-snap + traffic-light window management</strong>.
           </p>
 
           <div class="cta-row">
@@ -85,16 +88,195 @@
           </div>
         </div>
 
-        <figure class="hero-panel-figure">
-          <img
-            class="hero-shot"
-            src="./assets/screenshot.png"
-            alt="TermCast command palette running Terminal Mode with multi-tab PTY sessions and ANSI output"
-            width="1500"
-            height="920"
-            fetchpriority="high"
-          >
-        </figure>
+        <section class="showcase" data-carousel aria-roledescription="carousel" aria-label="Termcast feature highlights">
+          <div class="showcase-viewport" data-carousel-track tabindex="0" aria-label="Feature slides, use the arrow keys to switch">
+            <article class="slide" data-slide data-title="Terminal" role="group" aria-roledescription="slide" aria-label="1 of 4: Terminal">
+              <div class="scene scene-shot">
+                <img
+                  src="./assets/screenshot.png"
+                  alt="Termcast's launcher in Terminal mode: three live PTY tabs, git status output and a finished Homebrew install"
+                  width="1500"
+                  height="920"
+                  fetchpriority="high"
+                >
+              </div>
+              <div class="slide-caption">
+                <span class="pillar-kicker kicker-emerald">01 · Terminal</span>
+                <h2 class="slide-title">Live shell tabs, right in the launcher</h2>
+                <p class="slide-line">Type a command and it runs in a real <code>zsh</code> PTY. Hybrid mode keeps search open while your sessions stay live in <kbd>⌘1–9</kbd> tabs.</p>
+              </div>
+            </article>
+
+            <article class="slide" data-slide data-title="Notch" role="group" aria-roledescription="slide" aria-label="2 of 4: Notch">
+              <div class="scene scene-notch" role="img" aria-label="The open notch tray showing Now Playing and today's calendar, above two closed-notch states: a volume HUD and a live activity">
+                <div class="menubar"><span class="menubar-items"><i></i><i></i><i></i><i></i></span><span class="menubar-status"><i></i><i></i><i></i></span></div>
+                <div class="notch-tray">
+                  <div class="tray-head">
+                    <span class="tray-tabs"><span class="tray-tab is-active">Home</span><span class="tray-tab">Shelf</span><span class="tray-tab">Terminal</span></span>
+                    <span class="tray-battery">87%<span class="battery"><span></span></span></span>
+                  </div>
+                  <div class="tray-body">
+                    <div class="tray-card now-playing">
+                      <span class="np-art">
+                        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M6 12.2V3.6l7-1.6v8.4"/><circle cx="4.2" cy="12.2" r="1.9"/><circle cx="11.2" cy="10.4" r="1.9"/><path d="M6 3.6l7-1.6v2L6 5.6z"/></svg>
+                      </span>
+                      <span class="np-meta">
+                        <span class="np-title">Night Drive</span>
+                        <span class="np-artist">Analog Coast</span>
+                        <span class="np-scrub"><span></span></span>
+                        <span class="np-controls">
+                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M3.5 3h1.6v10H3.5zM13 3.2v9.6L5.8 8z"/></svg>
+                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4 2.5h2.8v11H4zM9.2 2.5H12v11H9.2z"/></svg>
+                          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M10.9 3h1.6v10h-1.6zM3 3.2v9.6L10.2 8z"/></svg>
+                        </span>
+                      </span>
+                    </div>
+                    <div class="tray-card calendar">
+                      <span class="cal-week">
+                        <span>M<b>16</b></span><span class="is-today">T<b>17</b></span><span>W<b>18</b></span><span>T<b>19</b></span><span>F<b>20</b></span><span>S<b>21</b></span>
+                      </span>
+                      <span class="cal-event">
+                        <span class="cal-bar"></span>
+                        <span class="cal-text"><span class="cal-name">Design review</span><span class="cal-time">10:30 – 11:00</span></span>
+                        <span class="cal-join">Join</span>
+                      </span>
+                    </div>
+                    <div class="tray-card shelf">
+                      <span class="tray-card-title">Shelf</span>
+                      <span class="shelf-items"><span class="shelf-file">roadmap.pdf</span><span class="shelf-file">mockup.png</span><span class="shelf-drop">AirDrop</span></span>
+                    </div>
+                    <div class="tray-card sessions">
+                      <span class="tray-card-title">Terminal</span>
+                      <span class="session is-running">bun run dev</span>
+                      <span class="session">docker compose ps</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="notch-states">
+                  <div class="notch-state">
+                    <span class="mini-screen">
+                      <span class="mini-notch">
+                        <svg class="wing-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6.3 6.3 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                        <span class="cam"></span>
+                        <span class="wing-level"><span></span></span>
+                      </span>
+                    </span>
+                    <span class="notch-label">Volume &amp; brightness HUD</span>
+                  </div>
+                  <div class="notch-state">
+                    <span class="mini-screen">
+                      <span class="mini-notch">
+                        <span class="wing-term">&gt;_<sup>2</sup></span>
+                        <span class="cam"></span>
+                        <span class="wing-eq"><span></span><span></span><span></span><span></span></span>
+                      </span>
+                    </span>
+                    <span class="notch-label">Live activities</span>
+                  </div>
+                </div>
+              </div>
+              <div class="slide-caption">
+                <span class="pillar-kicker kicker-violet">02 · Notch</span>
+                <h2 class="slide-title">Your notch, finally doing something</h2>
+                <p class="slide-line">Volume and brightness wrap around the camera, hovering opens a tray with Now Playing, your calendar, a file shelf and terminal sessions, and live activities ride the wings.</p>
+              </div>
+            </article>
+
+            <article class="slide" data-slide data-title="Hyper Key and Trackpad" role="group" aria-roledescription="slide" aria-label="3 of 4: Hyper Key and Trackpad">
+              <div class="scene scene-hyper" role="img" aria-label="Caps Lock remapped to the Hyper Key, plus a trackpad split into display, backlight and volume zones with two fingers scrolling volume up">
+                <div class="hyper-keys">
+                  <span class="keycap"><span class="keycap-led"></span><span class="keycap-glyph">✦</span><span class="keycap-label">caps lock</span></span>
+                  <span class="hyper-mods"><span class="hyper-equals">=</span><span>⌃</span><span>⌥</span><span>⇧</span><span>⌘</span></span>
+                  <span class="hyper-chords">
+                    <span><b>✦ T</b>Terminal</span>
+                    <span><b>✦ ←</b>Left half</span>
+                    <span><b>✦ N</b>Notebook</span>
+                  </span>
+                </div>
+                <span class="hyper-plus">+</span>
+                <div class="trackpad">
+                  <span class="tp-zone">
+                    <svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="3" fill="currentColor"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    <span>Display</span>
+                  </span>
+                  <span class="tp-zone">
+                    <svg viewBox="0 0 16 16" width="16" height="16"><rect x="1.5" y="8" width="13" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 2v2.4M4 3.5l1 1.6M12 3.5l-1 1.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                    <span>Backlight</span>
+                  </span>
+                  <span class="tp-zone is-active">
+                    <svg class="tp-arrow" viewBox="0 0 16 24" width="16" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22V3M2.5 8.5 8 3l5.5 5.5"/></svg>
+                    <span class="tp-fingers"><span></span><span></span></span>
+                    <svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6.3 6.3 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    <span>Volume</span>
+                  </span>
+                </div>
+                <span class="level-meter"><span class="level-fill"></span></span>
+              </div>
+              <div class="slide-caption">
+                <span class="pillar-kicker kicker-emerald">03 · Hyper Key + Trackpad</span>
+                <h2 class="slide-title">One key for every chord, and sliders on your trackpad</h2>
+                <p class="slide-line">Caps Lock becomes <kbd>⌃⌥⇧⌘</kbd>. Hold it and two-finger scroll to set display brightness, keyboard backlight or volume, depending on where your fingers land.</p>
+              </div>
+            </article>
+
+            <article class="slide" data-slide data-title="Window management" role="group" aria-roledescription="slide" aria-label="4 of 4: Window management">
+              <div class="scene scene-wm" role="img" aria-label="A window dragged to the left edge snaps into a highlighted left-half preview, while another window's green button opens a menu of tiling layouts">
+                <div class="menubar"><span class="menubar-items"><i></i><i></i><i></i><i></i></span><span class="menubar-status"><i></i><i></i><i></i></span></div>
+                <span class="snap-edge"></span>
+                <span class="snap-zone"></span>
+                <span class="wm-drag">
+                  <span class="win win-dragged">
+                    <span class="win-bar"><i></i><i></i><i></i></span>
+                    <span class="win-body"><i></i><i></i><i></i><i></i></span>
+                  </span>
+                  <svg class="wm-cursor" viewBox="0 0 16 16" width="16" height="16"><path d="M3 1.5v12l3.2-3 2.1 4.6 2-.9-2.1-4.5h4.3z" fill="#111" stroke="#fff" stroke-width="1" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="win win-target">
+                  <span class="win-bar"><i></i><i></i><i class="is-hovered"></i></span>
+                  <span class="win-body"><i></i><i></i><i></i></span>
+                </span>
+                <span class="tile-menu">
+                  <span class="tile-menu-title">Move &amp; Resize</span>
+                  <span class="tile-grid">
+                    <span class="tile is-selected" style="--l:0;--t:0;--r:50%;--b:0"></span>
+                    <span class="tile" style="--l:50%;--t:0;--r:0;--b:0"></span>
+                    <span class="tile" style="--l:0;--t:0;--r:0;--b:50%"></span>
+                    <span class="tile" style="--l:0;--t:50%;--r:0;--b:0"></span>
+                    <span class="tile" style="--l:0;--t:0;--r:50%;--b:50%"></span>
+                    <span class="tile" style="--l:50%;--t:0;--r:0;--b:50%"></span>
+                    <span class="tile" style="--l:0;--t:0;--r:66.6%;--b:0"></span>
+                    <span class="tile" style="--l:0;--t:0;--r:0;--b:0"></span>
+                  </span>
+                </span>
+              </div>
+              <div class="slide-caption">
+                <span class="pillar-kicker kicker-violet">04 · Window Management</span>
+                <h2 class="slide-title">Snap windows the way you already move them</h2>
+                <p class="slide-line">Drag to an edge or corner, hover the green button for a tiling menu, or bind any of 45 halves, quarters, thirds and sizing commands to a shortcut.</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="carousel-controls" data-carousel-controls hidden>
+            <button class="carousel-btn" type="button" data-carousel-prev aria-label="Previous feature">
+              <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+            </button>
+            <span class="carousel-dots" role="group" aria-label="Choose a feature">
+              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Terminal"><span class="dot-track"><span class="dot-fill"></span></span></button>
+              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Notch"><span class="dot-track"><span class="dot-fill"></span></span></button>
+              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Hyper Key and Trackpad"><span class="dot-track"><span class="dot-fill"></span></span></button>
+              <button class="carousel-dot" type="button" data-carousel-dot aria-label="Window management"><span class="dot-track"><span class="dot-fill"></span></span></button>
+            </span>
+            <button class="carousel-btn" type="button" data-carousel-next aria-label="Next feature">
+              <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>
+            </button>
+            <button class="carousel-btn carousel-toggle" type="button" data-carousel-toggle aria-label="Pause slideshow">
+              <svg class="icon-pause" aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M4 2.5h2.8v11H4zM9.2 2.5H12v11H9.2z"/></svg>
+              <svg class="icon-play" aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M4.5 2.5v11L13 8z"/></svg>
+            </button>
+          </div>
+          <p class="visually-hidden" aria-live="polite" data-carousel-status></p>
+        </section>
       </div>
     </section>
 

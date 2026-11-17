@@ -31,7 +31,7 @@ jobs:
       - name: Stage static site
         run: |
           mkdir -p _site/assets
-          cp site/index.html site/styles.css site/app.js site/favicon.svg _site/
+          cp site/index.html site/styles.css site/carousel.css site/carousel-scenes.css site/app.js site/carousel.js site/favicon.svg _site/
           cp docs/images/icon.png _site/assets/icon.png
           cp docs/screenshot.png _site/assets/screenshot.png
           touch _site/.nojekyll

@@ -1,0 +1,349 @@
+@layer theme {
+  :root {
+    --light-scene-base: #e7ebf4;
+    --dark-scene-base: #0e121b;
+    --light-scene-glow-a: rgba(16, 185, 129, 0.22);
+    --dark-scene-glow-a: rgba(16, 185, 129, 0.2);
+    --light-scene-glow-b: rgba(134, 59, 255, 0.2);
+    --dark-scene-glow-b: rgba(134, 59, 255, 0.24);
+    --light-scene-bar: rgba(255, 255, 255, 0.6);
+    --dark-scene-bar: rgba(255, 255, 255, 0.06);
+    --light-key-top: #ffffff;
+    --dark-key-top: #272c39;
+    --light-key-edge: #cfd5e1;
+    --dark-key-edge: #07090d;
+
+    --scene-base: var(--light-scene-base);
+    --scene-glow-a: var(--light-scene-glow-a);
+    --scene-glow-b: var(--light-scene-glow-b);
+    --scene-bar: var(--light-scene-bar);
+    --key-top: var(--light-key-top);
+    --key-edge: var(--light-key-edge);
+
+    --notch-black: #000000;
+    --notch-ink: #f5f5f7;
+    --notch-dim: rgba(255, 255, 255, 0.55);
+    --notch-card: rgba(255, 255, 255, 0.08);
+    --traffic-red: #ff5f57;
+    --traffic-yellow: #febc2e;
+    --traffic-green: #28c840;
+
+    --autoplay-duration: 6.5s;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --scene-base: var(--dark-scene-base);
+      --scene-glow-a: var(--dark-scene-glow-a);
+      --scene-glow-b: var(--dark-scene-glow-b);
+      --scene-bar: var(--dark-scene-bar);
+      --key-top: var(--dark-key-top);
+      --key-edge: var(--dark-key-edge);
+    }
+  }
+
+  @supports (color: light-dark(white, black)) {
+    :root {
+      --scene-base: light-dark(var(--light-scene-base), var(--dark-scene-base));
+      --scene-glow-a: light-dark(var(--light-scene-glow-a), var(--dark-scene-glow-a));
+      --scene-glow-b: light-dark(var(--light-scene-glow-b), var(--dark-scene-glow-b));
+      --scene-bar: light-dark(var(--light-scene-bar), var(--dark-scene-bar));
+      --key-top: light-dark(var(--light-key-top), var(--dark-key-top));
+      --key-edge: light-dark(var(--light-key-edge), var(--dark-key-edge));
+    }
+  }
+}
+
+@layer components {
+  /* Carousel shell */
+
+  .showcase {
+    margin-block-start: 1.55rem;
+    max-inline-size: 48rem;
+    margin-inline: auto;
+  }
+
+  .showcase-viewport {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    border-radius: var(--radius-md);
+  }
+
+  .showcase-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .showcase-viewport:focus-visible {
+    outline: 2px solid var(--emerald);
+    outline-offset: 4px;
+  }
+
+  .slide {
+    box-sizing: border-box;
+    flex: 0 0 100%;
+    min-inline-size: 0;
+    padding-inline: 2px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    container-type: inline-size;
+  }
+
+  .slide-caption {
+    max-inline-size: 37rem;
+    margin-inline: auto;
+    padding-block: 1.15rem 0.2rem;
+    text-align: center;
+  }
+
+  .slide-caption .pillar-kicker {
+    margin-block-end: 0.2rem;
+  }
+
+  .slide-title {
+    font-size: clamp(1.08rem, 0.96rem + 0.55vw, 1.3rem);
+    font-weight: 720;
+    letter-spacing: -0.022em;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .slide-line {
+    margin-block-start: 0.35rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  /* Controls */
+
+  .carousel-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-block-start: 0.85rem;
+  }
+
+  .carousel-controls[hidden],
+  .carousel-btn[hidden] {
+    display: none;
+  }
+
+  .carousel-btn {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 120ms ease, transform 120ms ease, color 120ms ease;
+  }
+
+  .carousel-btn:hover {
+    border-color: var(--chevron-emerald);
+  }
+
+  .carousel-btn:active {
+    transform: scale(0.92);
+  }
+
+  .carousel-toggle {
+    margin-inline-start: 0.35rem;
+    color: var(--muted);
+  }
+
+  .carousel-toggle[data-state="playing"] .icon-play,
+  .carousel-toggle[data-state="paused"] .icon-pause {
+    display: none;
+  }
+
+  .carousel-dots {
+    display: flex;
+    align-items: center;
+  }
+
+  .carousel-dot {
+    display: grid;
+    place-items: center;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
+  }
+
+  .carousel-dot[aria-current="true"] {
+    inline-size: 2.4rem;
+  }
+
+  .dot-track {
+    display: block;
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 999px;
+    overflow: clip;
+    background: color-mix(in srgb, var(--muted) 38%, transparent);
+    transition: background-color 120ms ease;
+  }
+
+  .carousel-dot:hover .dot-track {
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
+  }
+
+  .carousel-dot[aria-current="true"] .dot-track {
+    inline-size: 1.85rem;
+    background: color-mix(in srgb, var(--emerald) 22%, transparent);
+  }
+
+  .dot-fill {
+    display: block;
+    block-size: 100%;
+    background: linear-gradient(90deg, var(--chevron-emerald), var(--chevron-violet));
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .carousel-dot[aria-current="true"] .dot-fill {
+    transform: scaleX(1);
+  }
+
+  [data-autoplay="on"] .carousel-dot[aria-current="true"] .dot-fill {
+    animation: carousel-progress var(--autoplay-duration) linear forwards;
+  }
+
+  [data-autoplay="on"][data-paused] .carousel-dot[aria-current="true"] .dot-fill {
+    animation-play-state: paused;
+  }
+
+  @keyframes carousel-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Scenes: every size below is in cqi so a scene scales as one picture */
+
+  .scene {
+    position: relative;
+    box-sizing: border-box;
+    inline-size: 100%;
+    aspect-ratio: 1500 / 920;
+    overflow: clip;
+    border-radius: 2.2cqi;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(70% 80% at 8% 105%, var(--scene-glow-a), transparent 70%),
+      radial-gradient(70% 80% at 96% -5%, var(--scene-glow-b), transparent 70%),
+      var(--scene-base);
+    box-shadow: 0 2.6cqi 4cqi -2.4cqi var(--panel-shadow);
+    font-family: var(--font-sans);
+    color: var(--text);
+  }
+
+  .menubar {
+    position: absolute;
+    inset: 0 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    block-size: 3.4cqi;
+    padding-inline: 2.2cqi;
+    background: var(--scene-bar);
+  }
+
+  .menubar-items,
+  .menubar-status {
+    display: flex;
+    align-items: center;
+    gap: 1.6cqi;
+  }
+
+  .menubar i {
+    display: block;
+    inline-size: 4cqi;
+    block-size: 0.9cqi;
+    border-radius: 1cqi;
+    background: var(--text);
+    opacity: 0.28;
+  }
+
+  .menubar-items i:first-child,
+  .menubar-status i:last-child {
+    inline-size: 1.5cqi;
+    block-size: 1.5cqi;
+    opacity: 0.5;
+  }
+
+  /* 01 · Terminal */
+
+  .scene-shot {
+    display: grid;
+    place-items: center;
+  }
+
+  .scene-shot img {
+    inline-size: 88%;
+    filter: drop-shadow(0 1.8cqi 2.6cqi var(--panel-shadow));
+  }
+
+  /* Scene motion, only when the visitor allows it */
+
+  @media (prefers-reduced-motion: no-preference) {
+    .wing-eq span {
+      animation: eq-bounce 900ms ease-in-out infinite alternate;
+    }
+
+    .wing-eq span:nth-child(2) { animation-delay: -300ms; }
+    .wing-eq span:nth-child(3) { animation-delay: -600ms; }
+    .wing-eq span:nth-child(4) { animation-delay: -150ms; }
+
+    .tp-fingers {
+      animation: finger-swipe 2.4s var(--ease-out-expo) infinite;
+    }
+
+    .level-fill {
+      animation: level-rise 2.4s var(--ease-out-expo) infinite;
+    }
+
+    .wm-drag {
+      animation: drag-in 3.2s var(--ease-out-expo) infinite alternate;
+    }
+  }
+
+  @keyframes eq-bounce {
+    from { transform: scaleY(0.3); }
+    to { transform: scaleY(1); }
+  }
+
+  @keyframes finger-swipe {
+    0% { transform: translateY(6cqi); opacity: 0.2; }
+    12% { opacity: 1; }
+    70% { transform: translateY(-4cqi); opacity: 1; }
+    100% { transform: translateY(-4cqi); opacity: 0.2; }
+  }
+
+  @keyframes level-rise {
+    0%, 10% { transform: scaleY(0.45); }
+    70%, 100% { transform: scaleY(0.78); }
+  }
+
+  @keyframes drag-in {
+    from { transform: translate(5cqi, 1.5cqi); }
+    to { transform: translate(0, 0); }
+  }
+}
