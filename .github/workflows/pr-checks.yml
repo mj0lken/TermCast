@@ -15,7 +15,7 @@ concurrency:
 jobs:
   checks:
     name: Build, test and lint
-    runs-on: ${{ vars.MACOS_RUNNER || 'macos-latest' }}
+    runs-on: ${{ vars.PR_CHECKS_RUNNER || vars.MACOS_RUNNER || 'macos-latest' }}
     timeout-minutes: 45
     steps:
       # check-migrations reads tags and full history to tell shipped migrations apart.
