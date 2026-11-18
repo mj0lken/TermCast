@@ -53,8 +53,13 @@ Removing that line would reintroduce exactly those three problems. See
 
 ## Pull request review
 
-There is no CI workflow and no automated reviewer, so the whole bar in
-[testing.md](testing.md#definition-of-done) is run locally before a PR is opened.
+`.github/workflows/pr-checks.yml` runs on every PR to `main`: model purity, `Scripts/lint.sh`, a Debug
+build and `Scripts/run-tests.sh`, on an Xcode 27 runner. It cannot launch the app or measure memory, so
+the rest of [testing.md](testing.md#definition-of-done) is still run locally before a PR is opened.
+
+It runs on the runner the `PR_CHECKS_RUNNER` repository variable names, then `MACOS_RUNNER`, then
+`macos-latest`. `PR_CHECKS_RUNNER` is kept apart from `MACOS_RUNNER` so a self-hosted Mac can take PR
+checks without also taking releases, whose signing step changes that Mac's keychain search list.
 
 ## Releasing
 
