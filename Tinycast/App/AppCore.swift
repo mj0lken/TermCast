@@ -88,6 +88,7 @@ final class AppCore {
     let menuSearch = MenuSearchSession()
     let windowSwitch = WindowSwitchSession()
     let windowPicker = WindowPickerSession()
+    let windowPickerGroups = WindowPickerGroupStore()
     let activationPolicy = ActivationPolicy()
     let uninstall = UninstallSession()
     let terminalStore = TerminalStore()
@@ -245,7 +246,7 @@ final class AppCore {
         settings: settings, appIndex: appIndex, session: windowSwitch, palette: palette,
         paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var windowPickerCoordinator = WindowPickerCoordinator(
-        settings: settings, session: windowPicker)
+        settings: settings, session: windowPicker, groups: windowPickerGroups)
     @ObservationIgnored private(set) lazy var cameraCoordinator = CameraCoordinator(core: self)
     @ObservationIgnored private(set) lazy var dictionaryCoordinator = DictionaryCoordinator(
         paletteCoordinator: paletteCoordinator)

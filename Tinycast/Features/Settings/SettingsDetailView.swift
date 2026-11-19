@@ -26,6 +26,7 @@ struct SettingsDetailView: View {
             case .windowSwitcher: WindowPickerSettingsView()
             case .windowManagement: WindowManagementSettingsView()
             case .notch: NotchSettingsView()
+            case .hyperKey: HyperKeySettingsView()
             case .clipboard: ClipboardSettingsView()
             case .emoji: EmojiSettingsView()
             case .calendar: CalendarSettingsView()

@@ -2,12 +2,15 @@ import SwiftUI
 
 struct WindowPickerView: View {
     let session: WindowPickerSession
+    let groups: WindowPickerGroupStore
     let onOpenSettings: () -> Void
     let onPick: (Int) -> Void
     let onDrop: (Int, WindowPickerBoard.Drop) -> Void
+    let onMoveSection: (Int, Int) -> Void
 
-    /// The tile under the pointer mid-drag, and how far it has come.
+    /// The tile or the whole outline under the pointer mid-drag, and how far it has come.
     private struct Drag: Equatable {
+        var isSection = false
         let index: Int
         var translation: CGSize
         var location: CGPoint
@@ -75,22 +78,30 @@ struct WindowPickerView: View {
         _ board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
     ) -> some View {
         let target = dropTarget(in: layout)
+        let landing = sectionTarget(in: layout)
+        let owners = board.sections.enumerated().flatMap { Array(repeating: $0.offset, count: $0.element.count) }
         return ZStack(alignment: .topLeading) {
-            ForEach(Array(board.sections.enumerated()), id: \.offset) { index, section in
+            ForEach(Array(board.sections.enumerated()), id: \.element.group) { index, section in
                 if layout.sectionFrames.indices.contains(index) {
+                    let frame = layout.sectionFrames[index]
+                    let moved = sectionShift(index)
                     WindowPickerSectionOutline(
-                        group: section.group, isTargeted: target == .section(index)
+                        title: groups.title(for: section.group),
+                        tint: groups.book.tint(for: section.group).color,
+                        isTargeted: target == .section(index) || landing == index
                     )
-                    .frame(
-                        width: layout.sectionFrames[index].width,
-                        height: layout.sectionFrames[index].height
-                    )
-                    .offset(x: layout.sectionFrames[index].minX, y: layout.sectionFrames[index].minY)
+                    .frame(width: frame.width, height: frame.height)
+                    .contentShape(Rectangle())
+                    .offset(x: frame.minX + moved.width, y: frame.minY + moved.height)
+                    .zIndex(moved == .zero ? 0 : 1)
+                    .gesture(sectionGesture(for: index, in: layout))
                 }
             }
             ForEach(Array(board.tiles.enumerated()), id: \.element.id) { index, tile in
                 let frame = layout.tileFrames[index]
-                let moved = drag?.index == index ? drag?.translation ?? .zero : .zero
+                let isDragged = drag?.isSection == false && drag?.index == index
+                let carried = sectionShift(owners.indices.contains(index) ? owners[index] : -1)
+                let moved = isDragged ? drag?.translation ?? .zero : carried
                 tileView(tile, at: index, board: board, layout: layout)
                     .overlay {
                         if target == .tile(index) {
@@ -98,9 +109,9 @@ struct WindowPickerView: View {
                                 .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [5]))
                         }
                     }
-                    .scaleEffect(drag?.index == index ? 0.92 : 1)
+                    .scaleEffect(isDragged ? 0.92 : 1)
                     .offset(x: frame.minX + moved.width, y: frame.minY + moved.height)
-                    .zIndex(drag?.index == index ? 1 : 0)
+                    .zIndex(moved == .zero ? 0 : 2)
                     .onTapGesture { onPick(index) }
                     .gesture(dragGesture(for: index, in: layout))
             }
@@ -129,14 +140,47 @@ struct WindowPickerView: View {
             }
     }
 
-    /// A tile wins over the outline it sits in; the dragged tile's own frame is no target.
+    private func sectionShift(_ index: Int) -> CGSize {
+        guard let drag, drag.isSection, drag.index == index else { return .zero }
+        return drag.translation
+    }
+
+    private func sectionGesture(
+        for index: Int, in layout: WindowPickerGeometry.Layout
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.boardSpace))
+            .onChanged { value in
+                drag = Drag(
+                    isSection: true, index: index, translation: value.translation,
+                    location: value.location)
+            }
+            .onEnded { value in
+                drag = Drag(
+                    isSection: true, index: index, translation: value.translation,
+                    location: value.location)
+                let landing = sectionTarget(in: layout)
+                drag = nil
+                if let landing { onMoveSection(index, landing) }
+            }
+    }
+
+    /// The outline a dragged one would take the place of.
+    private func sectionTarget(in layout: WindowPickerGeometry.Layout) -> Int? {
+        guard let drag, drag.isSection else { return nil }
+        return layout.sectionFrames.enumerated().first {
+            $0.offset != drag.index && $0.element.contains(drag.location)
+        }?.offset
+    }
+
+    /// A tile wins over the outline it sits in; past every outline the window is dragged out.
     private func dropTarget(in layout: WindowPickerGeometry.Layout) -> WindowPickerBoard.Drop? {
-        guard let drag else { return nil }
+        guard let drag, !drag.isSection else { return nil }
         let tile = layout.tileFrames.enumerated().first {
             $0.offset != drag.index && $0.element.contains(drag.location)
         }
         if let tile { return .tile(tile.offset) }
-        return layout.sectionFrames.firstIndex { $0.contains(drag.location) }.map { .section($0) }
+        let section = layout.sectionFrames.firstIndex { $0.contains(drag.location) }
+        return section.map { .section($0) } ?? .outside
     }
 
     /// The windows behind a stack's front one, so its stack shows what it actually holds.
@@ -149,22 +193,16 @@ struct WindowPickerView: View {
 }
 
 private struct WindowPickerSectionOutline: View {
-    let group: WindowPickerBoard.Group
+    let title: String
+    let tint: Color
     let isTargeted: Bool
-
-    private var title: String {
-        switch group {
-        case .appType(let name): name.isEmpty ? String(localized: "Other") : name
-        case .custom(let number): String(localized: "Group \(number)")
-        }
-    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.row + 4, style: .continuous)
-        shape.fill(Theme.Colors.cardFill.opacity(isTargeted ? 1 : 0.5))
+        shape.fill(tint.opacity(isTargeted ? 0.22 : 0.1))
             .overlay {
                 shape.strokeBorder(
-                    isTargeted ? Color.accentColor : Theme.Colors.cardStroke,
+                    isTargeted ? Color.accentColor : tint.opacity(0.4),
                     lineWidth: isTargeted ? 2 : 1)
             }
             .overlay(alignment: .topLeading) {
@@ -176,6 +214,24 @@ private struct WindowPickerSectionOutline: View {
                     .frame(height: WindowPickerGeometry.sectionTitleHeight + 4, alignment: .bottom)
             }
             .accessibilityLabel(title)
+    }
+}
+
+extension WindowPickerGroupTint {
+    /// Automatic never reaches a view: the book resolves it to one of these first.
+    var color: Color {
+        switch self {
+        case .automatic, .gray: .gray
+        case .red: .red
+        case .orange: .orange
+        case .yellow: .yellow
+        case .green: .green
+        case .mint: .mint
+        case .teal: .teal
+        case .blue: .blue
+        case .purple: .purple
+        case .pink: .pink
+        }
     }
 }
 

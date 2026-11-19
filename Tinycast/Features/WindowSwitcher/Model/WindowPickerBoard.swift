@@ -33,8 +33,8 @@ struct WindowPickerBoard: Equatable, Sendable {
         }
     }
 
-    /// An outline in groups mode: the kind of app its windows belong to, or one made by hand.
-    enum Group: Hashable, Sendable {
+    /// An outline in groups mode: a kind of app, by the system's name for it, or one made by hand.
+    enum Group: Hashable, Codable, Sendable {
         case appType(String)
         case custom(Int)
     }
@@ -44,10 +44,11 @@ struct WindowPickerBoard: Equatable, Sendable {
         let count: Int
     }
 
-    /// Where a dragged tile was let go: on another tile, or on a section's own background.
+    /// Where a dragged tile was let go: on another tile, on a section's background, or on neither.
     enum Drop: Equatable, Sendable {
         case tile(Int)
         case section(Int)
+        case outside
     }
 
     private(set) var entries: [WindowSwitchEntry]
@@ -56,8 +57,10 @@ struct WindowPickerBoard: Equatable, Sendable {
     private(set) var mode: WindowPickerMode
     /// Groups mode only, in tile order: each section's tiles follow the one before.
     private(set) var sections: [Section] = []
-    /// Handle to a hand-made group's number; every other window falls in its app's type.
-    private(set) var customGroups: [Int: Int]
+    /// Bundle ID to the group its app was dragged into; every other app sits with its own kind.
+    private(set) var appGroups: [String: Group]
+    /// Every group known, in layout order; one first seen here joins after the ones placed before.
+    private(set) var groupOrder: [Group]
     private let appTypes: [Int: String]
     private(set) var expandedBundleID: String?
     /// What has been typed. It reorders the tiles, matches first, and never removes one.
@@ -71,14 +74,15 @@ struct WindowPickerBoard: Equatable, Sendable {
 
     init(
         entries: [WindowSwitchEntry], mode: WindowPickerMode, allowsStacking: Bool = true,
-        backwards: Bool = false, appTypes: [Int: String] = [:], customGroups: [Int: Int] = [:]
+        backwards: Bool = false, appTypes: [Int: String] = [:], appGroups: [String: Group] = [:],
+        groupOrder: [Group] = []
     ) {
+        self.groupOrder = groupOrder
         self.entries = entries
         self.allowsStacking = allowsStacking
         self.mode = allowsStacking ? mode : .windows
         self.appTypes = appTypes
-        self.customGroups = customGroups
-        dissolveLoneGroups()
+        self.appGroups = appGroups
         rebuild()
         guard tiles.count > 1 else { return }
         // The first window is where the user already is, so a press lands on the one behind it.
@@ -161,42 +165,56 @@ struct WindowPickerBoard: Equatable, Sendable {
         leftBundleID = nil
     }
 
-    /// Dropping on a window joins its hand-made group, or starts one with it.
+    /// A drag moves the window's whole app: into the group it lands on, or out into a new one.
     mutating func drop(tileAt index: Int, on drop: Drop) {
         guard mode == .groups, tiles.indices.contains(index), let moved = tiles[index].target
         else { return }
+        let destination: Group
         switch drop {
         case .tile(let targetIndex):
             guard targetIndex != index, tiles.indices.contains(targetIndex),
                 let target = tiles[targetIndex].target
             else { return }
-            let number = customGroups[target.handle] ?? (customGroups.values.max() ?? 0) + 1
-            customGroups[target.handle] = number
-            customGroups[moved.handle] = number
+            destination = group(of: target)
         case .section(let sectionIndex):
             guard sections.indices.contains(sectionIndex) else { return }
-            // An app-type outline takes nothing in: letting go there sends the window home.
-            if case .custom(let number) = sections[sectionIndex].group {
-                customGroups[moved.handle] = number
-            } else {
-                customGroups[moved.handle] = nil
+            destination = sections[sectionIndex].group
+        case .outside:
+            // Already alone in a group of its own: there is nothing further out to go.
+            let current = group(of: moved)
+            guard entries.contains(where: { $0.bundleID != moved.bundleID && group(of: $0) == current })
+            else { return }
+            let numbers = appGroups.values.compactMap { group -> Int? in
+                if case .custom(let number) = group { return number }
+                return nil
             }
+            destination = .custom((numbers.max() ?? 0) + 1)
         }
-        dissolveLoneGroups()
+        // Back with its own kind is no override at all.
+        appGroups[moved.bundleID] = destination == nativeGroup(of: moved) ? nil : destination
         rebuild()
         selection = self.index(holding: moved) ?? 0
     }
 
-    /// A group of one is no group, so its window returns to its app's type.
-    private mutating func dissolveLoneGroups() {
-        let present = Set(entries.map(\.handle))
-        customGroups = customGroups.filter { present.contains($0.key) }
-        let sizes = Dictionary(grouping: customGroups.values, by: \.self).mapValues(\.count)
-        customGroups = customGroups.filter { (sizes[$0.value] ?? 0) > 1 }
+    /// A dragged outline takes the place of the one it is dropped on.
+    mutating func moveSection(from source: Int, to destination: Int) {
+        guard mode == .groups, source != destination, sections.indices.contains(source),
+            sections.indices.contains(destination)
+        else { return }
+        let anchor = target
+        var visible = sections.map(\.group)
+        visible.insert(visible.remove(at: source), at: destination)
+        groupOrder = WindowPickerGroupBook.reordered(groupOrder, visible: visible)
+        rebuild()
+        selection = anchor.flatMap(index(holding:)) ?? 0
+    }
+
+    private func nativeGroup(of entry: WindowSwitchEntry) -> Group {
+        .appType(appTypes[entry.handle] ?? "")
     }
 
     private func group(of entry: WindowSwitchEntry) -> Group {
-        customGroups[entry.handle].map(Group.custom) ?? .appType(appTypes[entry.handle] ?? "")
+        appGroups[entry.bundleID] ?? nativeGroup(of: entry)
     }
 
     mutating func toggleStack() {
@@ -255,7 +273,6 @@ struct WindowPickerBoard: Equatable, Sendable {
         let anchor = target.flatMap { handles.contains($0.handle) ? nil : $0 }
         let previous = selection
         entries.removeAll { handles.contains($0.handle) }
-        dissolveLoneGroups()
         if let expandedBundleID, stack(for: expandedBundleID, in: entries) == nil {
             self.expandedBundleID = nil
         }
@@ -326,16 +343,26 @@ struct WindowPickerBoard: Equatable, Sendable {
         }
     }
 
-    /// Sections in the order their frontmost window appears; a search dims but never moves one.
+    /// Sections keep the places they were given, so a group is where it was last time.
     private mutating func rebuildGroups() {
-        var order: [Group] = []
-        var members: [Group: [WindowSwitchEntry]] = [:]
-        for entry in entries {
-            let group = group(of: entry)
-            if members[group] == nil { order.append(group) }
-            members[group, default: []].append(entry)
-        }
+        let members = Dictionary(grouping: entries, by: group(of:))
+        let placed = Set(groupOrder)
+        groupOrder += members.keys.filter { !placed.contains($0) }.sorted(by: Self.precedes)
+        let order = groupOrder.filter { members[$0] != nil }
         sections = order.map { Section(group: $0, count: members[$0]?.count ?? 0) }
         tiles = order.flatMap { members[$0] ?? [] }.map(Tile.window)
+    }
+
+    /// Where a group lands before anyone has placed it: hand-made, then kinds by name, then none.
+    private static func precedes(_ left: Group, _ right: Group) -> Bool {
+        switch (left, right) {
+        case (.custom(let first), .custom(let second)): first < second
+        case (.custom, .appType): true
+        case (.appType, .custom): false
+        case (.appType(let first), .appType(let second)):
+            if first.isEmpty != second.isEmpty { !first.isEmpty } else {
+                first.localizedStandardCompare(second) == .orderedAscending
+            }
+        }
     }
 }

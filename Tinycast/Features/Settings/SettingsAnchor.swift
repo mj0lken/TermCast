@@ -17,7 +17,6 @@ struct SettingsAnchor: Hashable, Sendable {
 extension SettingsAnchor {
     static let generalGlobalShortcuts = Self(tab: .general, title: "Global Shortcuts")
     static let generalSearch = Self(tab: .general, title: "Search")
-    static let generalHyperKey = Self(tab: .general, title: "Hyper Key")
     static let generalAppearance = Self(tab: .general, title: "Appearance")
     static let generalCompactShortcuts = Self(tab: .general, title: "Compact Shortcuts")
     static let generalCalculator = Self(tab: .general, title: "Calculator")
@@ -86,11 +85,15 @@ extension SettingsAnchor {
     static let navigationCommands = Self(tab: .navigation, title: "Commands")
     static let navigationMenuSearch = Self(tab: .navigation, title: "Search Menu Bar Items")
 
+    static let hyperKeyHyperKey = Self(tab: .hyperKey, title: "Hyper Key")
+    static let hyperKeyTrackpadScroll = Self(tab: .hyperKey, title: "Trackpad Scroll")
+
     static let windowSwitcherWindowSwitcher = Self(tab: .windowSwitcher, title: "Window Switcher")
     static let windowSwitcherPermissions = Self(tab: .windowSwitcher, title: "Permissions")
     static let windowSwitcherShortcuts = Self(tab: .windowSwitcher, title: "Shortcuts")
     static let windowSwitcherLayout = Self(tab: .windowSwitcher, title: "Layout")
     static let windowSwitcherOptions = Self(tab: .windowSwitcher, title: "Options")
+    static let windowSwitcherGroups = Self(tab: .windowSwitcher, title: "Groups")
     static let windowSwitcherKeys = Self(tab: .windowSwitcher, title: "Keyboard")
 
     static let windowManagementWindowManagement = Self(

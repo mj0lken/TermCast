@@ -117,13 +117,10 @@ struct SettingsHistoryTests {
             Set(grouped) == Set(SettingsTab.allCases),
             "every pane appears in exactly one sidebar group")
         expect(grouped.count == SettingsTab.allCases.count, "and none appears twice")
-        let featureTabs = SettingsSection.features.tabs
-        if let snippetsIndex = featureTabs.firstIndex(of: .snippets) {
-            expect(
-                featureTabs.indices.contains(snippetsIndex + 1)
-                    && featureTabs[snippetsIndex + 1] == .terminal,
-                "Terminal follows Snippets in the Features sidebar")
-        }
+        expect(
+            SettingsSection.features.tabs.prefix(6)
+                == [.terminal, .notch, .hyperKey, .windowManagement, .windowSwitcher, .notes],
+            "the system-wide tools lead the Features sidebar, in this order")
     }
 
     /// A selectable `List` flattens section and row IDs into one namespace.
@@ -154,8 +151,8 @@ struct SettingsHistoryTests {
 
     static func catalogFindsKnownRows() {
         let cases: [(String, SettingsTab)] = [
-            ("hyper", .general),
-            ("caps lock", .general),
+            ("hyper", .hyperKey),
+            ("caps lock", .hyperKey),
             ("launch at login", .general),
             ("automatically check for updates", .general),
             ("popup", .general),
@@ -199,12 +196,12 @@ struct SettingsHistoryTests {
         navigation.select(.clipboard)
         expect(navigation.scrollRequest == nil, "and a plain pane selection asks for no scroll")
 
-        navigation.select(.general, revealing: .section(.generalHyperKey))
+        navigation.select(.general, revealing: .section(.generalSearch))
         let first = navigation.scrollRequest
-        expect(first?.target == .section(.generalHyperKey), "a result records what it wants revealed")
+        expect(first?.target == .section(.generalSearch), "a result records what it wants revealed")
         expect(navigation.tab == .general, "and navigates to that section's pane")
 
-        navigation.select(.general, revealing: .section(.generalHyperKey))
+        navigation.select(.general, revealing: .section(.generalSearch))
         expect(navigation.scrollRequest != first, "asking twice is two distinct requests")
 
         // A stale request must not clear the one that replaced it.
@@ -221,7 +218,7 @@ struct SettingsHistoryTests {
         navigation.beginFlash(.row(.clipboardHistory, "Keep history for"))
         expect(navigation.flashing == .row(.clipboardHistory, "Keep history for"), "the revealed row is lit")
 
-        navigation.endFlash(.section(.generalHyperKey))
+        navigation.endFlash(.section(.generalSearch))
         expect(navigation.flashing != nil, "another target can't put it out")
         navigation.endFlash(.row(.clipboardHistory, "Keep history for"))
         expect(navigation.flashing == nil, "its own owner can")

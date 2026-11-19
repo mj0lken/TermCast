@@ -100,8 +100,6 @@ struct GeneralSettingsView: View {
 
             if settings.compactMode { CompactShortcutsSection() }
 
-            HyperKeySettingsSection()
-
             Section {
                 Picker(selection: $settings.calcNumberStyle) {
                     ForEach(CalcNumberStyle.allCases) { style in

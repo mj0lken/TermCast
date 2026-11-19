@@ -109,9 +109,9 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
-        + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
-        + windowManagement + notch + navigation + windowSwitcher + notes + calendar + emoji + ai
-        + quickActions + dictation + extensions + permissions
+        + appleShortcuts + fallbacks + terminal + notch + hyperKey + windowManagement
+        + windowSwitcher + notes + clipboard + snippets + fileSearch + navigation + calendar
+        + emoji + ai + quickActions + dictation + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -161,21 +161,6 @@ enum SettingsSearchCatalog {
         .init(
             .generalAppearance, "Drag to move the launcher",
             keywords: ["move", "position", "window"]),
-        .init(
-            .generalHyperKey, "Hyper Key",
-            keywords: ["modifier", "remap", "caps lock", "capslock"]),
-        .init(
-            .generalHyperKey, "Quick Press",
-            keywords: ["tap", "escape", "single press"]),
-        .init(
-            .generalHyperKey, "Include Shift (⇧)",
-            keywords: ["modifier", "chord"]),
-        .init(
-            .generalHyperKey, "Secure Input Compatibility",
-            keywords: ["password", "secure input", "right control"]),
-        .init(
-            .generalHyperKey, "Trackpad Scroll Sliders",
-            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"]),
         .init(
             .generalCalculator, "Number format",
             keywords: ["decimal", "comma", "separator", "locale", "region", "thousands"]),
@@ -526,6 +511,27 @@ enum SettingsSearchCatalog {
         .init(
             .navigationMenuSearch, "Excluded Applications",
             keywords: ["exclude", "password manager", "ignore", "privacy", "menu bar"])
+    ]
+
+    private static let hyperKey: [SettingsSearchEntry] = [
+        .init(
+            pane: .hyperKey,
+            keywords: ["caps lock", "modifier", "remap", "trackpad", "brightness", "volume"]),
+        .init(
+            .hyperKeyHyperKey, "Hyper Key",
+            keywords: ["modifier", "remap", "caps lock", "capslock"]),
+        .init(
+            .hyperKeyHyperKey, "Quick Press",
+            keywords: ["tap", "escape", "single press"]),
+        .init(
+            .hyperKeyHyperKey, "Include Shift (⇧)",
+            keywords: ["modifier", "chord"]),
+        .init(
+            .hyperKeyHyperKey, "Secure Input Compatibility",
+            keywords: ["password", "secure input", "right control"]),
+        .init(
+            .hyperKeyTrackpadScroll, "Trackpad Scroll Sliders",
+            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"])
     ]
 
     private static let windowSwitcher: [SettingsSearchEntry] = [

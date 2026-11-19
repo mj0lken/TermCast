@@ -55,8 +55,7 @@ once; on a closed stack it opens the stack, whose windows are then numbered in t
 app with a single window stays a plain window tile. Releasing on a stack switches to its frontmost
 window. A selected stack opens by itself after `windowPickerStackDelay` (400–1500 ms, or never),
 or at once on a right ⇧ tap; opened, the panel shows only that app's windows and stepping stays
-inside it. `windowPickerStartMode` is only how a show *starts* — a left ⇧ change lasts for that
-show and is never written back. A stack stepped out of does not reopen by itself while it is
+inside it. `windowPickerStartMode` is the mode a show opens in. A stack stepped out of does not reopen by itself while it is
 still selected (`canAutoExpandSelection`): moving off it and back re-arms the delay, and right ⇧
 or its number opens it at once regardless. A stack's stack is drawn from its next two windows' previews.
 
@@ -71,25 +70,41 @@ windows dropped.
 closes the picker and opens Settings › Window Switcher, whose **Keyboard** section lists every key
 — including which form of W/Q/H the search setting currently leaves.
 
-**Modes.** `WindowPickerMode` is windows, stacks or groups; `windowPickerStartMode` is how a show
-starts and left ⇧ walks the three for that show only. One app's windows (the second shortcut) are
-always plain windows.
+**Modes.** `WindowPickerMode` is windows, stacks or groups. Left ⇧ walks the three and the one
+walked to is written back to `windowPickerStartMode`, so the next show opens the way the last was
+left; the Settings picker edits the same value. One app's windows (the second shortcut) are always
+plain windows and never write it.
 
 **Groups.** In groups mode every window is its own tile, gathered into outlined boxes
-(`WindowPickerBoard.Section`). A window's group is the kind of app it belongs to — the system's own
-category name, read by `WindowPickerAppTypes` from Spotlight's `kMDItemAppStoreCategory`, with
-"Other" for an app that declares none — unless it has been put in a hand-made one:
+(`WindowPickerBoard.Section`). An app's group is its kind — the system's own category name, read by
+`WindowPickerAppTypes` from Spotlight's `kMDItemAppStoreCategory`, with "Other" for an app that
+declares none — unless it has been dragged somewhere else. A drag moves the window's **whole app**:
 
-- dropping a tile on another window joins that window's hand-made group, or starts "Group N" with it;
-- dropping on a hand-made group's outline joins it; on an app-type outline, sends the window home;
-- a hand-made group left with one window dissolves.
+- onto a window or an outline: the app joins that group, app-type or hand-made alike;
+- past every outline: the app starts a hand-made group of its own, "Group N";
+- back onto its own kind: the override is dropped rather than stored.
 
-Hand-made groups are per window and last until the app quits: the coordinator keeps them by
-`CGWindowID` and seeds each show's board from that, so nothing is written to disk. Boxes are laid out
-by `WindowPickerGeometry.groupLayout`, near-square each and flowing left to right, and the view
-places tiles by those frames rather than a grid so a drop can be matched to what lies under it. The
-arrows use `neighbor(of:_:in:)` — the nearest tile that way — because boxes share no rows. A search
-dims here but reorders nothing, and the row limit does not apply.
+Per app, not per window, because a window has no identity that survives a relaunch. Everything
+remembered about groups is one value, `WindowPickerGroupBook` — which app was moved where, the
+groups' order, and each one's name and shade — held by `WindowPickerGroupStore` on `AppCore` and
+written to `window-groups.json` in Application Support, so it holds across restarts. An app that is
+not running keeps its entry.
+
+**Order, names and shades.** The book's `entries` are every group seen so far, in layout order. A
+kind of app met for the first time is appended in its default place (hand-made, then kinds by name,
+then "Other") and from then on stays where it is put: dragging an outline onto another gives it
+that one's place (`moveSection`), and `reordered(_:visible:)` leaves groups that are not on screen
+in their slots. A group's name and shade are edited in Settings › Window Switcher › Groups, which
+lists the book; an empty name keeps the group's own, and the automatic shade is dealt from
+`WindowPickerGroupTint.palette` by position, so it only changes when the order does. Reset Groups
+empties the book.
+
+Sections sort hand-made first by number, then kinds by name, then "Other" — fixed places, so a group
+is where it was last time whatever was used most recently. `WindowPickerGeometry.groupLayout` makes
+each box near-square, flows them left to right, levels the boxes on a line to one height and centres
+a short line. The view places tiles by those frames rather than a grid so a drop can be matched to
+what lies under it. The arrows use `neighbor(of:_:in:)` — the nearest tile that way — because boxes
+share no rows. A search dims here but reorders nothing, and the row limit does not apply.
 
 ## Invariants
 
@@ -126,7 +141,10 @@ dims here but reorders nothing, and the row limit does not apply.
 | `Model/WindowPickerOrder.swift` | per-window front-to-back order over the per-app fallback |
 | `Model/WindowPickerGeometry.swift` | the grid: columns, tile size, panel size |
 | `Model/WindowPickerChord.swift`, `…StackDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare`, `…Mode` | the setting enums |
+| `Model/WindowPickerGroupBook.swift`, `WindowPickerGroupTint.swift` | what is remembered about groups; pure |
+| `Service/WindowPickerGroupStore.swift` | the book on disk, observed by Settings and the picker |
 | `Service/WindowPickerAppTypes.swift` | an app's category name, cached per bundle |
+| `Service/WindowPickerGroupStore.swift` | the apps dragged out of their kind, on disk |
 | `Service/WindowPickerTap.swift` | the event tap and its worker thread |
 | `Service/WindowPickerSession.swift` | one show's observable state and its live AX elements |
 | `Service/WindowThumbnailProvider.swift` | ScreenCaptureKit captures, off the main actor |

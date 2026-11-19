@@ -10,17 +10,16 @@ final class WindowPickerCoordinator: HealthCheckable {
     private var thumbnails: Task<Void, Never>?
     private var stackOpening: Task<Void, Never>?
     private let appTypes = WindowPickerAppTypes()
-    /// Hand-made groups outlive a show but not the windows in them, so they key on window IDs.
-    private var customGroups: [CGWindowID: Int] = [:]
-    private var shownWindowIDs: [Int: CGWindowID] = [:]
+    private let groupStore: WindowPickerGroupStore
     /// Bumped per show, so a preview captured for an earlier one is never applied.
     private var generation = 0
 
     weak var healthTicker: HealthTicker?
     var onOpenSettings: (() -> Void)?
 
-    init(settings: AppSettings, session: WindowPickerSession) {
+    init(settings: AppSettings, session: WindowPickerSession, groups: WindowPickerGroupStore) {
         self.settings = settings
+        groupStore = groups
         self.session = session
         tap.onCommand = { [weak self] in self?.handle($0) }
     }
@@ -128,7 +127,10 @@ final class WindowPickerCoordinator: HealthCheckable {
         case .step(let offset): change { $0.step(by: offset) }
         case .move(let direction):
             move(direction)
-        case .cycleMode: change { $0.cycleMode() }
+        case .cycleMode:
+            change { $0.cycleMode() }
+            rememberMode()
+            rememberGroups()
         case .toggleStack: change { $0.toggleStack() }
         case .pick(let index): pick(number: index)
         case .perform(let action): perform(action)
@@ -162,24 +164,27 @@ final class WindowPickerCoordinator: HealthCheckable {
 
         tap.install(engine: engine())
         generation &+= 1
-        shownWindowIDs = windowIDs
         session.present(
             WindowPickerBoard(
                 entries: ordered, mode: settings.windowPickerStartMode,
                 allowsStacking: scope == .allWindows, backwards: backwards,
                 appTypes: snapshot.elements.mapValues { appTypes.name(for: $0.app) },
-                customGroups: windowIDs.compactMapValues { customGroups[$0] }),
+                appGroups: groupStore.book.apps, groupOrder: groupStore.book.order),
             elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
         guard let layout = session.layout else { return close() }
+        rememberGroups()
         controller.show(
             WindowPickerView(
-                session: session,
+                session: session, groups: groupStore,
                 onOpenSettings: { [weak self] in
                     self?.close()
                     self?.onOpenSettings?()
                 },
                 onPick: { [weak self] in self?.pick($0) },
-                onDrop: { [weak self] index, drop in self?.regroup(index, onto: drop) }),
+                onDrop: { [weak self] index, drop in self?.regroup(index, onto: drop) },
+                onMoveSection: { [weak self] source, destination in
+                    self?.moveSection(source, to: destination)
+                }),
             size: layout.panel, on: screen)
         capturePreviews(of: ordered, windowIDs: windowIDs, scale: screen.backingScaleFactor)
         scheduleStackOpening()
@@ -198,11 +203,29 @@ final class WindowPickerCoordinator: HealthCheckable {
 
     private func regroup(_ index: Int, onto drop: WindowPickerBoard.Drop) {
         change { $0.drop(tileAt: index, on: drop) }
-        guard let board = session.board else { return }
-        for windowID in shownWindowIDs.values { customGroups[windowID] = nil }
-        for (handle, number) in board.customGroups {
-            if let windowID = shownWindowIDs[handle] { customGroups[windowID] = number }
+        rememberGroups()
+    }
+
+    private func moveSection(_ source: Int, to destination: Int) {
+        change { $0.moveSection(from: source, to: destination) }
+        rememberGroups()
+    }
+
+    /// Also run on open, so a kind of app seen for the first time is there to name in Settings.
+    private func rememberGroups() {
+        guard let board = session.board, board.mode == .groups else { return }
+        groupStore.update {
+            $0.apps = board.appGroups
+            $0.setOrder(board.groupOrder)
         }
+    }
+
+    /// The mode last walked to is the one the next show opens in.
+    private func rememberMode() {
+        guard let board = session.board, board.allowsStacking, board.expandedStack == nil,
+            settings.windowPickerStartMode != board.mode
+        else { return }
+        settings.windowPickerStartMode = board.mode
     }
 
     private func change(_ mutation: (inout WindowPickerBoard) -> Void) {

@@ -11,6 +11,7 @@
 		005B39EF22378D1736CE5805 /* TerminalLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2EAA357A9F0317320CFAADF /* TerminalLogView.swift */; };
 		00BA80B95E15859F0FDA6F16 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D4F22647E4E1BA19F0FC520 /* AppVersion.swift */; };
 		00C09E86C3FC4738CF74F1F2 /* BackupStaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = B620894347E87EC4130CA4C8 /* BackupStaging.swift */; };
+		00D6D4444CCF0D0B9522466F /* WindowPickerGroupBook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834D66AB00A0A75624E3C42B /* WindowPickerGroupBook.swift */; };
 		00D813D3D99D0856E743168B /* ScreenTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C7C096F258D1EC8B42F818 /* ScreenTarget.swift */; };
 		0120AF7AB3AD249C484C8A03 /* ExtensionStoreResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7732FB0ED92C8FBFE22599CE /* ExtensionStoreResponse.swift */; };
 		01388C5D4C65E60CAF38B067 /* ExtensionDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A660CA7A22E900E0EE2B90F /* ExtensionDeepLink.swift */; };
@@ -196,6 +197,7 @@
 		32F07745203DE68464A2EBBA /* WindowPickerOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59E318B142943A1633A6522C /* WindowPickerOrder.swift */; };
 		330540BBA991E36DD4C4BF53 /* ExtensionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46762A28D73339953019C0AA /* ExtensionsSettingsView.swift */; };
 		330AFCA575D718AD10430FBD /* MenuSearchShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730BF08D764698989DF963A0 /* MenuSearchShortcut.swift */; };
+		338BA1915A58D9A8226D4933 /* HyperKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748A8F4899A0A43DB34FA1EE /* HyperKeySettingsView.swift */; };
 		33A8CB86227436FF053D8F98 /* WindowPickerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA6926E92655C03B47E3526 /* WindowPickerSettingsView.swift */; };
 		33CDC9C90C19C0B87F37C7AA /* DictationTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3514AC5995904AFF15855E68 /* DictationTokenizer.swift */; };
 		341B31B38EAE70EDFD1BA691 /* MeetingDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDBAD3F666C10A869A4EAADB /* MeetingDetailsView.swift */; };
@@ -446,6 +448,7 @@
 		6D241F01F4BB98AAE1720330 /* InstalledAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76D9592F0809DEC9993684A /* InstalledAI.swift */; };
 		6D61C5110CA0B20BADA72002 /* InstalledAILaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7F40DAD48109685138513E /* InstalledAILaunch.swift */; };
 		6D671A452C1A80946D49E69B /* ClipboardEditField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51903548B005B2EF070C8AE2 /* ClipboardEditField.swift */; };
+		6DC02CBC1C848A4194465A1E /* WindowPickerGroupTint.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5EE806146AE9917197B5D60 /* WindowPickerGroupTint.swift */; };
 		6DF4A9893BDDCC5C03DF6FDA /* NotchHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52DC022709052F6493B0559C /* NotchHUDController.swift */; };
 		6E6C27BE575CACD8A0070311 /* LauncherSettingsFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65369C9F6E1AE2770348BD6 /* LauncherSettingsFile.swift */; };
 		6E8DE25684E7C1CB815B7EF5 /* WindowPickerBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF1524B88B7F4E4FC25AEA5 /* WindowPickerBoard.swift */; };
@@ -609,6 +612,7 @@
 		9A80D2997DCF835AF225A586 /* RunningAppsMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB5FA545F484D7666E9A5F14 /* RunningAppsMonitor.swift */; };
 		9A944FE76632BFD00134E697 /* NotchHUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0C0C78D76FCDA91A1D35FC /* NotchHUDView.swift */; };
 		9AA3CF9A3494776DC8E772A8 /* ColorDot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A068600862BC729F0565D67 /* ColorDot.swift */; };
+		9AAA6560CAD0A8B99484C30D /* WindowPickerGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F602293896D72C41F881ECE /* WindowPickerGroupStore.swift */; };
 		9AB58511EEDCD01E6139D194 /* NoteEditPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83BB8F2CE628925F41B330B5 /* NoteEditPlan.swift */; };
 		9B05C47A7414D04E20237B09 /* RenderNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A1D354C1785923E612848C /* RenderNode.swift */; };
 		9B3BC1DCC478DA7517F04182 /* CalculatorHistoryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86545F54669A075FBDA5D1F1 /* CalculatorHistoryScreen.swift */; };
@@ -1106,6 +1110,7 @@
 		0F1A3A9CEDBEBC132FC4A552 /* WindowSwitchSweep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSwitchSweep.swift; sourceTree = "<group>"; };
 		0F5730EA67D6E91ABAD8F446 /* AIEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIEmptyState.swift; sourceTree = "<group>"; };
 		0F5AFB680B55BBAFF2207F99 /* NotesCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesCoordinator.swift; sourceTree = "<group>"; };
+		0F602293896D72C41F881ECE /* WindowPickerGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerGroupStore.swift; sourceTree = "<group>"; };
 		0F7F40DAD48109685138513E /* InstalledAILaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAILaunch.swift; sourceTree = "<group>"; };
 		102B53830D247FAE19479BCA /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
 		1037A76A7501EA4BCCD545B5 /* CustomCommandListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCommandListScreen.swift; sourceTree = "<group>"; };
@@ -1506,6 +1511,7 @@
 		73E25B87C692D5FEE1FBF994 /* PanelTransition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelTransition.swift; sourceTree = "<group>"; };
 		741FA289335C5264BCBBE17C /* RoomStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomStore.swift; sourceTree = "<group>"; };
 		74284B4E771DA0B2869C914E /* RaycastRuntime.generated.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = RaycastRuntime.generated.js; sourceTree = "<group>"; };
+		748A8F4899A0A43DB34FA1EE /* HyperKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKeySettingsView.swift; sourceTree = "<group>"; };
 		748CCECBE0CAA135B82AC1EB /* TerminalFolderStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalFolderStrip.swift; sourceTree = "<group>"; };
 		74904E7C8CE9B121B32594B9 /* TextInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjector.swift; sourceTree = "<group>"; };
 		75614189EED9B440D911B412 /* FallbackStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackStore.swift; sourceTree = "<group>"; };
@@ -1565,6 +1571,7 @@
 		823F8F6B9EAAD17DD1062137 /* SyntaxStructuredLexers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxStructuredLexers.swift; sourceTree = "<group>"; };
 		82B5E917A4EFDC153C6780E8 /* ModifierKeyDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierKeyDetector.swift; sourceTree = "<group>"; };
 		82DB32B7ACED5BE2BEE7451F /* ClipboardTextHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextHelper.swift; sourceTree = "<group>"; };
+		834D66AB00A0A75624E3C42B /* WindowPickerGroupBook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerGroupBook.swift; sourceTree = "<group>"; };
 		83B8A0E68E42CACCB1F38094 /* Room.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Room.swift; sourceTree = "<group>"; };
 		83BB8F2CE628925F41B330B5 /* NoteEditPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditPlan.swift; sourceTree = "<group>"; };
 		83C54F3A609CD1C2CDF304FB /* DoubleTapDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleTapDetector.swift; sourceTree = "<group>"; };
@@ -1834,6 +1841,7 @@
 		C54C4540AD6F188A2455473F /* ExtensionRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionRuntime.swift; sourceTree = "<group>"; };
 		C5941CE8F08FD5986FED12E9 /* QuickActionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsSettingsView.swift; sourceTree = "<group>"; };
 		C5BA06E4CC7E8D40E3285F16 /* KeyCapChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCapChip.swift; sourceTree = "<group>"; };
+		C5EE806146AE9917197B5D60 /* WindowPickerGroupTint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerGroupTint.swift; sourceTree = "<group>"; };
 		C6BFE2D76445DBF0861B3EF3 /* NotchShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShelfStore.swift; sourceTree = "<group>"; };
 		C7B3FC48B58E1005453E7E18 /* Snippet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snippet.swift; sourceTree = "<group>"; };
 		C7C0F66A568B254D17C11355 /* LocalizedResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedResource.swift; sourceTree = "<group>"; };
@@ -3299,6 +3307,7 @@
 			isa = PBXGroup;
 			children = (
 				37D4F32F767330AD1273B3D0 /* WindowPickerAppTypes.swift */,
+				0F602293896D72C41F881ECE /* WindowPickerGroupStore.swift */,
 				5B8DFB864A47795F30214480 /* WindowPickerSession.swift */,
 				71333167E1D81E82923DBD8B /* WindowPickerTap.swift */,
 				491B8A6ED9732D9B0A33026C /* WindowSwitchSession.swift */,
@@ -3708,6 +3717,7 @@
 			children = (
 				5F0DB676C8D5893F95AA0E32 /* HyperKeyDiagnosticsSection.swift */,
 				A2BB93BC8E1694F14B0194AA /* HyperKeySettingsSection.swift */,
+				748A8F4899A0A43DB34FA1EE /* HyperKeySettingsView.swift */,
 				7B1BA1211BA5DBE26039AD58 /* HyperKeyTrackpadDiagramView.swift */,
 			);
 			path = Settings;
@@ -4238,6 +4248,8 @@
 				7FA4FD9FF7C426D0B647B4BF /* WindowPickerChord.swift */,
 				9D4C9A8736252E3B76F24E71 /* WindowPickerGeometry.swift */,
 				CB1D16CD5671459000189485 /* WindowPickerGridLimit.swift */,
+				834D66AB00A0A75624E3C42B /* WindowPickerGroupBook.swift */,
+				C5EE806146AE9917197B5D60 /* WindowPickerGroupTint.swift */,
 				2AAA3892CC34F7F8AC0FAA28 /* WindowPickerKeyEngine.swift */,
 				13A032EF1F194E9D1A4F4975 /* WindowPickerMode.swift */,
 				59E318B142943A1633A6522C /* WindowPickerOrder.swift */,
@@ -5005,6 +5017,7 @@
 				321461D5E9B08C43757A0C57 /* HyperKeyEngine.swift in Sources */,
 				095964C2CAFAC9D3E34C25C6 /* HyperKeyManager.swift in Sources */,
 				FEDCCB8E3425E9B88A2F39F8 /* HyperKeySettingsSection.swift in Sources */,
+				338BA1915A58D9A8226D4933 /* HyperKeySettingsView.swift in Sources */,
 				122CA8786B58966376B27DC1 /* HyperKeyTap.swift in Sources */,
 				31B57CA4854EA9FED4A359E8 /* HyperKeyTrackpadDiagramView.swift in Sources */,
 				47B639CC4AF611A99CD1CBB6 /* HyperScrollEngine.swift in Sources */,
@@ -5488,6 +5501,9 @@
 				95CF0A387FAE7715E3DF4FB3 /* WindowPickerCoordinator.swift in Sources */,
 				13CC4556C34746CE18675E02 /* WindowPickerGeometry.swift in Sources */,
 				57BAF69BF778A19635BAF7B3 /* WindowPickerGridLimit.swift in Sources */,
+				00D6D4444CCF0D0B9522466F /* WindowPickerGroupBook.swift in Sources */,
+				9AAA6560CAD0A8B99484C30D /* WindowPickerGroupStore.swift in Sources */,
+				6DC02CBC1C848A4194465A1E /* WindowPickerGroupTint.swift in Sources */,
 				D692E33454F1D4DABE3346A1 /* WindowPickerKeyEngine.swift in Sources */,
 				C0FFBFC36A6ED7038D3292FB /* WindowPickerMode.swift in Sources */,
 				32F07745203DE68464A2EBBA /* WindowPickerOrder.swift in Sources */,

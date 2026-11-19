@@ -1,7 +1,7 @@
 enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, notch, navigation,
-        windowSwitcher, notes, calendar, emoji, dictation, ai, quickActions, extensions,
+        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, notch, hyperKey,
+        navigation, windowSwitcher, notes, calendar, emoji, dictation, ai, quickActions, extensions,
         permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
@@ -27,6 +27,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .fileSearch: "file-search"
         case .windowManagement: "window-management"
         case .notch: "notch"
+        case .hyperKey: "hyper-key"
         case .navigation: "navigation"
         case .windowSwitcher: "window-switcher"
         case .notes: "notes"
@@ -63,6 +64,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .windowSwitcher: return String(localized: "Window Switcher")
         case .windowManagement: return String(localized: "Window Management")
         case .notch: return String(localized: "Notch")
+        case .hyperKey: return String(localized: "Hyper Key")
         case .clipboard: return String(localized: "Clipboard")
         case .emoji: return String(localized: "Emoji & Symbols")
         case .terminal: return String(localized: "Terminal")
@@ -94,6 +96,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .windowSwitcher: return "rectangle.on.rectangle"
         case .windowManagement: return "macwindow"
         case .notch: return "menubar.dock.rectangle"
+        case .hyperKey: return "capslock"
         case .clipboard: return "paperclip"
         case .emoji: return "face.smiling"
         case .terminal: return "apple.terminal"
@@ -130,11 +133,11 @@ enum SettingsSection: CaseIterable, Identifiable {
                 .appleShortcuts, .fallbacks
             ]
         case .features:
-            // Everyday tools first; AI and extensions are opt-in extras.
+            // The system-wide tools lead; AI and extensions are opt-in extras.
             return [
-                .clipboard, .snippets, .terminal, .fileSearch, .windowManagement, .notch,
-                .navigation, .windowSwitcher, .notes, .calendar, .emoji, .dictation, .ai,
-                .quickActions, .extensions
+                .terminal, .notch, .hyperKey, .windowManagement, .windowSwitcher, .notes,
+                .clipboard, .snippets, .fileSearch, .navigation, .calendar, .emoji, .dictation,
+                .ai, .quickActions, .extensions
             ]
         case .advanced: return [.backup, .about]
         }

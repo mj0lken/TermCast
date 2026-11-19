@@ -53583,6 +53583,58 @@
         }
       }
     },
+    "Drag an outline onto another to change their order." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe einen Rahmen auf einen anderen, um die Reihenfolge zu ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra un recuadro sobre otro para cambiar su orden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser un cadre sur un autre pour modifier leur ordre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "枠を別の枠にドラッグすると順序を変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테두리를 다른 테두리 위로 드래그하면 순서가 바뀝니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste um contorno sobre outro para alterar a ordem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащите рамку на другую, чтобы изменить порядок."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将一个边框拖到另一个上即可调整顺序。"
+          }
+        }
+      }
+    },
     "Drag to move the launcher" : {
       "localizations" : {
         "de" : {
@@ -53683,6 +53735,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拖离已平铺的窗口会恢复其先前的大小。"
+          }
+        }
+      }
+    },
+    "Dragging a window in groups view moves its app, and that is remembered." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Ziehen eines Fensters in der Gruppenansicht verschiebt seine App, und das wird gemerkt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastrar una ventana en la vista de grupos mueve su app, y eso se recuerda."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire glisser une fenêtre dans la vue en groupes déplace son app, et ce choix est mémorisé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グループ表示でウインドウをドラッグするとそのアプリが移動し、その配置は記憶されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그룹 보기에서 윈도우를 드래그하면 해당 앱이 이동하며, 이는 기억됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastar uma janela na visualização em grupos move o app dela, e isso é lembrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетаскивание окна в режиме групп перемещает его приложение, и это запоминается."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在群组视图中拖移窗口会移动它所属的 App，并且会被记住。"
           }
         }
       }
@@ -65571,6 +65675,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "群组"
+          }
+        }
+      }
+    },
+    "Groups appear here once the switcher has shown them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gruppen erscheinen hier, sobald der Umschalter sie angezeigt hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los grupos aparecen aquí cuando el selector los haya mostrado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les groupes apparaissent ici une fois que le sélecteur les a affichés."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グループは、スイッチャーで一度表示されるとここに現れます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그룹은 전환기에 한 번 표시된 뒤 여기에 나타납니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os grupos aparecem aqui depois que o alternador os tiver mostrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группы появятся здесь после того, как переключатель их покажет."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "群组在切换器中显示过后会出现在这里。"
           }
         }
       }
@@ -77894,6 +78050,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "左 ⇧"
+          }
+        }
+      }
+    },
+    "Left ⇧ in the switcher changes this too; it reopens the way it was left." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die linke ⇧ im Umschalter ändert dies ebenfalls; er öffnet sich so, wie er verlassen wurde."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ⇧ izquierda en el selector también lo cambia; se vuelve a abrir tal como se dejó."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La touche ⇧ gauche dans le sélecteur le modifie aussi ; il se rouvre tel qu’il a été laissé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャー内で左⇧を押しても変わり、次回は前回の表示のまま開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전환기에서 왼쪽 ⇧을 눌러도 바뀌며, 마지막 상태 그대로 다시 열립니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ⇧ esquerda no alternador também muda isto; ele reabre como foi deixado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Левый ⇧ в переключателе тоже меняет это; он открывается так, как был оставлен."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在切换器中按左 ⇧ 也会更改此项；下次会按上次的方式打开。"
           }
         }
       }
@@ -112725,6 +112933,58 @@
         }
       }
     },
+    "Reset Groups" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gruppen zurücksetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer grupos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser les groupes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グループをリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그룹 재설정"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redefinir grupos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить группы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置群组"
+          }
+        }
+      }
+    },
     "Reset Ranking" : {
       "comment" : "Forget learned launcher ranking for one item",
       "localizations" : {
@@ -127589,58 +127849,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "叠放"
-          }
-        }
-      }
-    },
-    "Stacks pile each app’s windows; groups outline them by kind of app." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stapel legen die Fenster jeder App übereinander; Gruppen umrahmen sie nach App-Art."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las pilas amontonan las ventanas de cada app; los grupos las enmarcan por tipo de app."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les piles superposent les fenêtres de chaque app ; les groupes les encadrent par type d’app."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スタックはアプリごとにウインドウを重ね、グループはアプリの種類ごとに枠で囲みます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스택은 앱별로 윈도우를 겹치고, 그룹은 앱 종류별로 테두리로 묶습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As pilhas empilham as janelas de cada app; os grupos as contornam por tipo de app."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Стопки складывают окна каждого приложения; группы обводят их по типу приложения."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "叠放将每个 App 的窗口叠在一起；群组按 App 类型用边框归类。"
           }
         }
       }
@@ -145822,6 +146030,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "还款总额"
+          }
+        }
+      }
+    },
+    "Trackpad Scroll" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trackpad-Scrollen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplazamiento del trackpad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défilement au trackpad"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラックパッドスクロール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "트랙패드 스크롤"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rolagem do trackpad"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прокрутка трекпадом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触控板滚动"
           }
         }
       }

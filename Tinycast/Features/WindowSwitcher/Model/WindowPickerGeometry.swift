@@ -100,10 +100,12 @@ enum WindowPickerGeometry {
         let widest = max(Int((width - sectionPadding * 2 + gap) / (tile.width + gap)), 1)
         var origin = CGPoint.zero
         var lineHeight: CGFloat = 0
+        var lines: [[Int]] = [[]]
+        var tileRanges: [Range<Int>] = []
         for count in sizes.map({ max($0, 1) }) {
             // Near-square by default, so a big group does not become one long ribbon.
-            let wanted = limits.maxColumns > 0 ? limits.maxColumns : Int(Double(count).squareRoot().rounded(.up))
-            let columns = min(count, wanted, widest)
+            let square = Int(Double(count).squareRoot().rounded(.up))
+            let columns = min(count, limits.maxColumns > 0 ? limits.maxColumns : square, widest)
             let rows = (count + columns - 1) / columns
             let box = CGSize(
                 width: CGFloat(columns) * (tile.width + gap) - gap + sectionPadding * 2,
@@ -112,8 +114,11 @@ enum WindowPickerGeometry {
             if origin.x > 0, origin.x + box.width > width {
                 origin = CGPoint(x: 0, y: origin.y + lineHeight + sectionGap)
                 lineHeight = 0
+                lines.append([])
             }
+            lines[lines.count - 1].append(flow.sections.count)
             flow.sections.append(CGRect(origin: origin, size: box))
+            let first = flow.tiles.count
             for index in 0..<count {
                 flow.tiles.append(
                     CGRect(
@@ -122,12 +127,28 @@ enum WindowPickerGeometry {
                             + CGFloat(index / columns) * (tile.height + gap),
                         width: tile.width, height: tile.height))
             }
+            tileRanges.append(first..<flow.tiles.count)
             flow.size.width = max(flow.size.width, origin.x + box.width)
             lineHeight = max(lineHeight, box.height)
             flow.size.height = origin.y + lineHeight
             origin.x += box.width + sectionGap
         }
+        level(&flow, lines: lines, tileRanges: tileRanges)
         return flow
+    }
+
+    /// Boxes on one line share its height, and a short line sits centred under the widest.
+    private static func level(_ flow: inout Flow, lines: [[Int]], tileRanges: [Range<Int>]) {
+        for line in lines {
+            guard let last = line.last else { continue }
+            let height = line.map { flow.sections[$0].height }.max() ?? 0
+            let shift = ((flow.size.width - flow.sections[last].maxX) / 2).rounded()
+            for section in line {
+                flow.sections[section].size.height = height
+                flow.sections[section].origin.x += shift
+                for tile in tileRanges[section] { flow.tiles[tile].origin.x += shift }
+            }
+        }
     }
 
     /// The nearest tile lying in a direction, for arrows over boxes that share no grid.

@@ -94,7 +94,7 @@ struct WindowPickerSettingsView: View {
                     }
                 } label: {
                     SettingsRowTitle(.windowSwitcherOptions, "Start with")
-                    Text("Stacks pile each app’s windows; groups outline them by kind of app.")
+                    Text("Left ⇧ in the switcher changes this too; it reopens the way it was left.")
                 }
                 Picker(selection: $settings.windowPickerStackDelay) {
                     ForEach(WindowPickerStackDelay.allCases) { delay in
@@ -106,6 +106,26 @@ struct WindowPickerSettingsView: View {
                 }
             } header: {
                 SettingsSectionHeader(.windowSwitcherOptions)
+            }
+            .settingsEnabled(settings.windowPickerEnabled)
+
+            Section {
+                if groups.book.entries.isEmpty {
+                    Text("Groups appear here once the switcher has shown them.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(groups.book.entries) { entry in
+                    groupRow(entry)
+                }
+                LabeledContent {
+                    Button("Reset Groups") { groups.update { $0 = WindowPickerGroupBook() } }
+                        .disabled(groups.book == WindowPickerGroupBook())
+                } label: {
+                    Text("Dragging a window in groups view moves its app, and that is remembered.")
+                    Text("Drag an outline onto another to change their order.")
+                }
+            } header: {
+                SettingsSectionHeader(.windowSwitcherGroups)
             }
             .settingsEnabled(settings.windowPickerEnabled)
 
@@ -188,6 +208,32 @@ struct WindowPickerSettingsView: View {
         guard isWalkingGrants, trusted else { return }
         if needsScreenRecording { grantScreenRecording() }
         isWalkingGrants = false
+    }
+
+    private var groups: WindowPickerGroupStore { core.windowPickerGroups }
+
+    private func groupRow(_ entry: WindowPickerGroupBook.Entry) -> some View {
+        let style = Binding(
+            get: { groups.book.style(for: entry.group) },
+            set: { style in groups.update { $0.setStyle(style, for: entry.group) } })
+        return HStack(spacing: Theme.Spacing.lg) {
+            Circle()
+                .fill(groups.book.tint(for: entry.group).color)
+                .frame(width: 10, height: 10)
+                .accessibilityHidden(true)
+            TextField(
+                "Name", text: style.name,
+                prompt: Text(verbatim: WindowPickerGroupStore.defaultTitle(for: entry.group))
+            )
+            .labelsHidden()
+            Picker("Color", selection: style.tint) {
+                ForEach(WindowPickerGroupTint.allCases) { tint in
+                    Text(verbatim: tint.title).tag(tint)
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+        }
     }
 
     private func keyRow(_ action: LocalizedStringKey, keys: String) -> some View {

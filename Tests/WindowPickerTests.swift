@@ -48,6 +48,7 @@ struct WindowPickerTests {
         frontAppBoard()
         removal()
         groupsBoard()
+        groupOrderAndStyles()
         searching()
         geometry()
 
@@ -308,48 +309,104 @@ struct WindowPickerTests {
         typealias Group = WindowPickerBoard.Group
         var board = WindowPickerBoard(entries: desk, mode: .groups, appTypes: kinds)
         func handles() -> [Int] { board.tiles.compactMap { $0.target?.handle } }
+        func tile(_ handle: Int) -> Int { board.tiles.firstIndex { $0.target?.handle == handle } ?? -1 }
+        func section(_ group: Group) -> Int { board.sections.firstIndex { $0.group == group } ?? -1 }
         expect(
-            board.sections.map(\.group) == [.appType("Productivity"), .appType("Browser")],
-            "windows gather by kind of app, in the order each kind first appears")
-        expect(board.sections.map(\.count) == [4, 2] && handles() == [0, 2, 3, 5, 1, 4], "kind by kind")
+            board.sections.map(\.group) == [.appType("Browser"), .appType("Productivity")],
+            "windows gather by kind of app, kinds in name order so they keep their places")
+        expect(board.sections.map(\.count) == [2, 4] && handles() == [1, 4, 0, 2, 3, 5], "kind by kind")
         expect(board.target?.handle == 1, "and it still opens on the window behind the current one")
         expect(!board.canExpandSelection, "groups hold windows, never stacks")
 
-        board.drop(tileAt: 4, on: .tile(2))
+        board.drop(tileAt: tile(3), on: .tile(tile(1)))
         expect(
-            board.sections.map(\.group) == [.appType("Productivity"), .custom(1), .appType("Browser")],
-            "dropping one window on another starts a group of the two: \(board.sections)")
-        expect(board.customGroups == [1: 1, 3: 1] && board.target?.handle == 1, "selecting the moved one")
-        board.drop(tileAt: 0, on: .tile(board.tiles.firstIndex { $0.target?.handle == 3 } ?? -1))
-        expect(board.customGroups == [0: 1, 1: 1, 3: 1], "dropping on a grouped window joins its group")
-        let custom = board.sections.firstIndex { $0.group == .custom(1) } ?? -1
-        board.drop(tileAt: board.tiles.firstIndex { $0.target?.handle == 5 } ?? -1, on: .section(custom))
-        expect(board.customGroups[5] == 1, "as does dropping on the group's own outline")
+            board.appGroups == ["com.example.mail": .appType("Browser")] && board.target?.handle == 3,
+            "dropping on a window moves the dragged app into that window's group")
+        expect(board.sections.map(\.count) == [3, 3], "with every window of the app")
+        board.drop(tileAt: tile(3), on: .section(section(.appType("Productivity"))))
+        expect(board.appGroups.isEmpty, "dropped back on its own kind, the app has no override left")
 
-        let kind = board.sections.firstIndex { $0.group == .appType("Productivity") } ?? -1
-        board.drop(tileAt: board.tiles.firstIndex { $0.target?.handle == 5 } ?? -1, on: .section(kind))
-        expect(board.customGroups[5] == nil, "an app-type outline sends a window back to its kind")
-        board.remove(handles: [0, 3])
+        board.drop(tileAt: tile(0), on: .outside)
         expect(
-            board.customGroups.isEmpty && !board.sections.contains { $0.group == .custom(1) },
-            "a group left with one window dissolves")
+            board.appGroups == ["com.example.finder": .custom(1)]
+                && board.sections.map(\.group) == [.appType("Browser"), .appType("Productivity"), .custom(1)],
+            "dragged out of every outline, an app starts a group of its own, after the ones placed")
+        board.drop(tileAt: tile(0), on: .outside)
+        expect(board.appGroups["com.example.finder"] == .custom(1), "from which there is no further out")
+        board.drop(tileAt: tile(4), on: .section(section(.custom(1))))
+        expect(board.appGroups["com.example.safari"] == .custom(1), "an outline takes an app in too")
+        board.drop(tileAt: tile(4), on: .outside)
+        expect(board.appGroups["com.example.safari"] == .custom(2), "and dragging out again numbers on")
 
         board.drop(tileAt: 0, on: .tile(0))
-        expect(board.customGroups.isEmpty, "a window dropped on itself changes nothing")
+        expect(board.appGroups.count == 2, "a window dropped on itself changes nothing")
         var flat = WindowPickerBoard(entries: desk, mode: .windows)
         flat.drop(tileAt: 0, on: .tile(1))
-        expect(flat.customGroups.isEmpty, "and nothing regroups outside groups mode")
+        expect(flat.appGroups.isEmpty, "and nothing regroups outside groups mode")
 
         var seeded = WindowPickerBoard(
-            entries: desk, mode: .groups, appTypes: kinds, customGroups: [1: 7, 3: 7, 5: 9])
-        expect(seeded.customGroups == [1: 7, 3: 7], "remembered groups return, minus the lone ones")
+            entries: desk, mode: .groups, appTypes: kinds,
+            appGroups: ["com.example.mail": .custom(7), "com.example.gone": .custom(9)])
+        expect(
+            seeded.sections.map(\.group) == [.custom(7), .appType("Browser"), .appType("Productivity")],
+            "remembered groups return for the apps that are open")
+        expect(seeded.appGroups.count == 2, "and an app that is not open keeps its place for later")
         seeded.type("saf")
         expect(
-            seeded.tiles.compactMap { $0.target?.handle } == [0, 2, 5, 1, 3, 4] && seeded.target?.handle == 1,
+            seeded.tiles.compactMap { $0.target?.handle } == [3, 1, 4, 0, 2, 5] && seeded.target?.handle == 1,
             "a search leaves groups where they are and selects the first match")
         expect(
             WindowPickerBoard(entries: desk, mode: .groups, allowsStacking: false).mode == .windows,
             "one app's windows are never grouped")
+        let unknown = WindowPickerBoard(
+            entries: desk, mode: .groups, appTypes: [1: "Browser", 4: "Browser"])
+        expect(
+            unknown.sections.map(\.group) == [.appType("Browser"), .appType("")],
+            "apps with no kind come last")
+    }
+
+    static func groupOrderAndStyles() {
+        typealias Group = WindowPickerBoard.Group
+        typealias Book = WindowPickerGroupBook
+        var board = WindowPickerBoard(entries: desk, mode: .groups, appTypes: kinds)
+        expect(
+            board.groupOrder == [.appType("Browser"), .appType("Productivity")],
+            "a kind seen for the first time takes its default place")
+        board.moveSection(from: 1, to: 0)
+        expect(
+            board.sections.map(\.group) == [.appType("Productivity"), .appType("Browser")],
+            "a dragged outline takes the place of the one it lands on")
+        expect(board.target?.handle == 1, "and the selected window stays selected")
+        board.moveSection(from: 0, to: 0)
+        board.moveSection(from: 0, to: 9)
+        expect(board.sections.first?.group == .appType("Productivity"), "a move to nowhere is ignored")
+
+        let placed = WindowPickerBoard(
+            entries: desk, mode: .groups, appTypes: kinds,
+            groupOrder: [.appType("Productivity"), .appType("Music"), .appType("Browser")])
+        expect(
+            placed.sections.map(\.group) == [.appType("Productivity"), .appType("Browser")],
+            "a remembered order wins over the default one")
+        expect(
+            Book.reordered(
+                [.custom(1), .appType("Music"), .custom(2), .appType("Browser")],
+                visible: [.appType("Browser"), .custom(1)])
+                == [.appType("Browser"), .appType("Music"), .custom(2), .custom(1)],
+            "groups off screen keep their slots when the visible ones are reordered")
+
+        var book = Book()
+        book.setOrder([.appType("Browser"), .custom(1)])
+        expect(book.tint(for: .appType("Browser")) != book.tint(for: .custom(1)), "shades are dealt by place")
+        expect(book.tint(for: .custom(1)) != .automatic, "automatic always resolves to a real shade")
+        book.setStyle(Book.Style(name: "Work", tint: .pink), for: .custom(1))
+        book.setOrder([.custom(1), .appType("Browser"), .appType("Music")])
+        expect(
+            book.style(for: .custom(1)) == Book.Style(name: "Work", tint: .pink) && book.entries.count == 3,
+            "a new order keeps each group's name and shade")
+        book.setOrder([.appType("Music")])
+        expect(book.order.first == .appType("Music") && book.entries.count == 3, "and never drops a group")
+        let saved = try? JSONDecoder().decode(Book.self, from: JSONEncoder().encode(book))
+        expect(saved == book, "the book survives a round trip to disk")
     }
 
     static func searching() {
@@ -449,6 +506,16 @@ struct WindowPickerTests {
         expect(
             grouped.sectionFrames[0].width < grouped.tile.width * 3,
             "four windows sit two by two rather than in a ribbon")
+        expect(
+            Set(grouped.sectionFrames.map(\.height)).count == 1,
+            "boxes on one line share its height")
+        let wrapped = WindowPickerGeometry.groupLayout(
+            sectionSizes: [9, 9, 9, 1], screen: screen, limits: Limits(widthShare: 0.6))
+        expect(
+            wrapped.sectionFrames[3].minY > wrapped.sectionFrames[0].minY
+                && wrapped.sectionFrames[3].minX > 0
+                && wrapped.sectionFrames[3].contains(wrapped.tileFrames[27]),
+            "a short last line is centred, tiles and all: \(wrapped.sectionFrames)")
         let crowded = WindowPickerGeometry.groupLayout(
             sectionSizes: Array(repeating: 6, count: 8), screen: screen)
         expect(
