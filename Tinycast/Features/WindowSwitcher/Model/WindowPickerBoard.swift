@@ -44,11 +44,12 @@ struct WindowPickerBoard: Equatable, Sendable {
         let count: Int
     }
 
-    /// Where a dragged tile was let go: on another tile, on a section's background, or on neither.
+    /// Where a dragged tile was let go: on another tile, on a section's background, or in the gap
+    /// before the section with that index, where a group of its own would be put.
     enum Drop: Equatable, Sendable {
         case tile(Int)
         case section(Int)
-        case outside
+        case slot(Int)
     }
 
     private(set) var entries: [WindowSwitchEntry]
@@ -179,11 +180,12 @@ struct WindowPickerBoard: Equatable, Sendable {
         case .section(let sectionIndex):
             guard sections.indices.contains(sectionIndex) else { return }
             destination = sections[sectionIndex].group
-        case .outside:
-            // Already alone in a group of its own: there is nothing further out to go.
-            let current = group(of: moved)
-            guard entries.contains(where: { $0.bundleID != moved.bundleID && group(of: $0) == current })
-            else { return }
+        case .slot(let slot):
+            guard !isAlone(moved) else {
+                // Alone in its group already, so the gap only says where that group should sit.
+                let home = sections.firstIndex { $0.group == group(of: moved) }
+                return home.map { moveSection(from: $0, toSlot: slot) } ?? ()
+            }
             let numbers = appGroups.values.compactMap { group -> Int? in
                 if case .custom(let number) = group { return number }
                 return nil
@@ -193,17 +195,27 @@ struct WindowPickerBoard: Equatable, Sendable {
         // Back with its own kind is no override at all.
         appGroups[moved.bundleID] = destination == nativeGroup(of: moved) ? nil : destination
         rebuild()
+        // A new group is born last; the gap it was dropped in is where it was meant to go.
+        if case .slot(let slot) = drop, let born = sections.firstIndex(where: { $0.group == destination }) {
+            moveSection(from: born, toSlot: slot)
+        }
         selection = self.index(holding: moved) ?? 0
     }
 
-    /// A dragged outline takes the place of the one it is dropped on.
-    mutating func moveSection(from source: Int, to destination: Int) {
-        guard mode == .groups, source != destination, sections.indices.contains(source),
-            sections.indices.contains(destination)
+    private func isAlone(_ entry: WindowSwitchEntry) -> Bool {
+        let current = group(of: entry)
+        return !entries.contains { $0.bundleID != entry.bundleID && group(of: $0) == current }
+    }
+
+    /// Slot N is the gap before section N, and one past the last is the end. The two gaps beside
+    /// a section are where it already is.
+    mutating func moveSection(from source: Int, toSlot slot: Int) {
+        guard mode == .groups, sections.indices.contains(source), (0...sections.count).contains(slot),
+            slot != source, slot != source + 1
         else { return }
         let anchor = target
         var visible = sections.map(\.group)
-        visible.insert(visible.remove(at: source), at: destination)
+        visible.insert(visible.remove(at: source), at: slot > source ? slot - 1 : slot)
         groupOrder = WindowPickerGroupBook.reordered(groupOrder, visible: visible)
         rebuild()
         selection = anchor.flatMap(index(holding:)) ?? 0

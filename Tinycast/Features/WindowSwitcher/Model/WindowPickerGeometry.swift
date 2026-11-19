@@ -151,6 +151,41 @@ enum WindowPickerGeometry {
         }
     }
 
+    /// A gap a dragged group can be put in, and the bar that marks it.
+    struct Slot: Equatable, Sendable {
+        let index: Int
+        let bar: CGRect
+    }
+
+    static let slotBarWidth: CGFloat = 4
+
+    /// One bar before every box and one after each line's last, so a line break shows both ends
+    /// of the same gap.
+    static func sectionSlots(for frames: [CGRect]) -> [Slot] {
+        frames.indices.flatMap { index -> [Slot] in
+            let frame = frames[index]
+            let endsLine = index == frames.count - 1 || frames[index + 1].minY > frame.minY
+            let before = Slot(
+                index: index,
+                bar: CGRect(
+                    x: frame.minX - (sectionGap + slotBarWidth) / 2, y: frame.minY,
+                    width: slotBarWidth, height: frame.height))
+            guard endsLine else { return [before] }
+            let after = Slot(
+                index: index + 1,
+                bar: CGRect(
+                    x: frame.maxX + (sectionGap - slotBarWidth) / 2, y: frame.minY,
+                    width: slotBarWidth, height: frame.height))
+            return [before, after]
+        }
+    }
+
+    static func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {
+        hypot(
+            max(rect.minX - point.x, 0, point.x - rect.maxX),
+            max(rect.minY - point.y, 0, point.y - rect.maxY))
+    }
+
     /// The nearest tile lying in a direction, for arrows over boxes that share no grid.
     static func neighbor(
         of index: Int, _ direction: WindowPickerKeyEngine.Direction, in frames: [CGRect]

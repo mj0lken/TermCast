@@ -94,6 +94,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case windowPickerMaxColumns = "windowSwitcher.maxColumns"
     case windowPickerMaxRows = "windowSwitcher.maxRows"
     case windowPickerSearchEnabled = "windowSwitcher.typeToSearch"
+    case windowPickerShowsHints = "windowSwitcher.showsKeyHints"
     case windowPickerTileSize = "windowSwitcher.windowSize"
     case windowPickerMaxWidth = "windowSwitcher.maxWidthPercent"
     case windowPickerMaxHeight = "windowSwitcher.maxHeightPercent"

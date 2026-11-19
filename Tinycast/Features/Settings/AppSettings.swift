@@ -668,6 +668,12 @@ final class AppSettings {
         }
     }
 
+    var windowPickerShowsHints: Bool {
+        didSet {
+            defaults.set(windowPickerShowsHints, forKey: Key.windowPickerShowsHints.rawValue)
+        }
+    }
+
     var windowPickerSearchEnabled: Bool {
         didSet {
             defaults.set(windowPickerSearchEnabled, forKey: Key.windowPickerSearchEnabled.rawValue)
@@ -1267,7 +1273,12 @@ final class AppSettings {
         windowPickerMaxRows =
             WindowPickerGridLimit(rawValue: defaults.integer(forKey: Key.windowPickerMaxRows.rawValue))
             ?? .automatic
-        windowPickerSearchEnabled = defaults.bool(forKey: Key.windowPickerSearchEnabled.rawValue)
+        windowPickerSearchEnabled =
+            defaults.object(forKey: Key.windowPickerSearchEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerSearchEnabled.rawValue)
+        windowPickerShowsHints =
+            defaults.object(forKey: Key.windowPickerShowsHints.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerShowsHints.rawValue)
         windowPickerTileSize =
             defaults.string(forKey: Key.windowPickerTileSize.rawValue)
             .flatMap(WindowPickerTileSize.init(rawValue:)) ?? .medium

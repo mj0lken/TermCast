@@ -81,6 +81,10 @@ struct WindowPickerSettingsView: View {
                     SettingsRowTitle(.windowSwitcherOptions, "Show window previews")
                     Text("Needs Screen Recording access. Without it, tiles show the app icon.")
                 }
+                Toggle(isOn: $settings.windowPickerShowsHints) {
+                    SettingsRowTitle(.windowSwitcherOptions, "Show keyboard shortcuts")
+                    Text("A line of key hints along the bottom of the switcher.")
+                }
                 Toggle(isOn: $settings.windowPickerSearchEnabled) {
                     SettingsRowTitle(.windowSwitcherOptions, "Type to search")
                     Text(
@@ -219,6 +223,7 @@ struct WindowPickerSettingsView: View {
         return HStack(spacing: Theme.Spacing.lg) {
             Circle()
                 .fill(groups.book.tint(for: entry.group).color)
+                .saturation(WindowPickerGroupTint.saturation)
                 .frame(width: 10, height: 10)
                 .accessibilityHidden(true)
             TextField(

@@ -326,17 +326,25 @@ struct WindowPickerTests {
         board.drop(tileAt: tile(3), on: .section(section(.appType("Productivity"))))
         expect(board.appGroups.isEmpty, "dropped back on its own kind, the app has no override left")
 
-        board.drop(tileAt: tile(0), on: .outside)
+        board.drop(tileAt: tile(0), on: .slot(2))
         expect(
             board.appGroups == ["com.example.finder": .custom(1)]
                 && board.sections.map(\.group) == [.appType("Browser"), .appType("Productivity"), .custom(1)],
-            "dragged out of every outline, an app starts a group of its own, after the ones placed")
-        board.drop(tileAt: tile(0), on: .outside)
-        expect(board.appGroups["com.example.finder"] == .custom(1), "from which there is no further out")
+            "dropped in the gap at the end, an app starts a group of its own there")
+        board.drop(tileAt: tile(0), on: .slot(0))
+        expect(
+            board.appGroups["com.example.finder"] == .custom(1)
+                && board.sections.map(\.group) == [.custom(1), .appType("Browser"), .appType("Productivity")],
+            "already alone, it only carries its group to the new gap")
+        board.drop(tileAt: tile(0), on: .slot(1))
+        expect(board.sections.first?.group == .custom(1), "and a gap beside its own group moves nothing")
         board.drop(tileAt: tile(4), on: .section(section(.custom(1))))
         expect(board.appGroups["com.example.safari"] == .custom(1), "an outline takes an app in too")
-        board.drop(tileAt: tile(4), on: .outside)
-        expect(board.appGroups["com.example.safari"] == .custom(2), "and dragging out again numbers on")
+        board.drop(tileAt: tile(4), on: .slot(1))
+        expect(
+            board.appGroups["com.example.safari"] == .custom(2)
+                && board.sections.map(\.group) == [.custom(1), .custom(2), .appType("Productivity")],
+            "dragging out again numbers on, and the new group sits in the gap it was dropped in")
 
         board.drop(tileAt: 0, on: .tile(0))
         expect(board.appGroups.count == 2, "a window dropped on itself changes nothing")
@@ -372,14 +380,20 @@ struct WindowPickerTests {
         expect(
             board.groupOrder == [.appType("Browser"), .appType("Productivity")],
             "a kind seen for the first time takes its default place")
-        board.moveSection(from: 1, to: 0)
+        board.moveSection(from: 1, toSlot: 0)
         expect(
             board.sections.map(\.group) == [.appType("Productivity"), .appType("Browser")],
-            "a dragged outline takes the place of the one it lands on")
+            "a dragged outline goes into the gap it is dropped in")
         expect(board.target?.handle == 1, "and the selected window stays selected")
-        board.moveSection(from: 0, to: 0)
-        board.moveSection(from: 0, to: 9)
-        expect(board.sections.first?.group == .appType("Productivity"), "a move to nowhere is ignored")
+        board.moveSection(from: 0, toSlot: 0)
+        board.moveSection(from: 0, toSlot: 1)
+        board.moveSection(from: 0, toSlot: 9)
+        expect(
+            board.sections.first?.group == .appType("Productivity"),
+            "the gaps beside a group, and one that does not exist, move nothing")
+        board.moveSection(from: 0, toSlot: 2)
+        expect(board.sections.last?.group == .appType("Productivity"), "the last gap is the end")
+        board.moveSection(from: 1, toSlot: 0)
 
         let placed = WindowPickerBoard(
             entries: desk, mode: .groups, appTypes: kinds,
@@ -521,6 +535,22 @@ struct WindowPickerTests {
         expect(
             crowded.panel.width <= screen.width && crowded.panel.height <= screen.height,
             "a crowded board wraps and shrinks to stay on screen: \(crowded.panel)")
+        let slots = WindowPickerGeometry.sectionSlots(for: grouped.sectionFrames)
+        expect(
+            Set(slots.map(\.index)) == [0, 1, 2, 3],
+            "there is a gap before every outline and one after the last: \(slots.map(\.index))")
+        expect(
+            slots.allSatisfy { slot in !grouped.sectionFrames.contains { $0.intersects(slot.bar) } },
+            "and no bar sits on top of an outline")
+        let stackedBoxes = [
+            CGRect(x: 0, y: 0, width: 100, height: 80), CGRect(x: 0, y: 100, width: 100, height: 80)
+        ]
+        expect(
+            WindowPickerGeometry.sectionSlots(for: stackedBoxes).filter { $0.index == 1 }.count == 2,
+            "a gap at a line break is marked at the end of one line and the start of the next")
+        expect(
+            WindowPickerGeometry.distance(from: CGPoint(x: 5, y: 5), to: stackedBoxes[0]) == 0,
+            "a point inside a bar is on it")
         let frames = grouped.tileFrames
         expect(WindowPickerGeometry.neighbor(of: 0, .right, in: frames) == 1, "→ goes to the next tile")
         expect(WindowPickerGeometry.neighbor(of: 0, .down, in: frames) == 2, "↓ to the one below")

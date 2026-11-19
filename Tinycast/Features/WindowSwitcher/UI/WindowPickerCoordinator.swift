@@ -176,14 +176,16 @@ final class WindowPickerCoordinator: HealthCheckable {
         controller.show(
             WindowPickerView(
                 session: session, groups: groupStore,
+                hints: settings.windowPickerShowsHints
+                    ? (settings.windowPickerSearchEnabled ? .searching : .plain) : nil,
                 onOpenSettings: { [weak self] in
                     self?.close()
                     self?.onOpenSettings?()
                 },
                 onPick: { [weak self] in self?.pick($0) },
                 onDrop: { [weak self] index, drop in self?.regroup(index, onto: drop) },
-                onMoveSection: { [weak self] source, destination in
-                    self?.moveSection(source, to: destination)
+                onMoveSection: { [weak self] source, slot in
+                    self?.moveSection(source, toSlot: slot)
                 }),
             size: layout.panel, on: screen)
         capturePreviews(of: ordered, windowIDs: windowIDs, scale: screen.backingScaleFactor)
@@ -206,8 +208,8 @@ final class WindowPickerCoordinator: HealthCheckable {
         rememberGroups()
     }
 
-    private func moveSection(_ source: Int, to destination: Int) {
-        change { $0.moveSection(from: source, to: destination) }
+    private func moveSection(_ source: Int, toSlot slot: Int) {
+        change { $0.moveSection(from: source, toSlot: slot) }
         rememberGroups()
     }
 

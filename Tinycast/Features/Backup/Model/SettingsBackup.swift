@@ -93,6 +93,7 @@ struct SettingsBackup: Codable {
         var windowPickerMaxColumns: Int?
         var windowPickerMaxRows: Int?
         var windowPickerSearchEnabled: Bool?
+        var windowPickerShowsHints: Bool?
         var windowPickerTileSize: String?
         var windowPickerMaxWidth: Int?
         var windowPickerMaxHeight: Int?
@@ -246,6 +247,7 @@ extension SettingsBackup {
             windowPickerMaxColumns: s.windowPickerMaxColumns.rawValue,
             windowPickerMaxRows: s.windowPickerMaxRows.rawValue,
             windowPickerSearchEnabled: s.windowPickerSearchEnabled,
+            windowPickerShowsHints: s.windowPickerShowsHints,
             windowPickerTileSize: s.windowPickerTileSize.rawValue,
             windowPickerMaxWidth: s.windowPickerMaxWidth.rawValue,
             windowPickerMaxHeight: s.windowPickerMaxHeight.rawValue,
@@ -668,6 +670,10 @@ extension SettingsBackup {
         }
         if let raw = s.windowPickerMaxRows, let limit = WindowPickerGridLimit(rawValue: raw) {
             settings.windowPickerMaxRows = limit
+            count += 1
+        }
+        if let flag = s.windowPickerShowsHints {
+            settings.windowPickerShowsHints = flag
             count += 1
         }
         if let flag = s.windowPickerSearchEnabled {

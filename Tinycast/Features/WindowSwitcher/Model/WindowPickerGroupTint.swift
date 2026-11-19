@@ -11,6 +11,9 @@ enum WindowPickerGroupTint: String, CaseIterable, Identifiable, Codable, Sendabl
         .blue, .green, .orange, .purple, .teal, .pink, .yellow, .mint, .red
     ]
 
+    /// Full system colours shout behind thumbnails; this much keeps them apart without that.
+    static let saturation = 0.55
+
     var title: String {
         switch self {
         case .automatic: String(localized: "Automatic")

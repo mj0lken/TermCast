@@ -566,6 +566,9 @@ enum SettingsSearchCatalog {
             .windowSwitcherOptions, "Show window previews",
             keywords: ["thumbnails", "screen recording", "screenshots", "live"]),
         .init(
+            .windowSwitcherOptions, "Show keyboard shortcuts",
+            keywords: ["hints", "instructions", "keys", "footer", "help"]),
+        .init(
             .windowSwitcherOptions, "Type to search",
             keywords: ["filter", "find", "letters", "close", "quit", "hide", "shift"]),
         .init(

@@ -152,6 +152,7 @@ enum SettingsFileSchema {
         case .windowPickerMaxColumns: return bind(settings, \.windowPickerMaxColumns)
         case .windowPickerMaxRows: return bind(settings, \.windowPickerMaxRows)
         case .windowPickerSearchEnabled: return bind(settings, \.windowPickerSearchEnabled)
+        case .windowPickerShowsHints: return bind(settings, \.windowPickerShowsHints)
         case .windowPickerTileSize: return bind(settings, \.windowPickerTileSize)
         case .windowPickerMaxWidth: return bind(settings, \.windowPickerMaxWidth)
         case .windowPickerMaxHeight: return bind(settings, \.windowPickerMaxHeight)

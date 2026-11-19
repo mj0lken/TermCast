@@ -71,6 +71,7 @@ enum SettingsBackupCoverage {
         "windowPickerMaxColumns": .windowPickerMaxColumns,
         "windowPickerMaxRows": .windowPickerMaxRows,
         "windowPickerSearchEnabled": .windowPickerSearchEnabled,
+        "windowPickerShowsHints": .windowPickerShowsHints,
         "windowPickerTileSize": .windowPickerTileSize,
         "windowPickerMaxWidth": .windowPickerMaxWidth,
         "windowPickerMaxHeight": .windowPickerMaxHeight,

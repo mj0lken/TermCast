@@ -3,6 +3,8 @@ import SwiftUI
 struct WindowPickerView: View {
     let session: WindowPickerSession
     let groups: WindowPickerGroupStore
+    /// Nil hides the key hints; otherwise which form of W, Q and H they spell.
+    let hints: WindowPickerHints.Keys?
     let onOpenSettings: () -> Void
     let onPick: (Int) -> Void
     let onDrop: (Int, WindowPickerBoard.Drop) -> Void
@@ -31,7 +33,7 @@ struct WindowPickerView: View {
                 } else {
                     grid(board, layout: layout)
                 }
-                WindowPickerFooter(query: board.query, onOpenSettings: onOpenSettings)
+                WindowPickerFooter(board: board, hints: hints, onOpenSettings: onOpenSettings)
                     .frame(height: WindowPickerGeometry.footerHeight, alignment: .bottom)
             }
             .padding(WindowPickerGeometry.inset)
@@ -77,8 +79,9 @@ struct WindowPickerView: View {
     private func groups(
         _ board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
     ) -> some View {
-        let target = dropTarget(in: layout)
-        let landing = sectionTarget(in: layout)
+        let target = dropTarget(in: board, layout: layout)
+        let slots = drag == nil ? [] : openSlots(in: board, layout: layout)
+        let litSlot = litSlot(target: target, among: slots)
         let owners = board.sections.enumerated().flatMap { Array(repeating: $0.offset, count: $0.element.count) }
         return ZStack(alignment: .topLeading) {
             ForEach(Array(board.sections.enumerated()), id: \.element.group) { index, section in
@@ -88,13 +91,13 @@ struct WindowPickerView: View {
                     WindowPickerSectionOutline(
                         title: groups.title(for: section.group),
                         tint: groups.book.tint(for: section.group).color,
-                        isTargeted: target == .section(index) || landing == index
+                        isTargeted: target == .section(index)
                     )
                     .frame(width: frame.width, height: frame.height)
                     .contentShape(Rectangle())
                     .offset(x: frame.minX + moved.width, y: frame.minY + moved.height)
                     .zIndex(moved == .zero ? 0 : 1)
-                    .gesture(sectionGesture(for: index, in: layout))
+                    .gesture(sectionGesture(for: index, in: board, layout: layout))
                 }
             }
             ForEach(Array(board.tiles.enumerated()), id: \.element.id) { index, tile in
@@ -113,9 +116,21 @@ struct WindowPickerView: View {
                     .offset(x: frame.minX + moved.width, y: frame.minY + moved.height)
                     .zIndex(moved == .zero ? 0 : 2)
                     .onTapGesture { onPick(index) }
-                    .gesture(dragGesture(for: index, in: layout))
+                    .gesture(dragGesture(for: index, in: board, layout: layout))
+            }
+            ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                let isLit = slot.index == litSlot
+                Capsule()
+                    .fill(Color.accentColor.opacity(isLit ? 1 : 0.28))
+                    .frame(width: slot.bar.width, height: slot.bar.height)
+                    .scaleEffect(x: isLit ? 1.75 : 1, y: 1)
+                    .offset(x: slot.bar.minX, y: slot.bar.minY)
+                    .zIndex(3)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
+        .animation(.easeOut(duration: Theme.Duration.exit), value: litSlot)
         .frame(
             width: layout.panel.width - WindowPickerGeometry.inset * 2,
             height: layout.panel.height - WindowPickerGeometry.inset * 2
@@ -126,7 +141,7 @@ struct WindowPickerView: View {
     }
 
     private func dragGesture(
-        for index: Int, in layout: WindowPickerGeometry.Layout
+        for index: Int, in board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
     ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.boardSpace))
             .onChanged { value in
@@ -134,7 +149,7 @@ struct WindowPickerView: View {
             }
             .onEnded { value in
                 drag = Drag(index: index, translation: value.translation, location: value.location)
-                let target = dropTarget(in: layout)
+                let target = dropTarget(in: board, layout: layout)
                 drag = nil
                 if let target { onDrop(index, target) }
             }
@@ -146,7 +161,7 @@ struct WindowPickerView: View {
     }
 
     private func sectionGesture(
-        for index: Int, in layout: WindowPickerGeometry.Layout
+        for index: Int, in board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
     ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.boardSpace))
             .onChanged { value in
@@ -158,29 +173,69 @@ struct WindowPickerView: View {
                 drag = Drag(
                     isSection: true, index: index, translation: value.translation,
                     location: value.location)
-                let landing = sectionTarget(in: layout)
+                let slot = nearestSlot(among: openSlots(in: board, layout: layout))
                 drag = nil
-                if let landing { onMoveSection(index, landing) }
+                if let slot { onMoveSection(index, slot) }
             }
     }
 
-    /// The outline a dragged one would take the place of.
-    private func sectionTarget(in layout: WindowPickerGeometry.Layout) -> Int? {
-        guard let drag, drag.isSection else { return nil }
-        return layout.sectionFrames.enumerated().first {
-            $0.offset != drag.index && $0.element.contains(drag.location)
-        }?.offset
+    /// The gaps a drop would change anything in: the two beside a group are where it already is.
+    private func openSlots(
+        in board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
+    ) -> [WindowPickerGeometry.Slot] {
+        guard let drag else { return [] }
+        let home = drag.isSection ? drag.index : loneSection(ofTileAt: drag.index, in: board)
+        return WindowPickerGeometry.sectionSlots(for: layout.sectionFrames).filter {
+            home == nil || ($0.index != home && $0.index != (home ?? 0) + 1)
+        }
     }
 
-    /// A tile wins over the outline it sits in; past every outline the window is dragged out.
-    private func dropTarget(in layout: WindowPickerGeometry.Layout) -> WindowPickerBoard.Drop? {
+    /// The section a dragged window has to itself, if it has one: dragging it moves that section.
+    private func loneSection(ofTileAt index: Int, in board: WindowPickerBoard) -> Int? {
+        guard board.tiles.indices.contains(index), let moved = board.tiles[index].target else {
+            return nil
+        }
+        var first = 0
+        for (section, entry) in board.sections.enumerated() {
+            let range = first..<(first + entry.count)
+            first = range.upperBound
+            guard range.contains(index) else { continue }
+            let alone = board.tiles[range].allSatisfy { $0.target?.bundleID == moved.bundleID }
+            return alone ? section : nil
+        }
+        return nil
+    }
+
+    private func nearestSlot(among slots: [WindowPickerGeometry.Slot]) -> Int? {
+        guard let drag else { return nil }
+        return slots.min {
+            WindowPickerGeometry.distance(from: drag.location, to: $0.bar)
+                < WindowPickerGeometry.distance(from: drag.location, to: $1.bar)
+        }?.index
+    }
+
+    /// A dragged group always has a gap waiting; a dragged window only once it is off every box.
+    private func litSlot(
+        target: WindowPickerBoard.Drop?, among slots: [WindowPickerGeometry.Slot]
+    ) -> Int? {
+        if drag?.isSection == true { return nearestSlot(among: slots) }
+        if case .slot(let slot) = target { return slot }
+        return nil
+    }
+
+    /// A tile wins over the outline it sits in; off every outline, the nearest gap takes it.
+    private func dropTarget(
+        in board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
+    ) -> WindowPickerBoard.Drop? {
         guard let drag, !drag.isSection else { return nil }
         let tile = layout.tileFrames.enumerated().first {
             $0.offset != drag.index && $0.element.contains(drag.location)
         }
         if let tile { return .tile(tile.offset) }
-        let section = layout.sectionFrames.firstIndex { $0.contains(drag.location) }
-        return section.map { .section($0) } ?? .outside
+        if let section = layout.sectionFrames.firstIndex(where: { $0.contains(drag.location) }) {
+            return .section(section)
+        }
+        return nearestSlot(among: openSlots(in: board, layout: layout)).map { .slot($0) }
     }
 
     /// The windows behind a stack's front one, so its stack shows what it actually holds.
@@ -199,19 +254,26 @@ private struct WindowPickerSectionOutline: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.row + 4, style: .continuous)
-        shape.fill(tint.opacity(isTargeted ? 0.22 : 0.1))
+        shape.fill(tint.opacity(isTargeted ? 0.2 : 0.09))
+            .overlay { shape.strokeBorder(tint.opacity(0.32), lineWidth: 1) }
+            .saturation(WindowPickerGroupTint.saturation)
             .overlay {
-                shape.strokeBorder(
-                    isTargeted ? Color.accentColor : tint.opacity(0.4),
-                    lineWidth: isTargeted ? 2 : 1)
+                if isTargeted { shape.strokeBorder(Color.accentColor, lineWidth: 2) }
             }
             .overlay(alignment: .topLeading) {
-                Text(verbatim: title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-                    .padding(.horizontal, WindowPickerGeometry.sectionPadding)
-                    .frame(height: WindowPickerGeometry.sectionTitleHeight + 4, alignment: .bottom)
+                // The grip says the outline itself can be picked up, not only the windows in it.
+                HStack(spacing: Theme.Spacing.xs) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .accessibilityHidden(true)
+                    Text(verbatim: title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, WindowPickerGeometry.sectionPadding)
+                .frame(height: WindowPickerGeometry.sectionTitleHeight + 4, alignment: .bottom)
             }
             .accessibilityLabel(title)
     }
@@ -254,24 +316,29 @@ private struct WindowPickerStackHeader: View {
     }
 }
 
-/// The search as typed, and the way to Settings, where the keys are listed.
+/// The key hints, or the search once one is typed, and the way to Settings.
 private struct WindowPickerFooter: View {
-    let query: String
+    let board: WindowPickerBoard
+    let hints: WindowPickerHints.Keys?
     let onOpenSettings: () -> Void
 
     var body: some View {
         HStack(spacing: Theme.Spacing.md) {
-            if !query.isEmpty {
-                Label {
-                    Text(verbatim: query)
-                } icon: {
-                    Image(systemName: "magnifyingglass")
+            Group {
+                if !board.query.isEmpty {
+                    Label {
+                        Text(verbatim: board.query)
+                    } icon: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .font(Theme.Typography.rowTrailing)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                } else if let hints {
+                    WindowPickerHints(board: board, keys: hints)
                 }
-                .font(Theme.Typography.rowTrailing)
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .lineLimit(1)
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity)
             Image(systemName: "gearshape")
                 .font(.body)
                 .foregroundStyle(Theme.Colors.textSecondary)
@@ -281,6 +348,35 @@ private struct WindowPickerFooter: View {
                 .accessibilityLabel("Settings")
                 .accessibilityAddTraits(.isButton)
         }
+    }
+}
+
+/// Only what the current view can do, so the row stays short enough to read at a glance.
+struct WindowPickerHints: View {
+    enum Keys { case plain, searching }
+
+    let board: WindowPickerBoard
+    let keys: Keys
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.xl) {
+            if board.expandedStack != nil {
+                hint("Right ⇧ or esc closes the stack")
+            } else if board.allowsStacking {
+                hint("Left ⇧ changes view")
+                if board.mode == .stacks { hint("Right ⇧ opens a stack") }
+                if board.mode == .groups { hint("Drag to regroup") }
+            }
+            hint(keys == .searching ? "⇧W closes, ⇧Q quits, ⇧H hides" : "W closes, Q quits, H hides")
+            if keys == .searching { hint("Type to search") }
+        }
+    }
+
+    private func hint(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(Theme.Colors.textTertiary)
+            .lineLimit(1)
     }
 }
 
