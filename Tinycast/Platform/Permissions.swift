@@ -50,6 +50,27 @@ enum Permissions {
         NSWorkspace.shared.open(url)
     }
 
+    /// Only window previews need it; without the grant the switcher shows app icons.
+    static func hasScreenRecording() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    /// Prompts once per install; after a refusal only System Settings can grant it.
+    @discardableResult
+    static func requestScreenRecording() -> Bool {
+        CGRequestScreenCaptureAccess()
+    }
+
+    @MainActor
+    static func openScreenRecordingSettings() {
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     static func calendarAccess() -> CalendarAccess {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess: return .granted

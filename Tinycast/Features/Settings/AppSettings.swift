@@ -621,6 +621,83 @@ final class AppSettings {
         }
     }
 
+    /// Installs a key tap, so like `snippetsEnabled` it rides no backup and no settings file.
+    var windowPickerEnabled: Bool {
+        didSet { defaults.set(windowPickerEnabled, forKey: Key.windowPickerEnabled.rawValue) }
+    }
+
+    var windowPickerChord: WindowPickerChord {
+        didSet { defaults.set(windowPickerChord.rawValue, forKey: Key.windowPickerChord.rawValue) }
+    }
+
+    var windowPickerAppChord: WindowPickerChord {
+        didSet {
+            defaults.set(windowPickerAppChord.rawValue, forKey: Key.windowPickerAppChord.rawValue)
+        }
+    }
+
+    var windowPickerShowsPreviews: Bool {
+        didSet {
+            defaults.set(windowPickerShowsPreviews, forKey: Key.windowPickerShowsPreviews.rawValue)
+        }
+    }
+
+    var windowPickerStartMode: WindowPickerMode {
+        didSet {
+            defaults.set(windowPickerStartMode.rawValue, forKey: Key.windowPickerStartMode.rawValue)
+        }
+    }
+
+    var windowPickerStackDelay: WindowPickerStackDelay {
+        didSet {
+            defaults.set(
+                windowPickerStackDelay.rawValue, forKey: Key.windowPickerStackDelay.rawValue)
+        }
+    }
+
+    var windowPickerMaxColumns: WindowPickerGridLimit {
+        didSet {
+            defaults.set(
+                windowPickerMaxColumns.rawValue, forKey: Key.windowPickerMaxColumns.rawValue)
+        }
+    }
+
+    var windowPickerMaxRows: WindowPickerGridLimit {
+        didSet {
+            defaults.set(windowPickerMaxRows.rawValue, forKey: Key.windowPickerMaxRows.rawValue)
+        }
+    }
+
+    var windowPickerShowsHints: Bool {
+        didSet {
+            defaults.set(windowPickerShowsHints, forKey: Key.windowPickerShowsHints.rawValue)
+        }
+    }
+
+    var windowPickerSearchEnabled: Bool {
+        didSet {
+            defaults.set(windowPickerSearchEnabled, forKey: Key.windowPickerSearchEnabled.rawValue)
+        }
+    }
+
+    var windowPickerTileSize: WindowPickerTileSize {
+        didSet {
+            defaults.set(windowPickerTileSize.rawValue, forKey: Key.windowPickerTileSize.rawValue)
+        }
+    }
+
+    var windowPickerMaxWidth: WindowPickerScreenShare {
+        didSet {
+            defaults.set(windowPickerMaxWidth.rawValue, forKey: Key.windowPickerMaxWidth.rawValue)
+        }
+    }
+
+    var windowPickerMaxHeight: WindowPickerScreenShare {
+        didSet {
+            defaults.set(windowPickerMaxHeight.rawValue, forKey: Key.windowPickerMaxHeight.rawValue)
+        }
+    }
+
     /// Consent to run third-party JavaScript: it confirms, defaults off, rides no backup.
     var extensionsEnabled: Bool {
         didSet { defaults.set(extensionsEnabled, forKey: Key.extensionsEnabled.rawValue) }
@@ -1172,6 +1249,45 @@ final class AppSettings {
         menuSearchDisabledApps =
             defaults.stringArray(forKey: Key.menuSearchDisabledApps.rawValue) ?? []
         menuSearchShowsAppleMenu = defaults.bool(forKey: Key.menuSearchShowsAppleMenu.rawValue)
+        windowPickerEnabled = defaults.bool(forKey: Key.windowPickerEnabled.rawValue)
+        windowPickerChord =
+            defaults.string(forKey: Key.windowPickerChord.rawValue)
+            .flatMap(WindowPickerChord.init(rawValue:)) ?? .command
+        windowPickerAppChord =
+            defaults.string(forKey: Key.windowPickerAppChord.rawValue)
+            .flatMap(WindowPickerChord.init(rawValue:)) ?? .option
+        windowPickerShowsPreviews =
+            defaults.object(forKey: Key.windowPickerShowsPreviews.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerShowsPreviews.rawValue)
+        windowPickerStartMode =
+            defaults.string(forKey: Key.windowPickerStartMode.rawValue)
+            .flatMap(WindowPickerMode.init(rawValue:)) ?? .windows
+        windowPickerStackDelay =
+            defaults.object(forKey: Key.windowPickerStackDelay.rawValue)
+            .flatMap { $0 as? Int }
+            .flatMap(WindowPickerStackDelay.init(rawValue:)) ?? .medium
+        windowPickerMaxColumns =
+            WindowPickerGridLimit(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxColumns.rawValue))
+            ?? .automatic
+        windowPickerMaxRows =
+            WindowPickerGridLimit(rawValue: defaults.integer(forKey: Key.windowPickerMaxRows.rawValue))
+            ?? .automatic
+        windowPickerSearchEnabled =
+            defaults.object(forKey: Key.windowPickerSearchEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerSearchEnabled.rawValue)
+        windowPickerShowsHints =
+            defaults.object(forKey: Key.windowPickerShowsHints.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerShowsHints.rawValue)
+        windowPickerTileSize =
+            defaults.string(forKey: Key.windowPickerTileSize.rawValue)
+            .flatMap(WindowPickerTileSize.init(rawValue:)) ?? .medium
+        windowPickerMaxWidth =
+            WindowPickerScreenShare(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxWidth.rawValue)) ?? .ninety
+        windowPickerMaxHeight =
+            WindowPickerScreenShare(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxHeight.rawValue)) ?? .eighty
         windowManagementEnabled = defaults.bool(forKey: Key.windowManagementEnabled.rawValue)
         windowManagementShowInLauncher =
             defaults.object(forKey: Key.windowManagementShowInLauncher.rawValue) == nil

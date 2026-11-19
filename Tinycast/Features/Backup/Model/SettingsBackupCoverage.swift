@@ -63,6 +63,18 @@ enum SettingsBackupCoverage {
         "navigationEnabled": .navigationEnabled,
         "menuSearchDisabledApps": .menuSearchDisabledApps,
         "menuSearchShowsAppleMenu": .menuSearchShowsAppleMenu,
+        "windowPickerChord": .windowPickerChord,
+        "windowPickerAppChord": .windowPickerAppChord,
+        "windowPickerShowsPreviews": .windowPickerShowsPreviews,
+        "windowPickerStartMode": .windowPickerStartMode,
+        "windowPickerStackDelay": .windowPickerStackDelay,
+        "windowPickerMaxColumns": .windowPickerMaxColumns,
+        "windowPickerMaxRows": .windowPickerMaxRows,
+        "windowPickerSearchEnabled": .windowPickerSearchEnabled,
+        "windowPickerShowsHints": .windowPickerShowsHints,
+        "windowPickerTileSize": .windowPickerTileSize,
+        "windowPickerMaxWidth": .windowPickerMaxWidth,
+        "windowPickerMaxHeight": .windowPickerMaxHeight,
         "windowManagementEnabled": .windowManagementEnabled,
         "windowManagementShowInLauncher": .windowManagementShowInLauncher,
         "windowSnapByDragging": .windowSnapByDragging,
@@ -129,6 +141,8 @@ enum SettingsBackupCoverage {
             "Background OCR is an opt-in processing choice on this Mac; a backup must not enable it.",
         AppSettingsKey.snippetsEnabled.rawValue:
             "Doubles as keyword-expansion consent; an import must not enable keystroke listening.",
+        AppSettingsKey.windowPickerEnabled.rawValue:
+            "Installs a key tap that swallows the switcher chords; an import must not switch it on.",
         AppSettingsKey.extensionPackageManager.rawValue:
             "Names a tool on this Mac; the machine a backup lands on may not have it.",
         AppSettingsKey.extensionCustomSearchPaths.rawValue:

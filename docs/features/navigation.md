@@ -6,6 +6,9 @@ same list the other way, and **Search Menu Bar Items** presses any item in the f
 [menu-search.md](menu-search.md) — because its internals are a menu walk; this page owns the
 switcher and the pane the two share.
 
+The ⌘⇥ **Window Switcher** is a separate feature with its own pane and its own page,
+[window-switcher.md](window-switcher.md).
+
 Ships **off**. Settings › Navigation is the switch, and while it is off none of them is in the
 launcher and a still-recorded shortcut for any does nothing.
 
@@ -77,6 +80,14 @@ still has a minimize button. That is looser than
 `WindowInventory.eligibleFrame` in two ways that both matter here: a **minimized** window is exactly
 what a switcher is for, and a window on another Space reports no frame until it is raised, so
 requiring one would hide it.
+
+**`kAXWindows` lists the current Space only**, so a full-screen window is missing from it whenever you
+are anywhere else. The sweep asks the window server (`CGWindowListCopyWindowInfo`) for each app's
+off-screen window numbers, subtracts the ones AX already listed, and resolves the rest through
+`AXWindowAccess.remoteWindows`, which walks the app's element IDs with the private
+`_AXUIElementCreateWithRemoteToken`. The walk is capped per app and per sweep, and a number proven
+unswitchable is remembered by the coordinator so later sweeps skip it. Without the symbol the sweep
+degrades to the current Space.
 
 **A minimized window changes subrole.** Finder and Transmission report their minimized windows as
 `AXDialog`, not `AXStandardWindow`, and back to `AXStandardWindow` when restored, so a subrole test

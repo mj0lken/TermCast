@@ -87,6 +87,8 @@ final class AppCore {
     let dictionary = DictionarySession()
     let menuSearch = MenuSearchSession()
     let windowSwitch = WindowSwitchSession()
+    let windowPicker = WindowPickerSession()
+    let windowPickerGroups = WindowPickerGroupStore()
     let activationPolicy = ActivationPolicy()
     let uninstall = UninstallSession()
     let terminalStore = TerminalStore()
@@ -243,6 +245,8 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var windowSwitchCoordinator = WindowSwitchCoordinator(
         settings: settings, appIndex: appIndex, session: windowSwitch, palette: palette,
         paletteCoordinator: paletteCoordinator, core: self)
+    @ObservationIgnored private(set) lazy var windowPickerCoordinator = WindowPickerCoordinator(
+        settings: settings, session: windowPicker, groups: windowPickerGroups)
     @ObservationIgnored private(set) lazy var cameraCoordinator = CameraCoordinator(core: self)
     @ObservationIgnored private(set) lazy var dictionaryCoordinator = DictionaryCoordinator(
         paletteCoordinator: paletteCoordinator)
@@ -393,6 +397,11 @@ final class AppCore {
             windowDragMonitor.healthTicker = healthTicker
             windowGreenButtonMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
+            windowPickerCoordinator.healthTicker = healthTicker
+            windowPickerCoordinator.onOpenSettings = { [weak self] in
+                self?.settingsCoordinator.showSettings(tab: .windowSwitcher)
+            }
+            windowPickerCoordinator.applyEnabled()
 
             hotKeys.onTogglePalette = { [weak self] in self?.paletteCoordinator.togglePalette() }
             hotKeys.dictationEnabled = settings.dictationEnabled
@@ -706,6 +715,7 @@ final class AppCore {
         dictationKey.prepareForTermination()
         windowDragMonitor.prepareForTermination()
         windowGreenButtonMonitor.prepareForTermination()
+        windowPickerCoordinator.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         roomCoordinator.prepareForTermination()
         terminalCoordinator.prepareForTermination()
@@ -849,6 +859,13 @@ final class AppCore {
                 $0.windowSwitchCoordinator.applyEnabled()
                 $0.menuSearchCoordinator.applyEnabled()
             })
+        track(
+            {
+                _ = $0.windowPickerEnabled
+                _ = $0.windowPickerChord
+                _ = $0.windowPickerAppChord
+            },
+            reproject: { $0.windowPickerCoordinator.applyEnabled() })
         track({ _ = $0.notesEnabled }, reproject: { $0.notesCoordinator.applyEnabled() })
         track(
             { _ = $0.notesShowsInMenuBar }, reproject: { $0.notesCoordinator.applyMenuBarItem() })

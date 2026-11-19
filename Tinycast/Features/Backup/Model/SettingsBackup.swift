@@ -84,6 +84,19 @@ struct SettingsBackup: Codable {
         var navigationEnabled: Bool?
         var menuSearchDisabledApps: [String]?
         var menuSearchShowsAppleMenu: Bool?
+        // `windowPickerEnabled` is absent: an import must not install the switcher's key tap.
+        var windowPickerChord: String?
+        var windowPickerAppChord: String?
+        var windowPickerShowsPreviews: Bool?
+        var windowPickerStartMode: String?
+        var windowPickerStackDelay: Int?
+        var windowPickerMaxColumns: Int?
+        var windowPickerMaxRows: Int?
+        var windowPickerSearchEnabled: Bool?
+        var windowPickerShowsHints: Bool?
+        var windowPickerTileSize: String?
+        var windowPickerMaxWidth: Int?
+        var windowPickerMaxHeight: Int?
         var windowManagementEnabled: Bool?
         var windowManagementShowInLauncher: Bool?
         var windowSnapByDragging: Bool?
@@ -226,6 +239,18 @@ extension SettingsBackup {
             navigationEnabled: s.navigationEnabled,
             menuSearchDisabledApps: s.menuSearchDisabledApps,
             menuSearchShowsAppleMenu: s.menuSearchShowsAppleMenu,
+            windowPickerChord: s.windowPickerChord.rawValue,
+            windowPickerAppChord: s.windowPickerAppChord.rawValue,
+            windowPickerShowsPreviews: s.windowPickerShowsPreviews,
+            windowPickerStartMode: s.windowPickerStartMode.rawValue,
+            windowPickerStackDelay: s.windowPickerStackDelay.rawValue,
+            windowPickerMaxColumns: s.windowPickerMaxColumns.rawValue,
+            windowPickerMaxRows: s.windowPickerMaxRows.rawValue,
+            windowPickerSearchEnabled: s.windowPickerSearchEnabled,
+            windowPickerShowsHints: s.windowPickerShowsHints,
+            windowPickerTileSize: s.windowPickerTileSize.rawValue,
+            windowPickerMaxWidth: s.windowPickerMaxWidth.rawValue,
+            windowPickerMaxHeight: s.windowPickerMaxHeight.rawValue,
             windowManagementEnabled: s.windowManagementEnabled,
             windowManagementShowInLauncher: s.windowManagementShowInLauncher,
             windowSnapByDragging: s.windowSnapByDragging,
@@ -617,6 +642,54 @@ extension SettingsBackup {
         }
         if let flag = s.menuSearchShowsAppleMenu {
             settings.menuSearchShowsAppleMenu = flag
+            count += 1
+        }
+        if let raw = s.windowPickerChord, let chord = WindowPickerChord(rawValue: raw) {
+            settings.windowPickerChord = chord
+            count += 1
+        }
+        if let raw = s.windowPickerAppChord, let chord = WindowPickerChord(rawValue: raw) {
+            settings.windowPickerAppChord = chord
+            count += 1
+        }
+        if let flag = s.windowPickerShowsPreviews {
+            settings.windowPickerShowsPreviews = flag
+            count += 1
+        }
+        if let raw = s.windowPickerStartMode, let mode = WindowPickerMode(rawValue: raw) {
+            settings.windowPickerStartMode = mode
+            count += 1
+        }
+        if let raw = s.windowPickerStackDelay, let delay = WindowPickerStackDelay(rawValue: raw) {
+            settings.windowPickerStackDelay = delay
+            count += 1
+        }
+        if let raw = s.windowPickerMaxColumns, let limit = WindowPickerGridLimit(rawValue: raw) {
+            settings.windowPickerMaxColumns = limit
+            count += 1
+        }
+        if let raw = s.windowPickerMaxRows, let limit = WindowPickerGridLimit(rawValue: raw) {
+            settings.windowPickerMaxRows = limit
+            count += 1
+        }
+        if let flag = s.windowPickerShowsHints {
+            settings.windowPickerShowsHints = flag
+            count += 1
+        }
+        if let flag = s.windowPickerSearchEnabled {
+            settings.windowPickerSearchEnabled = flag
+            count += 1
+        }
+        if let raw = s.windowPickerTileSize, let size = WindowPickerTileSize(rawValue: raw) {
+            settings.windowPickerTileSize = size
+            count += 1
+        }
+        if let raw = s.windowPickerMaxWidth, let share = WindowPickerScreenShare(rawValue: raw) {
+            settings.windowPickerMaxWidth = share
+            count += 1
+        }
+        if let raw = s.windowPickerMaxHeight, let share = WindowPickerScreenShare(rawValue: raw) {
+            settings.windowPickerMaxHeight = share
             count += 1
         }
         if let flag = s.windowManagementEnabled {

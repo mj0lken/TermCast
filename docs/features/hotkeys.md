@@ -393,7 +393,7 @@ it, so ✦Q can be neither recorded nor fired while it is on.
 ### Trackpad scroll sliders
 
 When **Trackpad Scroll Sliders** (`hyperKey.trackpadSliders`, off by default) is switched on in
-Settings → General → Hyper Key, `HyperKeyTap` adds `scrollWheel` to its event mask and creates a
+Settings → Hyper Key, `HyperKeyTap` adds `scrollWheel` to its event mask and creates a
 `TrackpadTouchMonitor` (`Platform/TrackpadTouchMonitor.swift`, resolving `MultitouchSupport.framework`
 with `dlsym`). The touch stream starts only when the Hyper key goes down and stops on release, so an
 idle Hyper key adds zero background touch callbacks.

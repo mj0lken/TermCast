@@ -10,6 +10,8 @@ struct WindowSwitchEntry: Identifiable, Hashable, Sendable {
     let iconStamp: Int
     let title: String
     var isMinimized: Bool
+    /// On a Space of its own. Not ranked or listed differently, only marked.
+    var isFullScreen = false
     /// Lower is nearer the front; `.max` when the app has no on-screen window to rank it by.
     let appRank: Int
 

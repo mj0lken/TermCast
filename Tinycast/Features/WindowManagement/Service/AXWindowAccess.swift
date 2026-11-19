@@ -223,9 +223,20 @@ enum AXWindowAccess {
             == .success
     }
 
+    /// Leaving only: entering would carry the screen off to a new Space mid-switch.
+    static func exitFullScreen(_ window: AXUIElement) -> Bool {
+        AXUIElementSetAttributeValue(window, fullScreenAttribute, kCFBooleanFalse) == .success
+    }
+
     static func minimize(_ window: AXUIElement) -> Bool {
         AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
             == .success
+    }
+
+    /// Presses the close button, so the app still gets to ask about unsaved work.
+    static func close(_ window: AXUIElement) -> Bool {
+        guard let button = element(window, kAXCloseButtonAttribute) else { return false }
+        return AXUIElementPerformAction(button, kAXPressAction as CFString) == .success
     }
 
     static func focus(

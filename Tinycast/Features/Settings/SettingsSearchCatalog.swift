@@ -109,9 +109,9 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
-        + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
-        + windowManagement + notch + navigation + notes + calendar + emoji + ai + quickActions
-        + dictation + extensions + permissions
+        + appleShortcuts + fallbacks + terminal + notch + hyperKey + windowManagement
+        + windowSwitcher + notes + clipboard + snippets + fileSearch + navigation + calendar
+        + emoji + ai + quickActions + dictation + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -161,21 +161,6 @@ enum SettingsSearchCatalog {
         .init(
             .generalAppearance, "Drag to move the launcher",
             keywords: ["move", "position", "window"]),
-        .init(
-            .generalHyperKey, "Hyper Key",
-            keywords: ["modifier", "remap", "caps lock", "capslock"]),
-        .init(
-            .generalHyperKey, "Quick Press",
-            keywords: ["tap", "escape", "single press"]),
-        .init(
-            .generalHyperKey, "Include Shift (⇧)",
-            keywords: ["modifier", "chord"]),
-        .init(
-            .generalHyperKey, "Secure Input Compatibility",
-            keywords: ["password", "secure input", "right control"]),
-        .init(
-            .generalHyperKey, "Trackpad Scroll Sliders",
-            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"]),
         .init(
             .generalCalculator, "Number format",
             keywords: ["decimal", "comma", "separator", "locale", "region", "thousands"]),
@@ -526,6 +511,72 @@ enum SettingsSearchCatalog {
         .init(
             .navigationMenuSearch, "Excluded Applications",
             keywords: ["exclude", "password manager", "ignore", "privacy", "menu bar"])
+    ]
+
+    private static let hyperKey: [SettingsSearchEntry] = [
+        .init(
+            pane: .hyperKey,
+            keywords: ["caps lock", "modifier", "remap", "trackpad", "brightness", "volume"]),
+        .init(
+            .hyperKeyHyperKey, "Hyper Key",
+            keywords: ["modifier", "remap", "caps lock", "capslock"]),
+        .init(
+            .hyperKeyHyperKey, "Quick Press",
+            keywords: ["tap", "escape", "single press"]),
+        .init(
+            .hyperKeyHyperKey, "Include Shift (⇧)",
+            keywords: ["modifier", "chord"]),
+        .init(
+            .hyperKeyHyperKey, "Secure Input Compatibility",
+            keywords: ["password", "secure input", "right control"]),
+        .init(
+            .hyperKeyTrackpadScroll, "Trackpad Scroll Sliders",
+            keywords: ["brightness", "backlight", "volume", "sound", "touchpad", "scroll", "gesture"])
+    ]
+
+    private static let windowSwitcher: [SettingsSearchEntry] = [
+        .init(
+            pane: .windowSwitcher,
+            keywords: ["command tab", "cmd tab", "alt tab", "thumbnails", "previews", "windows"]),
+        .init(
+            .windowSwitcherWindowSwitcher, "Enable the window switcher",
+            keywords: ["command tab", "cmd tab", "alt tab", "switch", "windows", "thumbnails"]),
+        .init(
+            .windowSwitcherShortcuts, "All windows",
+            keywords: ["command tab", "shortcut", "hotkey", "modifier", "key binding"]),
+        .init(
+            .windowSwitcherShortcuts, "Front app’s windows",
+            keywords: ["cycle", "same app", "shortcut", "hotkey", "modifier", "key binding"]),
+        .init(
+            .windowSwitcherLayout, "Window size",
+            keywords: ["tile", "thumbnail", "small", "large", "scale"]),
+        .init(
+            .windowSwitcherLayout, "Windows per row",
+            keywords: ["columns", "grid", "maximum"]),
+        .init(
+            .windowSwitcherLayout, "Rows",
+            keywords: ["grid", "maximum"]),
+        .init(
+            .windowSwitcherLayout, "Maximum width",
+            keywords: ["panel", "screen", "percent", "size"]),
+        .init(
+            .windowSwitcherLayout, "Maximum height",
+            keywords: ["panel", "screen", "percent", "size"]),
+        .init(
+            .windowSwitcherOptions, "Show window previews",
+            keywords: ["thumbnails", "screen recording", "screenshots", "live"]),
+        .init(
+            .windowSwitcherOptions, "Show keyboard shortcuts",
+            keywords: ["hints", "instructions", "keys", "footer", "help"]),
+        .init(
+            .windowSwitcherOptions, "Type to search",
+            keywords: ["filter", "find", "letters", "close", "quit", "hide", "shift"]),
+        .init(
+            .windowSwitcherOptions, "Start with",
+            keywords: ["stacks", "groups", "windows", "mode", "pile", "outline", "shift"]),
+        .init(
+            .windowSwitcherOptions, "Open a selected stack after",
+            keywords: ["delay", "milliseconds", "expand", "dwell", "group"])
     ]
 
     private static let windowManagement: [SettingsSearchEntry] = [

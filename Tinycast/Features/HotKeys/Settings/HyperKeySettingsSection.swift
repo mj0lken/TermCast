@@ -39,7 +39,7 @@ struct HyperKeySettingsSection: View {
                     Text(key.title).tag(key)
                 }
             } label: {
-                SettingsRowTitle(.generalHyperKey, "Hyper Key")
+                SettingsRowTitle(.hyperKeyHyperKey, "Hyper Key")
                 Text(hyperSubtitle)
             }
 
@@ -60,20 +60,20 @@ struct HyperKeySettingsSection: View {
                     }
                     Text("Trigger Escape").tag(HyperKeyQuickPress.escape)
                 } label: {
-                    SettingsRowTitle(.generalHyperKey, "Quick Press")
+                    SettingsRowTitle(.hyperKeyHyperKey, "Quick Press")
                     Text("When you press and release \(settings.hyperKey.title) on its own.")
                 }
             }
 
             Toggle(isOn: $settings.hyperKeyIncludesShift) {
-                SettingsRowTitle(.generalHyperKey, "Include Shift (⇧)")
+                SettingsRowTitle(.hyperKeyHyperKey, "Include Shift (⇧)")
             }
             // Flipping it re-points recorded chords, so it needs a chord to mean.
             .settingsEnabled(settings.hyperKey != .none)
 
             if settings.hyperKey.supportsSecureInputCompatibility {
                 Toggle(isOn: $settings.hyperKeySecureInputCompatibility) {
-                    SettingsRowTitle(.generalHyperKey, "Secure Input Compatibility")
+                    SettingsRowTitle(.hyperKeyHyperKey, "Secure Input Compatibility")
                     Text(
                         """
                         Tinycast's Hyper shortcuts also work in password fields and secure terminals, \
@@ -82,18 +82,8 @@ struct HyperKeySettingsSection: View {
                         """)
                 }
             }
-
-            Toggle(isOn: $settings.hyperKeyTrackpadSliders) {
-                SettingsRowTitle(.generalHyperKey, "Trackpad Scroll Sliders")
-                Text("Hold the Hyper Key and scroll vertically to adjust brightness or volume.")
-            }
-            .settingsEnabled(settings.hyperKey != .none)
-
-            HyperKeyTrackpadDiagramView(
-                keyTitle: settings.hyperKey == .none ? nil : settings.hyperKey.title,
-                isActive: settings.hyperKey != .none && settings.hyperKeyTrackpadSliders)
         } header: {
-            SettingsSectionHeader(.generalHyperKey)
+            SettingsSectionHeader(.hyperKeyHyperKey)
         }
         .onAppear { takeover = manager.takeover() }
         .onChange(of: manager.status) {
@@ -113,6 +103,20 @@ struct HyperKeySettingsSection: View {
                     self.diagnostics = manager.diagnostics()
                     takeover = self.diagnostics?.takeover
                 })
+        }
+
+        Section {
+            Toggle(isOn: $settings.hyperKeyTrackpadSliders) {
+                SettingsRowTitle(.hyperKeyTrackpadScroll, "Trackpad Scroll Sliders")
+                Text("Hold the Hyper Key and scroll vertically to adjust brightness or volume.")
+            }
+            .settingsEnabled(settings.hyperKey != .none)
+
+            HyperKeyTrackpadDiagramView(
+                keyTitle: settings.hyperKey == .none ? nil : settings.hyperKey.title,
+                isActive: settings.hyperKey != .none && settings.hyperKeyTrackpadSliders)
+        } header: {
+            SettingsSectionHeader(.hyperKeyTrackpadScroll)
         }
     }
 

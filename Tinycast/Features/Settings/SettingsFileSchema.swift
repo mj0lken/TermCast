@@ -144,6 +144,18 @@ enum SettingsFileSchema {
         case .menuSearchShowsAppleMenu: return bind(settings, \.menuSearchShowsAppleMenu)
         case .menuSearchDisabledApps: return bind(settings, \.menuSearchDisabledApps)
         case .navigationCommands: return launcher.commandsBinding(for: key, owner: .navigation)
+        case .windowPickerChord: return bind(settings, \.windowPickerChord)
+        case .windowPickerAppChord: return bind(settings, \.windowPickerAppChord)
+        case .windowPickerShowsPreviews: return bind(settings, \.windowPickerShowsPreviews)
+        case .windowPickerStartMode: return bind(settings, \.windowPickerStartMode)
+        case .windowPickerStackDelay: return bind(settings, \.windowPickerStackDelay)
+        case .windowPickerMaxColumns: return bind(settings, \.windowPickerMaxColumns)
+        case .windowPickerMaxRows: return bind(settings, \.windowPickerMaxRows)
+        case .windowPickerSearchEnabled: return bind(settings, \.windowPickerSearchEnabled)
+        case .windowPickerShowsHints: return bind(settings, \.windowPickerShowsHints)
+        case .windowPickerTileSize: return bind(settings, \.windowPickerTileSize)
+        case .windowPickerMaxWidth: return bind(settings, \.windowPickerMaxWidth)
+        case .windowPickerMaxHeight: return bind(settings, \.windowPickerMaxHeight)
         case .windowManagementEnabled: return bind(settings, \.windowManagementEnabled)
         case .windowManagementShowInLauncher:
             return bind(settings, \.windowManagementShowInLauncher)
@@ -238,6 +250,12 @@ extension HyperKeyQuickPress: SettingsFileRawValue {}
 extension CalcNumberStyle: SettingsFileRawValue {}
 extension SearchSensitivity: SettingsFileRawValue {}
 extension WindowCycle: SettingsFileRawValue {}
+extension WindowPickerChord: SettingsFileRawValue {}
+extension WindowPickerStackDelay: SettingsFileRawValue {}
+extension WindowPickerGridLimit: SettingsFileRawValue {}
+extension WindowPickerMode: SettingsFileRawValue {}
+extension WindowPickerTileSize: SettingsFileRawValue {}
+extension WindowPickerScreenShare: SettingsFileRawValue {}
 extension WindowTrafficLightButton: SettingsFileRawValue {}
 extension ClipboardDefaultAction: SettingsFileRawValue {}
 extension SnippetDefaultAction: SettingsFileRawValue {}
