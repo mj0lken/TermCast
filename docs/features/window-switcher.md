@@ -16,6 +16,7 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 | --- | --- |
 | modifier + ⇥ | open on every window; again steps forward, with ⇧ backward |
 | modifier + ` | open on the front app's windows only |
+| 1 – 9 | switch to that tile's window; on a closed group, open it |
 | ← → ↑ ↓ | move in the grid |
 | left ⇧ tap | toggle grouping by app; inside an open group, step back out |
 | right ⇧ tap | open the selected group, or close the open one |
@@ -25,19 +26,32 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 
 Each chord's modifier is ⌘, ⌥, ⌃ or Off (`windowPickerChord`, default ⌘; `windowPickerAppChord`,
 default ⌥). The key is fixed per scope — ⇥ and the key above it — so the two can never collide.
+Settings shows the second key as the current layout types it, since the backtick's position holds
+§ or < on other keyboards.
+
+**Numbers.** The first nine tiles carry a badge, 1–9, matched by key position rather than
+character so they hold on a layout that needs Shift for digits. A number on a window switches at
+once; on a closed group it opens the group, whose windows are then numbered in turn.
 
 **Grouping.** Grouped, every app with more than one window is one stacked tile carrying a count; an
 app with a single window stays a plain window tile. Releasing on a group switches to its frontmost
 window. A selected group opens by itself after `windowPickerGroupDelay` (400–1500 ms, or never),
 or at once on a right ⇧ tap; opened, the panel shows only that app's windows and stepping stays
 inside it. `windowPickerGroupsByApp` is only how a show *starts* — the left ⇧ toggle lasts for that
-show and is never written back.
+show and is never written back. A group's stack is drawn from its next two windows' previews.
+
+**Layout.** Five settings shape the panel, gathered in `WindowPickerGeometry.Limits`: the window
+size (`windowPickerTileSize`), the most windows per row and the most rows (`windowPickerMaxColumns`,
+`windowPickerMaxRows`, each automatic or 1–8), and the most of the screen's width and height the
+panel may take (`windowPickerMaxWidth`, `windowPickerMaxHeight`, 40–100 %). Tiles shrink to honour
+the row limit and the screen share; once they can shrink no further, rows are added rather than
+windows dropped.
 
 ## Invariants
 
 - **The enabling flag grants a capability, so it travels nowhere.** `windowPickerEnabled` installs a
   keyboard event tap; like `snippetsEnabled` it has no `SettingsFileKey` and is in
-  `SettingsBackupCoverage.deliberatelyExcluded`. The five behaviour settings ride both.
+  `SettingsBackupCoverage.deliberatelyExcluded`. The ten behaviour settings ride both.
 - **No tap while off.** `WindowPickerCoordinator.applyEnabled()` tears the tap down and leaves the
   `HealthTicker`; nothing of the feature runs until the switch is on.
 - **The tap callback only feeds the engine.** `WindowPickerTap` runs a `.cgSessionEventTap` on its
@@ -67,7 +81,7 @@ show and is never written back.
 | `Model/WindowPickerBoard.swift` | tiles, selection, grouping and the open group; pure |
 | `Model/WindowPickerOrder.swift` | per-window front-to-back order over the per-app fallback |
 | `Model/WindowPickerGeometry.swift` | the grid: columns, tile size, panel size |
-| `Model/WindowPickerChord.swift`, `WindowPickerGroupDelay.swift` | the two setting enums |
+| `Model/WindowPickerChord.swift`, `…GroupDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare` | the setting enums |
 | `Service/WindowPickerTap.swift` | the event tap and its worker thread |
 | `Service/WindowPickerSession.swift` | one show's observable state and its live AX elements |
 | `Service/WindowThumbnailProvider.swift` | ScreenCaptureKit captures, off the main actor |

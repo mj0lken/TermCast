@@ -80,6 +80,15 @@ final class WindowPickerCoordinator: HealthCheckable {
             actionKeys: Self.actionKeys())
     }
 
+    private func limits() -> WindowPickerGeometry.Limits {
+        WindowPickerGeometry.Limits(
+            maxColumns: settings.windowPickerMaxColumns.rawValue,
+            maxRows: settings.windowPickerMaxRows.rawValue,
+            widthShare: settings.windowPickerMaxWidth.fraction,
+            heightShare: settings.windowPickerMaxHeight.fraction,
+            tileScale: settings.windowPickerTileSize.scale)
+    }
+
     /// W, Q and H by what the keys type, so they hold on a layout that moves them.
     private static func actionKeys() -> [UInt16: WindowPickerKeyEngine.Action] {
         let letters: [String: WindowPickerKeyEngine.Action] = ["w": .close, "q": .quit, "h": .hide]
@@ -108,6 +117,7 @@ final class WindowPickerCoordinator: HealthCheckable {
             change { $0.move(direction, columns: columns) }
         case .toggleGrouping: change { $0.toggleGrouping() }
         case .toggleGroup: change { $0.toggleGroup() }
+        case .pick(let index): pick(number: index)
         case .perform(let action): perform(action)
         case .commit: commit()
         case .cancel: close()
@@ -138,7 +148,7 @@ final class WindowPickerCoordinator: HealthCheckable {
             WindowPickerBoard(
                 entries: ordered, isGrouped: settings.windowPickerGroupsByApp,
                 allowsGrouping: scope == .allWindows, backwards: backwards),
-            elements: snapshot.elements, screenSize: screen.visibleFrame.size)
+            elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
         guard let layout = session.layout else { return close() }
         controller.show(
             WindowPickerView(session: session) { [weak self] in self?.pick($0) },
@@ -158,6 +168,17 @@ final class WindowPickerCoordinator: HealthCheckable {
     private func pick(_ index: Int) {
         session.update { $0.select(index) }
         commit()
+    }
+
+    /// A number on a closed group opens it, so the same keys then reach the windows inside.
+    private func pick(number index: Int) {
+        guard let board = session.board, board.tiles.indices.contains(index) else { return }
+        session.update { $0.select(index) }
+        if session.board?.canExpandSelection == true {
+            change { $0.expandSelection() }
+        } else {
+            commit()
+        }
     }
 
     private func commit() {
@@ -224,7 +245,7 @@ final class WindowPickerCoordinator: HealthCheckable {
         }
         let handles = Dictionary(
             captured.map { ($0.id, $0.handle) }, uniquingKeysWith: { first, _ in first })
-        let size = WindowPickerGeometry.fullPreview
+        let size = WindowPickerGeometry.preview(tileScale: settings.windowPickerTileSize.scale)
         let pixels = CGSize(width: size.width * scale, height: size.height * scale)
         let generation = generation
         thumbnails = Task { [weak self] in

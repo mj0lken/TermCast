@@ -11,13 +11,16 @@ final class WindowPickerSession {
 
     @ObservationIgnored private var elements: [Int: WindowSwitchSweep.Element] = [:]
     @ObservationIgnored private var screenSize: CGSize = .zero
+    @ObservationIgnored private var limits = WindowPickerGeometry.Limits()
     @ObservationIgnored private var terminationToken: NotificationCenter.ObservationToken?
 
     var isPresented: Bool { board != nil }
 
     func present(
-        _ board: WindowPickerBoard, elements: [Int: WindowSwitchSweep.Element], screenSize: CGSize
+        _ board: WindowPickerBoard, elements: [Int: WindowSwitchSweep.Element], screenSize: CGSize,
+        limits: WindowPickerGeometry.Limits
     ) {
+        self.limits = limits
         self.elements = elements
         self.screenSize = screenSize
         thumbnails = [:]
@@ -63,7 +66,7 @@ final class WindowPickerSession {
         guard let board else { return }
         let next = WindowPickerGeometry.layout(
             tileCount: board.tiles.count, screen: screenSize,
-            showsHeader: board.expandedGroup != nil)
+            showsHeader: board.expandedGroup != nil, limits: limits)
         if next != layout { layout = next }
     }
 

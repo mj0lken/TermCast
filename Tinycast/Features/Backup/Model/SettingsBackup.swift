@@ -90,6 +90,11 @@ struct SettingsBackup: Codable {
         var windowPickerShowsPreviews: Bool?
         var windowPickerGroupsByApp: Bool?
         var windowPickerGroupDelay: Int?
+        var windowPickerMaxColumns: Int?
+        var windowPickerMaxRows: Int?
+        var windowPickerTileSize: String?
+        var windowPickerMaxWidth: Int?
+        var windowPickerMaxHeight: Int?
         var windowManagementEnabled: Bool?
         var windowManagementShowInLauncher: Bool?
         var windowSnapByDragging: Bool?
@@ -237,6 +242,11 @@ extension SettingsBackup {
             windowPickerShowsPreviews: s.windowPickerShowsPreviews,
             windowPickerGroupsByApp: s.windowPickerGroupsByApp,
             windowPickerGroupDelay: s.windowPickerGroupDelay.rawValue,
+            windowPickerMaxColumns: s.windowPickerMaxColumns.rawValue,
+            windowPickerMaxRows: s.windowPickerMaxRows.rawValue,
+            windowPickerTileSize: s.windowPickerTileSize.rawValue,
+            windowPickerMaxWidth: s.windowPickerMaxWidth.rawValue,
+            windowPickerMaxHeight: s.windowPickerMaxHeight.rawValue,
             windowManagementEnabled: s.windowManagementEnabled,
             windowManagementShowInLauncher: s.windowManagementShowInLauncher,
             windowSnapByDragging: s.windowSnapByDragging,
@@ -648,6 +658,26 @@ extension SettingsBackup {
         }
         if let raw = s.windowPickerGroupDelay, let delay = WindowPickerGroupDelay(rawValue: raw) {
             settings.windowPickerGroupDelay = delay
+            count += 1
+        }
+        if let raw = s.windowPickerMaxColumns, let limit = WindowPickerGridLimit(rawValue: raw) {
+            settings.windowPickerMaxColumns = limit
+            count += 1
+        }
+        if let raw = s.windowPickerMaxRows, let limit = WindowPickerGridLimit(rawValue: raw) {
+            settings.windowPickerMaxRows = limit
+            count += 1
+        }
+        if let raw = s.windowPickerTileSize, let size = WindowPickerTileSize(rawValue: raw) {
+            settings.windowPickerTileSize = size
+            count += 1
+        }
+        if let raw = s.windowPickerMaxWidth, let share = WindowPickerScreenShare(rawValue: raw) {
+            settings.windowPickerMaxWidth = share
+            count += 1
+        }
+        if let raw = s.windowPickerMaxHeight, let share = WindowPickerScreenShare(rawValue: raw) {
+            settings.windowPickerMaxHeight = share
             count += 1
         }
         if let flag = s.windowManagementEnabled {

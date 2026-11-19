@@ -542,6 +542,21 @@ enum SettingsSearchCatalog {
             .windowSwitcherShortcuts, "Front app’s windows",
             keywords: ["cycle", "same app", "shortcut", "hotkey", "modifier", "key binding"]),
         .init(
+            .windowSwitcherLayout, "Window size",
+            keywords: ["tile", "thumbnail", "small", "large", "scale"]),
+        .init(
+            .windowSwitcherLayout, "Windows per row",
+            keywords: ["columns", "grid", "maximum"]),
+        .init(
+            .windowSwitcherLayout, "Rows",
+            keywords: ["grid", "maximum"]),
+        .init(
+            .windowSwitcherLayout, "Maximum width",
+            keywords: ["panel", "screen", "percent", "size"]),
+        .init(
+            .windowSwitcherLayout, "Maximum height",
+            keywords: ["panel", "screen", "percent", "size"]),
+        .init(
             .windowSwitcherOptions, "Show window previews",
             keywords: ["thumbnails", "screen recording", "screenshots", "live"]),
         .init(

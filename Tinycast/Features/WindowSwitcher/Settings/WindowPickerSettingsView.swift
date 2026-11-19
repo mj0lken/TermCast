@@ -44,10 +44,35 @@ struct WindowPickerSettingsView: View {
                     $settings.windowPickerChord, key: "⇥",
                     title: SettingsRowTitle(.windowSwitcherShortcuts, "All windows"))
                 chordPicker(
-                    $settings.windowPickerAppChord, key: "`",
+                    $settings.windowPickerAppChord, key: Self.frontAppKey,
                     title: SettingsRowTitle(.windowSwitcherShortcuts, "Front app’s windows"))
             } header: {
                 SettingsSectionHeader(.windowSwitcherShortcuts)
+            } footer: {
+                Text("The second shortcut walks only the windows of the app in front.")
+            }
+            .settingsEnabled(settings.windowPickerEnabled)
+
+            Section {
+                optionPicker(
+                    $settings.windowPickerTileSize, titles: \.title,
+                    label: SettingsRowTitle(.windowSwitcherLayout, "Window size"))
+                optionPicker(
+                    $settings.windowPickerMaxColumns, titles: \.title,
+                    label: SettingsRowTitle(.windowSwitcherLayout, "Windows per row"))
+                optionPicker(
+                    $settings.windowPickerMaxRows, titles: \.title,
+                    label: SettingsRowTitle(.windowSwitcherLayout, "Rows"))
+                optionPicker(
+                    $settings.windowPickerMaxWidth, titles: \.title,
+                    label: SettingsRowTitle(.windowSwitcherLayout, "Maximum width"))
+                optionPicker(
+                    $settings.windowPickerMaxHeight, titles: \.title,
+                    label: SettingsRowTitle(.windowSwitcherLayout, "Maximum height"))
+            } header: {
+                SettingsSectionHeader(.windowSwitcherLayout)
+            } footer: {
+                Text("Width and height are shares of the screen; extra windows add rows.")
             }
             .settingsEnabled(settings.windowPickerEnabled)
 
@@ -77,6 +102,12 @@ struct WindowPickerSettingsView: View {
         .settingsScrollTarget(.windowSwitcher)
         .onAppear(perform: refresh)
         .onReceive(refreshTimer) { _ in refresh() }
+    }
+
+    /// What the key types on this keyboard: the backtick's position holds § or < elsewhere.
+    private static var frontAppKey: String {
+        let keyCode = Int(WindowPickerKeyEngine.KeyCode.grave)
+        return ASCIIKeyboardLayout.character(for: keyCode)?.uppercased() ?? "`"
     }
 
     private var needsScreenRecording: Bool {
@@ -124,6 +155,18 @@ struct WindowPickerSettingsView: View {
         guard isWalkingGrants, trusted else { return }
         if needsScreenRecording { grantScreenRecording() }
         isWalkingGrants = false
+    }
+
+    private func optionPicker<Option: CaseIterable & Identifiable & Hashable>(
+        _ selection: Binding<Option>, titles: KeyPath<Option, String>, label: SettingsRowTitle
+    ) -> some View where Option.AllCases: RandomAccessCollection {
+        Picker(selection: selection) {
+            ForEach(Option.allCases) { option in
+                Text(verbatim: option[keyPath: titles]).tag(option)
+            }
+        } label: {
+            label
+        }
     }
 
     private func chordPicker(

@@ -22,6 +22,7 @@ struct WindowPickerKeyEngine: Sendable {
         case move(Direction)
         case toggleGrouping
         case toggleGroup
+        case pick(Int)
         case perform(Action)
         case commit
         case cancel
@@ -52,6 +53,10 @@ struct WindowPickerKeyEngine: Sendable {
         static let rightArrow: UInt16 = 124
         static let downArrow: UInt16 = 125
         static let upArrow: UInt16 = 126
+        /// The digit row by position, so 1–9 hold on a layout that needs Shift to type them.
+        static let digits: [UInt16: Int] = [
+            18: 0, 19: 1, 20: 2, 21: 3, 23: 4, 22: 5, 26: 6, 28: 7, 25: 8
+        ]
         /// The ANSI positions, for a layout that cannot be read.
         static let defaultActions: [UInt16: Action] = [13: .close, 12: .quit, 4: .hide]
     }
@@ -136,7 +141,9 @@ struct WindowPickerKeyEngine: Sendable {
         case KeyCode.returnKey, KeyCode.keypadEnter:
             reset()
             return .commit
-        default: return actionKeys[keyCode].map(Command.perform)
+        default:
+            if let index = KeyCode.digits[keyCode] { return .pick(index) }
+            return actionKeys[keyCode].map(Command.perform)
         }
     }
 }

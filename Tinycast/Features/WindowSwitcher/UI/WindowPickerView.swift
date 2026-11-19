@@ -33,12 +33,22 @@ struct WindowPickerView: View {
                 WindowPickerTileView(
                     tile: tile, preview: layout.preview,
                     thumbnail: tile.target.flatMap { session.thumbnails[$0.handle] },
+                    stackThumbnails: stackThumbnails(of: tile),
+                    number: index < WindowPickerTileView.numberedTiles ? index + 1 : nil,
                     isSelected: index == board.selection
                 )
                 .frame(width: layout.tile.width, height: layout.tile.height)
                 .contentShape(Rectangle())
                 .onTapGesture { onPick(index) }
             }
+        }
+    }
+
+    /// The windows behind a group's front one, so its stack shows what it actually holds.
+    private func stackThumbnails(of tile: WindowPickerBoard.Tile) -> [CGImage?] {
+        guard case .group(let group) = tile else { return [] }
+        return group.windows.dropFirst().prefix(WindowPickerTileView.stackDepth).map {
+            session.thumbnails[$0.handle]
         }
     }
 }
@@ -103,10 +113,16 @@ private struct WindowPickerTileView: View {
     let tile: WindowPickerBoard.Tile
     let preview: CGSize
     let thumbnail: CGImage?
+    let stackThumbnails: [CGImage?]
+    let number: Int?
     let isSelected: Bool
 
-    private static let stackOffset: CGFloat = 5
+    /// The digit row reaches nine tiles; the rest are walked to.
+    static let numberedTiles = 9
+    static let stackDepth = 2
+    private static let stackStep: CGFloat = 9
     private static let badgeIcon: CGFloat = 26
+    private static let numberSize: CGFloat = 20
 
     private var entry: WindowSwitchEntry? { tile.target }
 
@@ -148,50 +164,84 @@ private struct WindowPickerTileView: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
+    /// A group always reserves the full stack, so its front card is one size whatever it holds.
     private var previewStack: some View {
-        let stacked = groupCount != nil
-        let inset = stacked ? Self.stackOffset * 2 : 0
+        let inset = groupCount == nil ? 0 : Self.stackStep * CGFloat(Self.stackDepth)
+        let card = CGSize(width: preview.width - inset, height: preview.height - inset)
         return ZStack(alignment: .bottomLeading) {
-            if stacked {
-                card.padding(.leading, inset).padding(.bottom, inset).opacity(0.35)
-                card.padding(Self.stackOffset).opacity(0.6)
+            ForEach(Array(stackThumbnails.enumerated().reversed()), id: \.offset) { depth, image in
+                let shift = Self.stackStep * CGFloat(depth + 1)
+                backCard(image, depth: depth)
+                    .frame(width: card.width, height: card.height)
+                    .offset(x: shift, y: -shift)
             }
-            card
-                .overlay { content }
-                .clipShape(shape)
-                .overlay {
-                    shape.strokeBorder(
-                        isSelected ? Color.accentColor : Theme.Colors.cardStroke,
-                        lineWidth: isSelected ? 3 : 1)
-                }
-                .padding(.trailing, inset)
-                .padding(.top, inset)
-            badge
+            frontCard
+                .frame(width: card.width, height: card.height)
         }
+        .frame(width: preview.width, height: preview.height, alignment: .bottomLeading)
     }
 
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
     }
 
-    private var card: some View {
-        shape.fill(isSelected ? Theme.Colors.selection : Theme.Colors.cardFill)
+    private var frontCard: some View {
+        shape.fill(.regularMaterial)
+            .overlay { shape.fill(isSelected ? Theme.Colors.selection : Theme.Colors.cardFill) }
+            .overlay { content(thumbnail) }
+            .clipShape(shape)
+            .overlay {
+                shape.strokeBorder(
+                    isSelected ? Color.accentColor : Theme.Colors.cardStroke,
+                    lineWidth: isSelected ? 3 : 1)
+            }
+            .overlay(alignment: .topLeading) { numberBadge }
+            .overlay(alignment: .bottomLeading) { badge }
+            .shadow(color: .black.opacity(groupCount == nil ? 0 : 0.35), radius: 5, x: 2, y: -2)
+    }
+
+    private func backCard(_ image: CGImage?, depth: Int) -> some View {
+        shape.fill(.regularMaterial)
+            .overlay { shape.fill(Theme.Colors.cardFill) }
+            .overlay { content(image, showsIcon: false).opacity(0.7) }
+            .clipShape(shape)
+            .overlay { shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: 1) }
+            .shadow(color: .black.opacity(0.3), radius: 4, x: 2, y: -2)
+            .opacity(depth == 0 ? 0.9 : 0.7)
     }
 
     @ViewBuilder
-    private var content: some View {
-        if let thumbnail {
-            Image(decorative: thumbnail, scale: 1)
+    private func content(_ image: CGImage?, showsIcon: Bool = true) -> some View {
+        if let image {
+            Image(decorative: image, scale: 1)
                 .resizable()
                 .scaledToFit()
                 .padding(Theme.Spacing.xs)
-        } else if let entry {
+        } else if showsIcon, let entry {
             WindowPickerAppIcon(iconURL: entry.iconURL, iconStamp: entry.iconStamp)
                 .frame(width: preview.height * 0.5, height: preview.height * 0.5)
         }
     }
 
     @ViewBuilder
+    private var numberBadge: some View {
+        if let number {
+            Text(verbatim: String(number))
+                .font(.caption.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(isSelected ? Color.white : Theme.Colors.textPrimary)
+                .frame(width: Self.numberSize, height: Self.numberSize)
+                .background {
+                    if isSelected {
+                        Circle().fill(Color.accentColor)
+                    } else {
+                        Circle().fill(.regularMaterial)
+                    }
+                }
+                .padding(Theme.Spacing.xs)
+        }
+    }
+
     private var badge: some View {
         HStack(spacing: Theme.Spacing.xs) {
             if thumbnail != nil, let entry {
@@ -199,7 +249,7 @@ private struct WindowPickerTileView: View {
                     .frame(width: Self.badgeIcon, height: Self.badgeIcon)
             }
             if let groupCount {
-                Text(verbatim: String(groupCount))
+                Text("\(groupCount) windows")
                     .font(.caption.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.Colors.textPrimary)

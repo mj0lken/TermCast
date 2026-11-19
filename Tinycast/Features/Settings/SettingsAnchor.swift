@@ -89,6 +89,7 @@ extension SettingsAnchor {
     static let windowSwitcherWindowSwitcher = Self(tab: .windowSwitcher, title: "Window Switcher")
     static let windowSwitcherPermissions = Self(tab: .windowSwitcher, title: "Permissions")
     static let windowSwitcherShortcuts = Self(tab: .windowSwitcher, title: "Shortcuts")
+    static let windowSwitcherLayout = Self(tab: .windowSwitcher, title: "Layout")
     static let windowSwitcherOptions = Self(tab: .windowSwitcher, title: "Options")
 
     static let windowManagementWindowManagement = Self(

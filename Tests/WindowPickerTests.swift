@@ -144,6 +144,9 @@ struct WindowPickerTests {
         expect(keys.keyDown(13, modifiers: .command).command == .perform(.close), "W closes")
         expect(keys.keyDown(12, modifiers: .command).command == .perform(.quit), "Q quits")
         expect(keys.keyDown(4, modifiers: .command).command == .perform(.hide), "H hides")
+        expect(keys.keyDown(18, modifiers: .command).command == .pick(0), "1 picks the first tile")
+        expect(keys.keyDown(25, modifiers: .command).command == .pick(8), "9 picks the ninth")
+        expect(keys.keyDown(29, modifiers: .command).command == nil, "0 picks nothing")
         expect(
             keys.keyDown(0, modifiers: .command) == .init(command: nil, swallows: true),
             "an unbound key is swallowed, so ⌘A never reaches the app underneath")
@@ -296,5 +299,29 @@ struct WindowPickerTests {
         expect(
             headed.panel.height == few.panel.height + WindowPickerGeometry.headerHeight,
             "an open group's header adds its own height")
+
+        typealias Limits = WindowPickerGeometry.Limits
+        func laid(_ count: Int, _ limits: Limits) -> WindowPickerGeometry.Layout {
+            WindowPickerGeometry.layout(
+                tileCount: count, screen: screen, showsHeader: false, limits: limits)
+        }
+        let capped = laid(7, Limits(maxColumns: 3))
+        expect(capped.columns == 3 && capped.rows == 3, "a column limit wraps sooner")
+        expect(laid(2, Limits(maxColumns: 3)).columns == 2, "and never pads a short board")
+        let twoRows = laid(14, Limits(maxRows: 2))
+        expect(twoRows.rows <= 2, "a row limit holds while tiles can shrink: \(twoRows.rows)")
+        expect(
+            twoRows.preview.width < laid(14, Limits()).preview.width,
+            "by shrinking the tiles")
+        let both = laid(20, Limits(maxColumns: 3, maxRows: 2))
+        expect(both.columns == 3 && both.rows == 7, "rows give way once the columns run out")
+        let narrow = laid(12, Limits(widthShare: 0.5, heightShare: 0.5))
+        expect(
+            narrow.panel.width <= screen.width * 0.5 && narrow.panel.height <= screen.height * 0.5,
+            "the panel stays inside its share of the screen: \(narrow.panel)")
+        expect(
+            laid(3, Limits(tileScale: 1.35)).preview.width > few.preview.width
+                && laid(3, Limits(tileScale: 0.75)).preview.width < few.preview.width,
+            "the window size scales the tiles")
     }
 }

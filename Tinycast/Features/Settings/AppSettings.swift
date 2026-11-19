@@ -655,6 +655,37 @@ final class AppSettings {
         }
     }
 
+    var windowPickerMaxColumns: WindowPickerGridLimit {
+        didSet {
+            defaults.set(
+                windowPickerMaxColumns.rawValue, forKey: Key.windowPickerMaxColumns.rawValue)
+        }
+    }
+
+    var windowPickerMaxRows: WindowPickerGridLimit {
+        didSet {
+            defaults.set(windowPickerMaxRows.rawValue, forKey: Key.windowPickerMaxRows.rawValue)
+        }
+    }
+
+    var windowPickerTileSize: WindowPickerTileSize {
+        didSet {
+            defaults.set(windowPickerTileSize.rawValue, forKey: Key.windowPickerTileSize.rawValue)
+        }
+    }
+
+    var windowPickerMaxWidth: WindowPickerScreenShare {
+        didSet {
+            defaults.set(windowPickerMaxWidth.rawValue, forKey: Key.windowPickerMaxWidth.rawValue)
+        }
+    }
+
+    var windowPickerMaxHeight: WindowPickerScreenShare {
+        didSet {
+            defaults.set(windowPickerMaxHeight.rawValue, forKey: Key.windowPickerMaxHeight.rawValue)
+        }
+    }
+
     /// Consent to run third-party JavaScript: it confirms, defaults off, rides no backup.
     var extensionsEnabled: Bool {
         didSet { defaults.set(extensionsEnabled, forKey: Key.extensionsEnabled.rawValue) }
@@ -1221,6 +1252,22 @@ final class AppSettings {
             defaults.object(forKey: Key.windowPickerGroupDelay.rawValue)
             .flatMap { $0 as? Int }
             .flatMap(WindowPickerGroupDelay.init(rawValue:)) ?? .medium
+        windowPickerMaxColumns =
+            WindowPickerGridLimit(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxColumns.rawValue))
+            ?? .automatic
+        windowPickerMaxRows =
+            WindowPickerGridLimit(rawValue: defaults.integer(forKey: Key.windowPickerMaxRows.rawValue))
+            ?? .automatic
+        windowPickerTileSize =
+            defaults.string(forKey: Key.windowPickerTileSize.rawValue)
+            .flatMap(WindowPickerTileSize.init(rawValue:)) ?? .medium
+        windowPickerMaxWidth =
+            WindowPickerScreenShare(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxWidth.rawValue)) ?? .ninety
+        windowPickerMaxHeight =
+            WindowPickerScreenShare(
+                rawValue: defaults.integer(forKey: Key.windowPickerMaxHeight.rawValue)) ?? .eighty
         windowManagementEnabled = defaults.bool(forKey: Key.windowManagementEnabled.rawValue)
         windowManagementShowInLauncher =
             defaults.object(forKey: Key.windowManagementShowInLauncher.rawValue) == nil
