@@ -167,6 +167,7 @@
 		2E31A4EA73B19928A05519F8 /* SettingsFileBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A16A7349B3D5EF92EFB35E58 /* SettingsFileBinding.swift */; };
 		2E5F00887256470ABE841428 /* WindowPickerChord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FA4FD9FF7C426D0B647B4BF /* WindowPickerChord.swift */; };
 		2E9641057A7B1FE1446BD14D /* EscapeKeyBehavior.swift in Sources */ = {isa = PBXBuildFile; fileRef = 920FAC043BC3887B6D2C314D /* EscapeKeyBehavior.swift */; };
+		2E9C4E9655F5D73D2792879F /* WindowPickerStackDelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9B5EE3F1370BF701A730FF /* WindowPickerStackDelay.swift */; };
 		2E9CDC24A175FE8AAE4F03D9 /* InstalledAIStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = D817AF0E23DDCC95147B5AFB /* InstalledAIStream.swift */; };
 		2EBB42C7EB17F37628765B17 /* CurrencyData.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C7F0C39D24F068A8F84864 /* CurrencyData.generated.swift */; };
 		2ED6B99BCA201DB001FF5638 /* ChatChoices.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD13EDD2115B31C790C8646C /* ChatChoices.swift */; };
@@ -339,7 +340,6 @@
 		54FDC8FB4FDBC3328CA88AC7 /* DeepLinkCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A8D5B5F738A37EBE007B6D /* DeepLinkCoordinator.swift */; };
 		552B7230E78D2C05793EC013 /* ExtensionNodeShims.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9A0A3867D1B8E1D3284471 /* ExtensionNodeShims.swift */; };
 		555791AE6CDCF42ECA171B2C /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43F1080FB443A1D0616790E /* FavoritesStore.swift */; };
-		55918C144BA12E6A526EA860 /* WindowPickerGroupDelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167120021897822D73B7074F /* WindowPickerGroupDelay.swift */; };
 		55C603F567C3C627865B6A0E /* MCPOAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370B1767182D5C53ADBEDA35 /* MCPOAuthManager.swift */; };
 		55CDBFDB13B816FFFB6CC867 /* MCPTrustPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A724FAAD08B77AA54D080E45 /* MCPTrustPolicy.swift */; };
 		55EA76C9D881F6D3295B7E45 /* CustomCommandEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAC6A9B7AF400E10A2FB3B /* CustomCommandEditorView.swift */; };
@@ -1136,7 +1136,6 @@
 		15CC30C43E44E3F291EDEBFE /* NotchTrayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTrayController.swift; sourceTree = "<group>"; };
 		164CB3E1BB5B7D87AF8E7023 /* CommandID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandID.swift; sourceTree = "<group>"; };
 		164DCBE855B7136AE08712D8 /* MarkdownInline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownInline.swift; sourceTree = "<group>"; };
-		167120021897822D73B7074F /* WindowPickerGroupDelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerGroupDelay.swift; sourceTree = "<group>"; };
 		1709EB9609FE6A1037E36BE6 /* RoomPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPreviewView.swift; sourceTree = "<group>"; };
 		1752EFD965C5AC8168FAA07F /* SettingsFileJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileJSON.swift; sourceTree = "<group>"; };
 		175C52A798660607C0FDD180 /* RoomCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomCoordinator.swift; sourceTree = "<group>"; };
@@ -1613,6 +1612,7 @@
 		8F1545635C1E94D5E7DFECF1 /* WindowDragHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragHandle.swift; sourceTree = "<group>"; };
 		8F29EE2711B96305EE10B8D8 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		8F6F59F3C88C49BDED945F25 /* EdgeDissolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDissolve.swift; sourceTree = "<group>"; };
+		8F9B5EE3F1370BF701A730FF /* WindowPickerStackDelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerStackDelay.swift; sourceTree = "<group>"; };
 		8FC504A12A2D9CC00B502D9E /* CalendarCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCoordinator.swift; sourceTree = "<group>"; };
 		8FC86115B040B8C574EAD0B5 /* FileSearchPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchPolicy.swift; sourceTree = "<group>"; };
 		8FEAC591704D983A2C31188F /* CurrencyRateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyRateStore.swift; sourceTree = "<group>"; };
@@ -4233,10 +4233,10 @@
 				7FA4FD9FF7C426D0B647B4BF /* WindowPickerChord.swift */,
 				9D4C9A8736252E3B76F24E71 /* WindowPickerGeometry.swift */,
 				CB1D16CD5671459000189485 /* WindowPickerGridLimit.swift */,
-				167120021897822D73B7074F /* WindowPickerGroupDelay.swift */,
 				2AAA3892CC34F7F8AC0FAA28 /* WindowPickerKeyEngine.swift */,
 				59E318B142943A1633A6522C /* WindowPickerOrder.swift */,
 				00A731BF25F9700F2B68ABA2 /* WindowPickerScreenShare.swift */,
+				8F9B5EE3F1370BF701A730FF /* WindowPickerStackDelay.swift */,
 				F6842FCB2EAC107F03F8422D /* WindowPickerTileSize.swift */,
 				479047BCB47CE279EB1D256D /* WindowSwitchEntry.swift */,
 				867B0475618A01A765AC0DC5 /* WindowSwitchOrder.swift */,
@@ -5481,12 +5481,12 @@
 				95CF0A387FAE7715E3DF4FB3 /* WindowPickerCoordinator.swift in Sources */,
 				13CC4556C34746CE18675E02 /* WindowPickerGeometry.swift in Sources */,
 				57BAF69BF778A19635BAF7B3 /* WindowPickerGridLimit.swift in Sources */,
-				55918C144BA12E6A526EA860 /* WindowPickerGroupDelay.swift in Sources */,
 				D692E33454F1D4DABE3346A1 /* WindowPickerKeyEngine.swift in Sources */,
 				32F07745203DE68464A2EBBA /* WindowPickerOrder.swift in Sources */,
 				032D93320D4C1A12F9B101F9 /* WindowPickerScreenShare.swift in Sources */,
 				0AB41FA2AEFFE8C726950AE6 /* WindowPickerSession.swift in Sources */,
 				33A8CB86227436FF053D8F98 /* WindowPickerSettingsView.swift in Sources */,
+				2E9C4E9655F5D73D2792879F /* WindowPickerStackDelay.swift in Sources */,
 				B911BD65C95519932EE9D14A /* WindowPickerTap.swift in Sources */,
 				6FB94995EEB5DE9712FC8A76 /* WindowPickerTileSize.swift in Sources */,
 				878F5C8EFE857683B8025022 /* WindowPickerView.swift in Sources */,

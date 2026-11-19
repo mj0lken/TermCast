@@ -88,8 +88,8 @@ struct SettingsBackup: Codable {
         var windowPickerChord: String?
         var windowPickerAppChord: String?
         var windowPickerShowsPreviews: Bool?
-        var windowPickerGroupsByApp: Bool?
-        var windowPickerGroupDelay: Int?
+        var windowPickerStacksByApp: Bool?
+        var windowPickerStackDelay: Int?
         var windowPickerMaxColumns: Int?
         var windowPickerMaxRows: Int?
         var windowPickerSearchEnabled: Bool?
@@ -241,8 +241,8 @@ extension SettingsBackup {
             windowPickerChord: s.windowPickerChord.rawValue,
             windowPickerAppChord: s.windowPickerAppChord.rawValue,
             windowPickerShowsPreviews: s.windowPickerShowsPreviews,
-            windowPickerGroupsByApp: s.windowPickerGroupsByApp,
-            windowPickerGroupDelay: s.windowPickerGroupDelay.rawValue,
+            windowPickerStacksByApp: s.windowPickerStacksByApp,
+            windowPickerStackDelay: s.windowPickerStackDelay.rawValue,
             windowPickerMaxColumns: s.windowPickerMaxColumns.rawValue,
             windowPickerMaxRows: s.windowPickerMaxRows.rawValue,
             windowPickerSearchEnabled: s.windowPickerSearchEnabled,
@@ -654,12 +654,12 @@ extension SettingsBackup {
             settings.windowPickerShowsPreviews = flag
             count += 1
         }
-        if let flag = s.windowPickerGroupsByApp {
-            settings.windowPickerGroupsByApp = flag
+        if let flag = s.windowPickerStacksByApp {
+            settings.windowPickerStacksByApp = flag
             count += 1
         }
-        if let raw = s.windowPickerGroupDelay, let delay = WindowPickerGroupDelay(rawValue: raw) {
-            settings.windowPickerGroupDelay = delay
+        if let raw = s.windowPickerStackDelay, let delay = WindowPickerStackDelay(rawValue: raw) {
+            settings.windowPickerStackDelay = delay
             count += 1
         }
         if let raw = s.windowPickerMaxColumns, let limit = WindowPickerGridLimit(rawValue: raw) {

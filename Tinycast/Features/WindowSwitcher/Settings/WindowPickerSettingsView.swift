@@ -88,16 +88,16 @@ struct WindowPickerSettingsView: View {
                             ? "Close, quit and hide are now ⇧W, ⇧Q and ⇧H, so every letter can be typed."
                             : "Letters bring matching windows to the front of the grid.")
                 }
-                Toggle(isOn: $settings.windowPickerGroupsByApp) {
-                    SettingsRowTitle(.windowSwitcherOptions, "Group windows by app")
+                Toggle(isOn: $settings.windowPickerStacksByApp) {
+                    SettingsRowTitle(.windowSwitcherOptions, "Stack windows by app")
                     Text("Tap left ⇧ while the switcher is open to switch between the two.")
                 }
-                Picker(selection: $settings.windowPickerGroupDelay) {
-                    ForEach(WindowPickerGroupDelay.allCases) { delay in
+                Picker(selection: $settings.windowPickerStackDelay) {
+                    ForEach(WindowPickerStackDelay.allCases) { delay in
                         Text(delay.title).tag(delay)
                     }
                 } label: {
-                    SettingsRowTitle(.windowSwitcherOptions, "Open a selected group after")
+                    SettingsRowTitle(.windowSwitcherOptions, "Open a selected stack after")
                     Text("Tap right ⇧ to open or close one at once.")
                 }
             } header: {
@@ -110,8 +110,8 @@ struct WindowPickerSettingsView: View {
                 keyRow("Move in the grid", keys: "←  →  ↑  ↓")
                 keyRow("Switch to a numbered window", keys: "1 – 9")
                 keyRow("Switch to the selected window", keys: "↵")
-                keyRow("Group or ungroup by app", keys: String(localized: "Left ⇧"))
-                keyRow("Open or close the selected group", keys: String(localized: "Right ⇧"))
+                keyRow("Stack or unstack by app", keys: String(localized: "Left ⇧"))
+                keyRow("Open or close the selected stack", keys: String(localized: "Right ⇧"))
                 keyRow("Step back, then cancel", keys: "esc")
                 keyRow(
                     "Close the window, quit or hide its app",

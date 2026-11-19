@@ -1,7 +1,7 @@
 import Foundation
 
-/// How long a selected group waits before it opens by itself. Zero never opens one.
-enum WindowPickerGroupDelay: Int, CaseIterable, Identifiable, Sendable {
+/// How long a selected stack waits before it opens by itself. Zero never opens one.
+enum WindowPickerStackDelay: Int, CaseIterable, Identifiable, Sendable {
     case never = 0
     case short = 400
     case medium = 700

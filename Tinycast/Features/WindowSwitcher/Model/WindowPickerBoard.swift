@@ -1,33 +1,33 @@
 import Foundation
 
-/// What the picker shows and where its selection is: flat, grouped by app, or inside one group.
+/// What the picker shows and where its selection is: flat, stacked by app, or inside one stack.
 struct WindowPickerBoard: Equatable, Sendable {
-    struct Group: Identifiable, Hashable, Sendable {
+    struct Stack: Identifiable, Hashable, Sendable {
         let bundleID: String
         let appName: String
         let iconURL: URL?
         let iconStamp: Int
         let windows: [WindowSwitchEntry]
 
-        var id: String { "group:" + bundleID }
+        var id: String { "stack:" + bundleID }
     }
 
     enum Tile: Identifiable, Hashable, Sendable {
         case window(WindowSwitchEntry)
-        case group(Group)
+        case stack(Stack)
 
         var id: String {
             switch self {
             case .window(let entry): "window:" + entry.id
-            case .group(let group): group.id
+            case .stack(let stack): stack.id
             }
         }
 
-        /// The window a switch lands on: a group stands for its frontmost one.
+        /// The window a switch lands on: a stack stands for its frontmost one.
         var target: WindowSwitchEntry? {
             switch self {
             case .window(let entry): entry
-            case .group(let group): group.windows.first
+            case .stack(let stack): stack.windows.first
             }
         }
     }
@@ -35,24 +35,24 @@ struct WindowPickerBoard: Equatable, Sendable {
     private(set) var entries: [WindowSwitchEntry]
     private(set) var tiles: [Tile] = []
     private(set) var selection = 0
-    private(set) var isGrouped: Bool
+    private(set) var isStacked: Bool
     private(set) var expandedBundleID: String?
     /// What has been typed. It reorders the tiles, matches first, and never removes one.
     private(set) var query = ""
     /// The handles the query leaves out; their tiles stay in place, dimmed.
     private(set) var unmatched: Set<Int> = []
-    /// The group just stepped out of: it must not reopen by itself while still selected.
+    /// The stack just stepped out of: it must not reopen by itself while still selected.
     private var leftBundleID: String?
-    /// False for one app's windows, where a single group would be the whole board.
-    let allowsGrouping: Bool
+    /// False for one app's windows, where a single stack would be the whole board.
+    let allowsStacking: Bool
 
     init(
-        entries: [WindowSwitchEntry], isGrouped: Bool, allowsGrouping: Bool = true,
+        entries: [WindowSwitchEntry], isStacked: Bool, allowsStacking: Bool = true,
         backwards: Bool = false
     ) {
         self.entries = entries
-        self.allowsGrouping = allowsGrouping
-        self.isGrouped = isGrouped && allowsGrouping
+        self.allowsStacking = allowsStacking
+        self.isStacked = isStacked && allowsStacking
         rebuild()
         // The first tile is where the user already is, so a press lands on the one behind it.
         if tiles.count > 1 { selection = backwards ? tiles.count - 1 : 1 }
@@ -62,39 +62,39 @@ struct WindowPickerBoard: Equatable, Sendable {
 
     var target: WindowSwitchEntry? { selectedTile?.target }
 
-    var expandedGroup: Group? {
-        expandedBundleID.flatMap { group(for: $0, in: entries) }
+    var expandedStack: Stack? {
+        expandedBundleID.flatMap { stack(for: $0, in: entries) }
     }
 
     var showsHeader: Bool { expandedBundleID != nil }
 
-    /// A group counts as a match while any window in it does.
+    /// A stack counts as a match while any window in it does.
     func isDimmed(_ tile: Tile) -> Bool {
         switch tile {
         case .window(let entry): unmatched.contains(entry.handle)
-        case .group(let group): group.windows.allSatisfy { unmatched.contains($0.handle) }
+        case .stack(let stack): stack.windows.allSatisfy { unmatched.contains($0.handle) }
         }
     }
 
     var canExpandSelection: Bool {
-        guard expandedBundleID == nil, case .group = selectedTile else { return false }
+        guard expandedBundleID == nil, case .stack = selectedTile else { return false }
         return true
     }
 
-    /// What the dwell delay asks; right ⇧ and a number still open a group just left.
+    /// What the dwell delay asks; right ⇧ and a number still open a stack just left.
     var canAutoExpandSelection: Bool {
-        guard canExpandSelection, case .group(let group) = selectedTile else { return false }
-        return group.bundleID != leftBundleID
+        guard canExpandSelection, case .stack(let stack) = selectedTile else { return false }
+        return stack.bundleID != leftBundleID
     }
 
     mutating func step(by offset: Int) {
         guard !tiles.isEmpty else { return }
         selection = ((selection + offset) % tiles.count + tiles.count) % tiles.count
-        forgetLeftGroupIfMoved()
+        forgetLeftStackIfMoved()
     }
 
-    private mutating func forgetLeftGroupIfMoved() {
-        guard case .group(let group) = selectedTile, group.bundleID == leftBundleID else {
+    private mutating func forgetLeftStackIfMoved() {
+        guard case .stack(let stack) = selectedTile, stack.bundleID == leftBundleID else {
             leftBundleID = nil
             return
         }
@@ -113,29 +113,29 @@ struct WindowPickerBoard: Equatable, Sendable {
     mutating func select(_ index: Int) {
         guard tiles.indices.contains(index) else { return }
         selection = index
-        forgetLeftGroupIfMoved()
+        forgetLeftStackIfMoved()
     }
 
-    mutating func toggleGrouping() {
-        guard allowsGrouping else { return }
+    mutating func toggleStacking() {
+        guard allowsStacking else { return }
         guard expandedBundleID == nil else { return collapse() }
         let anchor = target
-        isGrouped.toggle()
+        isStacked.toggle()
         rebuild()
         selection = anchor.flatMap(index(holding:)) ?? 0
         leftBundleID = nil
     }
 
-    mutating func toggleGroup() {
+    mutating func toggleStack() {
         if expandedBundleID == nil { expandSelection() } else { collapse() }
     }
 
     mutating func expandSelection() {
-        guard expandedBundleID == nil, case .group(let group) = selectedTile else { return }
-        expandedBundleID = group.bundleID
+        guard expandedBundleID == nil, case .stack(let stack) = selectedTile else { return }
+        expandedBundleID = stack.bundleID
         rebuild()
-        // Inside the front app's group the first window is the current one, as on the board.
-        let holdsCurrent = group.windows.first?.handle == entries.first?.handle
+        // Inside the front app's stack the first window is the current one, as on the board.
+        let holdsCurrent = stack.windows.first?.handle == entries.first?.handle
         selection = holdsCurrent && tiles.count > 1 ? 1 : 0
     }
 
@@ -150,7 +150,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         search(String(query.dropLast()))
     }
 
-    /// Escape, one layer at a time: the search, then the open group. False leaves the picker.
+    /// Escape, one layer at a time: the search, then the open stack. False leaves the picker.
     mutating func stepBack() -> Bool {
         if !query.isEmpty {
             search("")
@@ -165,7 +165,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         query = text
         rebuild()
         selection = 0
-        forgetLeftGroupIfMoved()
+        forgetLeftStackIfMoved()
     }
 
     mutating func collapse() {
@@ -181,7 +181,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         let anchor = target.flatMap { handles.contains($0.handle) ? nil : $0 }
         let previous = selection
         entries.removeAll { handles.contains($0.handle) }
-        if let expandedBundleID, group(for: expandedBundleID, in: entries) == nil {
+        if let expandedBundleID, stack(for: expandedBundleID, in: entries) == nil {
             self.expandedBundleID = nil
         }
         rebuild()
@@ -192,15 +192,15 @@ struct WindowPickerBoard: Equatable, Sendable {
         tiles.firstIndex { tile in
             switch tile {
             case .window(let window): window.handle == entry.handle
-            case .group(let group): group.windows.contains { $0.handle == entry.handle }
+            case .stack(let stack): stack.windows.contains { $0.handle == entry.handle }
             }
         }
     }
 
-    private func group(for bundleID: String, in entries: [WindowSwitchEntry]) -> Group? {
+    private func stack(for bundleID: String, in entries: [WindowSwitchEntry]) -> Stack? {
         let windows = entries.filter { $0.bundleID == bundleID }
         guard let first = windows.first else { return nil }
-        return Group(
+        return Stack(
             bundleID: bundleID, appName: first.appName, iconURL: first.iconURL,
             iconStamp: first.iconStamp, windows: windows)
     }
@@ -235,17 +235,17 @@ struct WindowPickerBoard: Equatable, Sendable {
             tiles = entries.filter { $0.bundleID == expandedBundleID }.map(Tile.window)
             return
         }
-        guard isGrouped else {
+        guard isStacked else {
             tiles = entries.map(Tile.window)
             return
         }
         var seen: Set<String> = []
         tiles = entries.compactMap { entry in
             guard seen.insert(entry.bundleID).inserted,
-                let group = group(for: entry.bundleID, in: entries)
+                let stack = stack(for: entry.bundleID, in: entries)
             else { return nil }
             // An app with one window has nothing to open, so it stays a plain window tile.
-            return group.windows.count > 1 ? .group(group) : .window(entry)
+            return stack.windows.count > 1 ? .stack(stack) : .window(entry)
         }
     }
 }

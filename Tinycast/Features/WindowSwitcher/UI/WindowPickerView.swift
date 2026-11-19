@@ -8,8 +8,8 @@ struct WindowPickerView: View {
     var body: some View {
         if let board = session.board, let layout = session.layout {
             VStack(spacing: 0) {
-                if let group = board.expandedGroup {
-                    WindowPickerGroupHeader(group: group)
+                if let stack = board.expandedStack {
+                    WindowPickerStackHeader(stack: stack)
                         .frame(height: WindowPickerGeometry.headerHeight, alignment: .top)
                 }
                 grid(board, layout: layout)
@@ -46,26 +46,26 @@ struct WindowPickerView: View {
         }
     }
 
-    /// The windows behind a group's front one, so its stack shows what it actually holds.
+    /// The windows behind a stack's front one, so its stack shows what it actually holds.
     private func stackThumbnails(of tile: WindowPickerBoard.Tile) -> [CGImage?] {
-        guard case .group(let group) = tile else { return [] }
-        return group.windows.dropFirst().prefix(WindowPickerTileView.stackDepth).map {
+        guard case .stack(let stack) = tile else { return [] }
+        return stack.windows.dropFirst().prefix(WindowPickerTileView.stackDepth).map {
             session.thumbnails[$0.handle]
         }
     }
 }
 
-private struct WindowPickerGroupHeader: View {
-    let group: WindowPickerBoard.Group
+private struct WindowPickerStackHeader: View {
+    let stack: WindowPickerBoard.Stack
 
     var body: some View {
         HStack(spacing: Theme.Spacing.md) {
-            WindowPickerAppIcon(iconURL: group.iconURL, iconStamp: group.iconStamp)
+            WindowPickerAppIcon(iconURL: stack.iconURL, iconStamp: stack.iconStamp)
                 .frame(width: 20, height: 20)
-            Text(verbatim: group.appName)
+            Text(verbatim: stack.appName)
                 .font(Theme.Typography.panelTitle)
                 .foregroundStyle(Theme.Colors.textPrimary)
-            Text("\(group.windows.count) windows")
+            Text("\(stack.windows.count) windows")
                 .font(Theme.Typography.rowTrailing)
                 .foregroundStyle(Theme.Colors.textSecondary)
             Spacer(minLength: 0)
@@ -134,15 +134,15 @@ private struct WindowPickerTileView: View {
 
     private var entry: WindowSwitchEntry? { tile.target }
 
-    private var groupCount: Int? {
-        if case .group(let group) = tile { return group.windows.count }
+    private var stackCount: Int? {
+        if case .stack(let stack) = tile { return stack.windows.count }
         return nil
     }
 
     private var title: String {
         switch tile {
         case .window(let entry): entry.displayTitle
-        case .group(let group): group.appName
+        case .stack(let stack): stack.appName
         }
     }
 
@@ -150,7 +150,7 @@ private struct WindowPickerTileView: View {
         switch tile {
         case .window(let entry):
             entry.isMinimized ? String(localized: "\(entry.appName) · Minimized") : entry.appName
-        case .group(let group): String(localized: "\(group.windows.count) windows")
+        case .stack(let stack): String(localized: "\(stack.windows.count) windows")
         }
     }
 
@@ -172,9 +172,9 @@ private struct WindowPickerTileView: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
-    /// A group always reserves the full stack, so its front card is one size whatever it holds.
+    /// A stack always reserves the full stack, so its front card is one size whatever it holds.
     private var previewStack: some View {
-        let inset = groupCount == nil ? 0 : Self.stackStep * CGFloat(Self.stackDepth)
+        let inset = stackCount == nil ? 0 : Self.stackStep * CGFloat(Self.stackDepth)
         let card = CGSize(width: preview.width - inset, height: preview.height - inset)
         return ZStack(alignment: .bottomLeading) {
             ForEach(Array(stackThumbnails.enumerated().reversed()), id: \.offset) { depth, image in
@@ -205,7 +205,7 @@ private struct WindowPickerTileView: View {
             }
             .overlay(alignment: .topLeading) { numberBadge }
             .overlay(alignment: .bottomLeading) { badge }
-            .shadow(color: .black.opacity(groupCount == nil ? 0 : 0.35), radius: 5, x: 2, y: -2)
+            .shadow(color: .black.opacity(stackCount == nil ? 0 : 0.35), radius: 5, x: 2, y: -2)
     }
 
     private func backCard(_ image: CGImage?, depth: Int) -> some View {
@@ -256,8 +256,8 @@ private struct WindowPickerTileView: View {
                 WindowPickerAppIcon(iconURL: entry.iconURL, iconStamp: entry.iconStamp)
                     .frame(width: Self.badgeIcon, height: Self.badgeIcon)
             }
-            if let groupCount {
-                Text("\(groupCount) windows")
+            if let stackCount {
+                Text("\(stackCount) windows")
                     .font(.caption.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.Colors.textPrimary)

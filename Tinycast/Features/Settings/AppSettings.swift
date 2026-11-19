@@ -642,16 +642,16 @@ final class AppSettings {
         }
     }
 
-    var windowPickerGroupsByApp: Bool {
+    var windowPickerStacksByApp: Bool {
         didSet {
-            defaults.set(windowPickerGroupsByApp, forKey: Key.windowPickerGroupsByApp.rawValue)
+            defaults.set(windowPickerStacksByApp, forKey: Key.windowPickerStacksByApp.rawValue)
         }
     }
 
-    var windowPickerGroupDelay: WindowPickerGroupDelay {
+    var windowPickerStackDelay: WindowPickerStackDelay {
         didSet {
             defaults.set(
-                windowPickerGroupDelay.rawValue, forKey: Key.windowPickerGroupDelay.rawValue)
+                windowPickerStackDelay.rawValue, forKey: Key.windowPickerStackDelay.rawValue)
         }
     }
 
@@ -1253,11 +1253,11 @@ final class AppSettings {
         windowPickerShowsPreviews =
             defaults.object(forKey: Key.windowPickerShowsPreviews.rawValue) == nil
             || defaults.bool(forKey: Key.windowPickerShowsPreviews.rawValue)
-        windowPickerGroupsByApp = defaults.bool(forKey: Key.windowPickerGroupsByApp.rawValue)
-        windowPickerGroupDelay =
-            defaults.object(forKey: Key.windowPickerGroupDelay.rawValue)
+        windowPickerStacksByApp = defaults.bool(forKey: Key.windowPickerStacksByApp.rawValue)
+        windowPickerStackDelay =
+            defaults.object(forKey: Key.windowPickerStackDelay.rawValue)
             .flatMap { $0 as? Int }
-            .flatMap(WindowPickerGroupDelay.init(rawValue:)) ?? .medium
+            .flatMap(WindowPickerStackDelay.init(rawValue:)) ?? .medium
         windowPickerMaxColumns =
             WindowPickerGridLimit(
                 rawValue: defaults.integer(forKey: Key.windowPickerMaxColumns.rawValue))

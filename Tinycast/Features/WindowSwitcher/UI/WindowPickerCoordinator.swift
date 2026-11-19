@@ -8,7 +8,7 @@ final class WindowPickerCoordinator: HealthCheckable {
     private let tap = WindowPickerTap()
     private let controller = WindowPickerController()
     private var thumbnails: Task<Void, Never>?
-    private var groupOpening: Task<Void, Never>?
+    private var stackOpening: Task<Void, Never>?
     /// Bumped per show, so a preview captured for an earlier one is never applied.
     private var generation = 0
 
@@ -125,8 +125,8 @@ final class WindowPickerCoordinator: HealthCheckable {
         case .move(let direction):
             let columns = session.layout?.columns ?? 1
             change { $0.move(direction, columns: columns) }
-        case .toggleGrouping: change { $0.toggleGrouping() }
-        case .toggleGroup: change { $0.toggleGroup() }
+        case .toggleStacking: change { $0.toggleStacking() }
+        case .toggleStack: change { $0.toggleStack() }
         case .pick(let index): pick(number: index)
         case .perform(let action): perform(action)
         case .commit: commit()
@@ -144,7 +144,7 @@ final class WindowPickerCoordinator: HealthCheckable {
             let screen = NSScreen.underCursor
         else { return close() }
         thumbnails?.cancel()
-        groupOpening?.cancel()
+        stackOpening?.cancel()
         let ranks = WindowZOrder.ranks()
         let snapshot = WindowSwitchSweep.snapshot(ranks: ranks.apps)
         let windowIDs = snapshot.elements.compactMapValues { AXWindowAccess.windowID(of: $0.window) }
@@ -161,8 +161,8 @@ final class WindowPickerCoordinator: HealthCheckable {
         generation &+= 1
         session.present(
             WindowPickerBoard(
-                entries: ordered, isGrouped: settings.windowPickerGroupsByApp,
-                allowsGrouping: scope == .allWindows, backwards: backwards),
+                entries: ordered, isStacked: settings.windowPickerStacksByApp,
+                allowsStacking: scope == .allWindows, backwards: backwards),
             elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
         guard let layout = session.layout else { return close() }
         controller.show(
@@ -175,7 +175,7 @@ final class WindowPickerCoordinator: HealthCheckable {
                 onPick: { [weak self] in self?.pick($0) }),
             size: layout.panel, on: screen)
         capturePreviews(of: ordered, windowIDs: windowIDs, scale: screen.backingScaleFactor)
-        scheduleGroupOpening()
+        scheduleStackOpening()
     }
 
     private func change(_ mutation: (inout WindowPickerBoard) -> Void) {
@@ -183,7 +183,7 @@ final class WindowPickerCoordinator: HealthCheckable {
         guard let board = session.board, !board.tiles.isEmpty, let layout = session.layout
         else { return close() }
         controller.resize(to: layout.panel)
-        scheduleGroupOpening()
+        scheduleStackOpening()
     }
 
     private func pick(_ index: Int) {
@@ -191,7 +191,7 @@ final class WindowPickerCoordinator: HealthCheckable {
         commit()
     }
 
-    /// A number on a closed group opens it, so the same keys then reach the windows inside.
+    /// A number on a closed stack opens it, so the same keys then reach the windows inside.
     private func pick(number index: Int) {
         guard let board = session.board, board.tiles.indices.contains(index) else { return }
         session.update { $0.select(index) }
@@ -233,25 +233,25 @@ final class WindowPickerCoordinator: HealthCheckable {
     private func close() {
         thumbnails?.cancel()
         thumbnails = nil
-        groupOpening?.cancel()
-        groupOpening = nil
+        stackOpening?.cancel()
+        stackOpening = nil
         controller.hide()
         session.reset()
         tap.reset()
     }
 
-    // MARK: - Groups and previews
+    // MARK: - Stacks and previews
 
-    private func scheduleGroupOpening() {
-        groupOpening?.cancel()
-        groupOpening = nil
-        guard let delay = settings.windowPickerGroupDelay.duration,
+    private func scheduleStackOpening() {
+        stackOpening?.cancel()
+        stackOpening = nil
+        guard let delay = settings.windowPickerStackDelay.duration,
             session.board?.canAutoExpandSelection == true
         else { return }
-        groupOpening = Task { [weak self] in
+        stackOpening = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
-            groupOpening = nil
+            stackOpening = nil
             change { $0.expandSelection() }
         }
     }

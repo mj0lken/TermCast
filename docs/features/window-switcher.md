@@ -16,16 +16,16 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 | --- | --- |
 | modifier + ⇥ | open on every window; again steps forward, with ⇧ backward |
 | modifier + ` | open on the front app's windows only |
-| 1 – 9 | switch to that tile's window; on a closed group, open it |
+| 1 – 9 | switch to that tile's window; on a closed stack, open it |
 | ← → ↑ ↓ | move in the grid |
-| left ⇧ tap | toggle grouping by app; inside an open group, step back out |
-| right ⇧ tap | open the selected group, or close the open one |
+| left ⇧ tap | toggle stacking by app; inside an open stack, step back out |
+| right ⇧ tap | open the selected stack, or close the open one |
 | W / Q / H | close the window, quit its app, hide its app |
 | a letter, with search on | search: bring the windows whose app or title holds it to the front |
 | ⌫, with search on | delete the last letter |
 | ⇧W / ⇧Q / ⇧H, with search on | the three actions, moved off the bare letters |
 | ↵, or release the modifier | switch |
-| esc | clear the search, else step out of the open group, else cancel |
+| esc | clear the search, else step out of the open stack, else cancel |
 
 Each chord's modifier is ⌘, ⌥, ⌃ or Off (`windowPickerChord`, default ⌘; `windowPickerAppChord`,
 default ⌥). The key is fixed per scope — ⇥ and the key above it — so the two can never collide.
@@ -44,21 +44,21 @@ size and the number badges' positions hold while typing; the query itself is sho
 in place of the hints, for the same reason. Matching folds case and diacritics.
 
 **Escape is layered.** The engine emits `.back` and stays open; `WindowPickerBoard.stepBack()`
-clears the search, then collapses the open group, and only reports false — close — when neither
+clears the search, then collapses the open stack, and only reports false — close — when neither
 was there.
 
 **Numbers.** The first nine tiles carry a badge, 1–9, matched by key position rather than
 character so they hold on a layout that needs Shift for digits. A number on a window switches at
-once; on a closed group it opens the group, whose windows are then numbered in turn.
+once; on a closed stack it opens the stack, whose windows are then numbered in turn.
 
-**Grouping.** Grouped, every app with more than one window is one stacked tile carrying a count; an
-app with a single window stays a plain window tile. Releasing on a group switches to its frontmost
-window. A selected group opens by itself after `windowPickerGroupDelay` (400–1500 ms, or never),
+**Stacking.** Stacked, every app with more than one window is one stacked tile carrying a count; an
+app with a single window stays a plain window tile. Releasing on a stack switches to its frontmost
+window. A selected stack opens by itself after `windowPickerStackDelay` (400–1500 ms, or never),
 or at once on a right ⇧ tap; opened, the panel shows only that app's windows and stepping stays
-inside it. `windowPickerGroupsByApp` is only how a show *starts* — the left ⇧ toggle lasts for that
-show and is never written back. A group stepped out of does not reopen by itself while it is
+inside it. `windowPickerStacksByApp` is only how a show *starts* — the left ⇧ toggle lasts for that
+show and is never written back. A stack stepped out of does not reopen by itself while it is
 still selected (`canAutoExpandSelection`): moving off it and back re-arms the delay, and right ⇧
-or its number opens it at once regardless. A group's stack is drawn from its next two windows' previews.
+or its number opens it at once regardless. A stack's stack is drawn from its next two windows' previews.
 
 **Layout.** Five settings shape the panel, gathered in `WindowPickerGeometry.Limits`: the window
 size (`windowPickerTileSize`), the most windows per row and the most rows (`windowPickerMaxColumns`,
@@ -102,16 +102,16 @@ closes the picker and opens Settings › Window Switcher, whose **Keyboard** sec
 | Piece | Holds |
 | --- | --- |
 | `Model/WindowPickerKeyEngine.swift` | raw key events → commands, and what to swallow; pure |
-| `Model/WindowPickerBoard.swift` | tiles, selection, grouping and the open group; pure |
+| `Model/WindowPickerBoard.swift` | tiles, selection, stacking and the open stack; pure |
 | `Model/WindowPickerOrder.swift` | per-window front-to-back order over the per-app fallback |
 | `Model/WindowPickerGeometry.swift` | the grid: columns, tile size, panel size |
-| `Model/WindowPickerChord.swift`, `…GroupDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare` | the setting enums |
+| `Model/WindowPickerChord.swift`, `…StackDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare` | the setting enums |
 | `Service/WindowPickerTap.swift` | the event tap and its worker thread |
 | `Service/WindowPickerSession.swift` | one show's observable state and its live AX elements |
 | `Service/WindowThumbnailProvider.swift` | ScreenCaptureKit captures, off the main actor |
 | `UI/WindowPickerCoordinator.swift` | enable, open, walk, switch, close/quit/hide, permissions |
 | `UI/WindowPickerController.swift` | the panel and its frame |
-| `UI/WindowPickerView.swift` | the grid, tiles, group header and hint row |
+| `UI/WindowPickerView.swift` | the grid, tiles, stack header and hint row |
 | `Settings/WindowPickerSettingsView.swift` | the Settings › Window Switcher pane |
 
 **Order.** Unlike Switch Windows, which ranks per app, the picker ranks per window:
@@ -137,14 +137,14 @@ previews need it — System Settings shows one pane at a time.
 
 `Tests/WindowPickerTests.swift` covers the pure half: the chords, opening and passing-through,
 stepping, release, both Shift taps and the cases that are not taps, the keys swallowed while open,
-the per-window order, the flat and grouped boards, opening and closing a group, selection across a
-grouping toggle, removal, and the grid.
+the per-window order, the flat and stacked boards, opening and closing a stack, selection across a
+stacking toggle, removal, and the grid.
 
 The tap, the sweep and the captures have no automated coverage and need a manual pass:
 
 1. ⌘⇥ tapped once switches to the previous window; the Dock's own switcher never appears.
 2. Held, ⇥ and ⇧⇥ walk both ways; esc cancels and the following ⌘ release switches nothing.
-3. Left ⇧ groups and ungroups; a group opens after the delay and on right ⇧; right ⇧ closes it.
+3. Left ⇧ stacks and unstacks; a stack opens after the delay and on right ⇧; right ⇧ closes it.
 4. ⌥` lists only the front app's windows.
 5. W, Q and H act on the selected tile, and the tiles leave.
 6. Previews fill in with Screen Recording granted; icons show without it.
