@@ -13,6 +13,9 @@ final class WindowPickerCoordinator: HealthCheckable {
     private let groupStore: WindowPickerGroupStore
     /// Bumped per show, so a preview captured for an earlier one is never applied.
     private var generation = 0
+    private var phantomWindows: Set<UInt32> = []
+    /// A minimized or other-Space window cannot be captured live, so its last preview is kept.
+    private var lastPreviews: [CGWindowID: CGImage] = [:]
 
     weak var healthTicker: HealthTicker?
     var onOpenSettings: (() -> Void)?
@@ -153,7 +156,7 @@ final class WindowPickerCoordinator: HealthCheckable {
         thumbnails?.cancel()
         stackOpening?.cancel()
         let ranks = WindowZOrder.ranks()
-        let snapshot = WindowSwitchSweep.snapshot(ranks: ranks.apps)
+        let snapshot = WindowSwitchSweep.snapshot(ranks: ranks.apps, phantoms: &phantomWindows)
         let windowIDs = snapshot.elements.compactMapValues { AXWindowAccess.windowID(of: $0.window) }
         var entries = snapshot.entries
         if scope == .frontApp {
@@ -172,7 +175,8 @@ final class WindowPickerCoordinator: HealthCheckable {
                 allowsStacking: scope == .allWindows, backwards: backwards,
                 appTypes: snapshot.elements.mapValues { appTypes.name(for: $0.app) },
                 appGroups: groupStore.book.apps, groupOrder: groupStore.book.order),
-            elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
+            elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits(),
+            thumbnails: rememberedPreviews(for: windowIDs))
         guard let layout = session.layout else { return close() }
         rememberGroups()
         controller.show(
@@ -319,11 +323,18 @@ final class WindowPickerCoordinator: HealthCheckable {
         }
     }
 
+    private func rememberedPreviews(for windowIDs: [Int: CGWindowID]) -> [Int: CGImage] {
+        let open = Set(windowIDs.values)
+        lastPreviews = lastPreviews.filter { open.contains($0.key) }
+        guard settings.windowPickerShowsPreviews, Permissions.hasScreenRecording() else { return [:] }
+        return windowIDs.compactMapValues { lastPreviews[$0] }
+    }
+
     private func capturePreviews(
         of entries: [WindowSwitchEntry], windowIDs: [Int: CGWindowID], scale: CGFloat
     ) {
         guard settings.windowPickerShowsPreviews, Permissions.hasScreenRecording() else { return }
-        // A minimized window has no live surface; its tile keeps the app icon.
+        // A minimized window has no live surface; its tile keeps its last preview, or the icon.
         let captured = entries.filter { !$0.isMinimized }.compactMap { entry in
             windowIDs[entry.handle].map { (id: $0, handle: entry.handle) }
         }
@@ -338,6 +349,7 @@ final class WindowPickerCoordinator: HealthCheckable {
             ) { id, image in
                 guard let self, self.generation == generation, let handle = handles[id]
                 else { return }
+                self.lastPreviews[id] = image
                 self.session.setThumbnail(image, for: handle)
             }
         }

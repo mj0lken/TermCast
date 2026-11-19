@@ -6,7 +6,7 @@ import AppKit
 final class WindowPickerSession {
     private(set) var board: WindowPickerBoard?
     private(set) var layout: WindowPickerGeometry.Layout?
-    /// Keyed by handle, and dropped with the board so previews cost memory only while shown.
+    /// Keyed by handle; the coordinator keeps the last capture per window between showings.
     private(set) var thumbnails: [Int: CGImage] = [:]
 
     @ObservationIgnored private var elements: [Int: WindowSwitchSweep.Element] = [:]
@@ -18,12 +18,12 @@ final class WindowPickerSession {
 
     func present(
         _ board: WindowPickerBoard, elements: [Int: WindowSwitchSweep.Element], screenSize: CGSize,
-        limits: WindowPickerGeometry.Limits
+        limits: WindowPickerGeometry.Limits, thumbnails: [Int: CGImage] = [:]
     ) {
         self.limits = limits
         self.elements = elements
         self.screenSize = screenSize
-        thumbnails = [:]
+        self.thumbnails = thumbnails
         self.board = board
         relayout()
         observeTerminations()

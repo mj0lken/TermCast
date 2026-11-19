@@ -686,6 +686,7 @@
 		ACB45791BFE60896455293B4 /* FileSearchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC86115B040B8C574EAD0B5 /* FileSearchPolicy.swift */; };
 		ACD8CAE659B1C49EC8652576 /* HotKeyCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AD346C8FD5F2D4F00FF2B6 /* HotKeyCenter.swift */; };
 		ACE645630E536C93CA102050 /* VolumeHUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90559D7DB9F6F3874CAFCDE /* VolumeHUDView.swift */; };
+		AD90BFF8F755CB20607E6E1D /* AXRemoteWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0A169604C0F8F7C70938A8B /* AXRemoteWindows.swift */; };
 		AD9753D6EAF202B6E31510EB /* ClipboardFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682E7F6534CB4014969D98E0 /* ClipboardFilter.swift */; };
 		AD98F015439106F0E9D32015 /* RightClick.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7EFE2C8A212D6979C43E9F7 /* RightClick.swift */; };
 		ADB8D83A32A5F1CEF11E2DE6 /* BuiltInQuickAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E1C14C150F3EC6EC5D610B /* BuiltInQuickAction.swift */; };
@@ -1936,6 +1937,7 @@
 		E01F745C8C21DF1290E2169C /* DictionaryEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEntry.swift; sourceTree = "<group>"; };
 		E03A52EBF08AD5C44953DBDC /* FilePreviewStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePreviewStage.swift; sourceTree = "<group>"; };
 		E08F20B0B823443E176F1566 /* InstalledCLIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledCLIProvider.swift; sourceTree = "<group>"; };
+		E0A169604C0F8F7C70938A8B /* AXRemoteWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXRemoteWindows.swift; sourceTree = "<group>"; };
 		E0BE684A650197A714D6858A /* CameraPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPanel.swift; sourceTree = "<group>"; };
 		E18ED51BF997E4F0ABC627E2 /* NotchHUDMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHUDMetric.swift; sourceTree = "<group>"; };
 		E1FB153A0D53D42771F1CA99 /* WindowLayoutDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutDisplay.swift; sourceTree = "<group>"; };
@@ -2250,6 +2252,7 @@
 		12DCD476E37E857C160C5EDA /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				E0A169604C0F8F7C70938A8B /* AXRemoteWindows.swift */,
 				677036AB7EE67B050C2930D5 /* AXScreens.swift */,
 				7FDB7BD7AB45EAD1A11FFFC4 /* AXWindowAccess.swift */,
 				6FF6DBC407666868DCE27C22 /* RoomRunner.swift */,
@@ -4611,6 +4614,7 @@
 				7892921C41FF7226352889A7 /* AIToolServer.swift in Sources */,
 				F4A75F90028F57D6DC1EF7DB /* ASCIIKeyboardLayout.swift in Sources */,
 				FDBA08E1FF8874D06FE6ACB8 /* AXMenuAccess.swift in Sources */,
+				AD90BFF8F755CB20607E6E1D /* AXRemoteWindows.swift in Sources */,
 				7EEC2391D9E341626A2661E2 /* AXScreens.swift in Sources */,
 				76738C4DCFFD40E68037245D /* AXWindowAccess.swift in Sources */,
 				540F1433DC46BC97C9F80E06 /* AboutView.swift in Sources */,

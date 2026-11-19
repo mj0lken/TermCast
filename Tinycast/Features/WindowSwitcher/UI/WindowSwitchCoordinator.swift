@@ -10,6 +10,7 @@ final class WindowSwitchCoordinator {
     private unowned let core: AppCore
     /// Armed by a repeat press with its modifiers held: letting go switches, as ⌘Tab does.
     private var releaseMonitor: Any?
+    private var phantomWindows: Set<UInt32> = []
     private static let chordModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
 
     init(
@@ -83,7 +84,8 @@ final class WindowSwitchCoordinator {
     /// Every open sweeps anew, a restore included: hiding dropped the last snapshot.
     func load() {
         guard hasAccessibility() else { return }
-        session.present(WindowSwitchSweep.snapshot(ranks: WindowZOrder.appRanks()))
+        session.present(
+            WindowSwitchSweep.snapshot(ranks: WindowZOrder.appRanks(), phantoms: &phantomWindows))
     }
 
     func activate(_ entry: WindowSwitchEntry) {

@@ -111,8 +111,8 @@ a short line. The view places tiles by those frames rather than a grid so a drop
 what lies under it. The arrows use `neighbor(of:_:in:)` — the nearest tile that way — because boxes
 share no rows. A search dims here but reorders nothing, and the row limit does not apply.
 
-**Window state.** A minimized or full-screen window carries a badge in its tile's corner — yellow
-minus, green arrows — rather than being dimmed, because dimming is what a search uses for "no
+**Window state.** A minimized or full-screen window carries a labelled pill in its tile's corner — yellow
+"Minimized", green "Full Screen", each with its icon — rather than being dimmed, because dimming is what a search uses for "no
 match". `WindowSwitchEntry.isFullScreen` is read in the sweep; a state changed from the picker (M,
 F) is written back with `WindowPickerBoard.update(handle:_:)` so the tile stays put. F only ever
 leaves full screen: entering animates the window onto a Space of its own and can carry the screen
@@ -137,10 +137,14 @@ there while the picker is still up.
   told apart by the device bits in the event flags, which the shared `.maskShift` cannot do.
 - **The panel is never key.** It is a `HUDPanel` taking clicks; every key reaches it through the
   tap. Nothing is activated or restored on close, so the raise cannot race a focus restore.
-- **Previews exist only while the panel is up.** `WindowPickerSession.reset()` drops them; they are
-  captured at tile size, in selection order, and a `generation` counter refuses a late one.
-- **Previews are optional and degrade silently.** Without Screen Recording, or for a minimized
-  window, a tile shows the app icon. ScreenCaptureKit only — `CGWindowListCreateImage` is deprecated.
+- **The last preview of each window outlives the panel.** `WindowPickerCoordinator.lastPreviews`
+  keeps one tile-sized capture per window number, pruned to the windows still open at each sweep,
+  and seeds the next showing with it; live captures then replace them in selection order, and a
+  `generation` counter refuses a late one. This is what gives a minimized window, or a full-screen
+  one seen from another Space, a preview at all: neither can be captured live.
+- **Previews are optional and degrade silently.** Without Screen Recording, or for a window never
+  captured while visible, a tile shows the app icon at full resolution. ScreenCaptureKit only —
+  `CGWindowListCreateImage` is deprecated.
 - **A missed release still closes.** Secure Input hides key events from the tap; the 1 s health
   tick closes a panel whose modifier is no longer held.
 

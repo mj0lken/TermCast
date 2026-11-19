@@ -380,6 +380,21 @@ struct WindowPickerHints: View {
     }
 }
 
+/// The shared icon cache is sized for rows; a tile-sized icon needs the full-resolution artwork.
+private struct WindowPickerLargeAppIcon: View {
+    let iconURL: URL?
+
+    var body: some View {
+        if let iconURL {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: iconURL.path))
+                .resizable()
+                .interpolation(.high)
+        } else {
+            EntryIconView(source: .symbol("macwindow"))
+        }
+    }
+}
+
 private struct WindowPickerAppIcon: View {
     let iconURL: URL?
     let iconStamp: Int
@@ -504,7 +519,7 @@ private struct WindowPickerTileView: View {
                 .scaledToFit()
                 .padding(Theme.Spacing.xs)
         } else if showsIcon, let entry {
-            WindowPickerAppIcon(iconURL: entry.iconURL, iconStamp: entry.iconStamp)
+            WindowPickerLargeAppIcon(iconURL: entry.iconURL)
                 .frame(width: preview.height * 0.5, height: preview.height * 0.5)
         }
     }
@@ -513,14 +528,19 @@ private struct WindowPickerTileView: View {
     @ViewBuilder
     private var stateBadge: some View {
         if case .window(let entry) = tile, entry.isMinimized || entry.isFullScreen {
-            Image(
-                systemName: entry.isMinimized
-                    ? "minus" : "arrow.up.left.and.arrow.down.right"
-            )
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.black.opacity(0.7))
-            .frame(width: Self.numberSize, height: Self.numberSize)
-            .background(Circle().fill(entry.isMinimized ? Color.yellow : Color.green))
+            Label {
+                Text(entry.isMinimized ? "Minimized" : "Full Screen")
+            } icon: {
+                Image(systemName: entry.isMinimized ? "minus" : "arrow.up.left.and.arrow.down.right")
+            }
+            .font(.caption.weight(.bold))
+            .labelStyle(.titleAndIcon)
+            .lineLimit(1)
+            .foregroundStyle(.black.opacity(0.75))
+            .padding(.horizontal, Theme.Spacing.sm)
+            .frame(height: Self.numberSize)
+            .background(Capsule().fill(entry.isMinimized ? Color.yellow : Color.green))
+            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
             .padding(Theme.Spacing.xs)
             .accessibilityHidden(true)
         }
