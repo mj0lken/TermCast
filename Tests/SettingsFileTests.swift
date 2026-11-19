@@ -47,14 +47,15 @@ struct SettingsFileTests {
                 "general", "appearance", "hyperKey", "calculator", "search", "applications",
                 "systemSettings", "systemActions", "commands", "quicklinks", "appleShortcuts", "ai",
                 "quickActions", "dictation", "fileSearch", "notes", "snippets", "navigation",
-                "windowManagement", "notch", "clipboard", "emoji", "calendar", "terminal", "extensions"
+                "windowSwitcher", "windowManagement", "notch", "clipboard", "emoji", "calendar", "terminal", "extensions"
             ])
 
         // A file that could switch one of these on would grant what only the app may ask for.
         let grantPaths = [
             "snippets.enabled", "extensions.enabled", "calendar.enabled", "terminal.enabled",
             "calendar.autoJoinMeetings", "calendar.cameraPreview", "quickActions.enabled",
-            "ai.mcpEnabled", "mcp.enabled", "clipboard.textSearchEnabled", "dictation.enabled"
+            "ai.mcpEnabled", "mcp.enabled", "clipboard.textSearchEnabled", "dictation.enabled",
+            "windowSwitcher.enabled"
         ]
         check(
             "no capability grant has a settings.json key",

@@ -144,6 +144,11 @@ enum SettingsFileSchema {
         case .menuSearchShowsAppleMenu: return bind(settings, \.menuSearchShowsAppleMenu)
         case .menuSearchDisabledApps: return bind(settings, \.menuSearchDisabledApps)
         case .navigationCommands: return launcher.commandsBinding(for: key, owner: .navigation)
+        case .windowPickerChord: return bind(settings, \.windowPickerChord)
+        case .windowPickerAppChord: return bind(settings, \.windowPickerAppChord)
+        case .windowPickerShowsPreviews: return bind(settings, \.windowPickerShowsPreviews)
+        case .windowPickerGroupsByApp: return bind(settings, \.windowPickerGroupsByApp)
+        case .windowPickerGroupDelay: return bind(settings, \.windowPickerGroupDelay)
         case .windowManagementEnabled: return bind(settings, \.windowManagementEnabled)
         case .windowManagementShowInLauncher:
             return bind(settings, \.windowManagementShowInLauncher)
@@ -238,6 +243,8 @@ extension HyperKeyQuickPress: SettingsFileRawValue {}
 extension CalcNumberStyle: SettingsFileRawValue {}
 extension SearchSensitivity: SettingsFileRawValue {}
 extension WindowCycle: SettingsFileRawValue {}
+extension WindowPickerChord: SettingsFileRawValue {}
+extension WindowPickerGroupDelay: SettingsFileRawValue {}
 extension WindowTrafficLightButton: SettingsFileRawValue {}
 extension ClipboardDefaultAction: SettingsFileRawValue {}
 extension SnippetDefaultAction: SettingsFileRawValue {}

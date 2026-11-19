@@ -36,7 +36,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft ·                                              │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
-│ WindowSwitch{Entry,Order,Query}                                            │
+│ WindowSwitch{Entry,Order,Query} ·                                          │
+│ WindowPicker{KeyEngine,Board,Order,Geometry}                               │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ consumed by
 ┌─ EFFECT ─────────────────────────▼─────────────────────────────────────────┐
@@ -55,12 +56,13 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ DisplayBrightnessService · SecureInputMonitor · RunningAppsMonitor ·       │
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ AXMenuAccess · WindowZOrder · WindowSwitchSweep ·                          │
+│ WindowPickerTap · WindowThumbnailProvider ·                                │
 │ AppleShortcutRunner · SettingsFileRepository · SettingsFileMonitor ·       │
 │ WindowManagementSettingsFile                                               │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ published through
 ┌─ OBSERVABLE STATE ───────────────▼─────────────────────────────────────────┐
-│ 39 @MainActor @Observable stores, sessions, indices and State types        │
+│ 40 @MainActor @Observable stores, sessions, indices and State types        │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ rendered by
 ┌─ VIEW ───────────────────────────▼─────────────────────────────────────────┐
@@ -103,8 +105,8 @@ app: the stores (`AppIndex`, `ClipboardStore`, `SnippetsStore`, `QuicklinkStore`
 (`ClipboardManager`, the opt-in `ClipboardTextIndexer`, the opt-in `SettingsFileRepository`,
 `HotKeyManager`, `HyperKeyManager`, `DictationKeyManager`, `RunningAppsMonitor`,
 `SnippetKeywordListener`, `WindowDragMonitor`, `WindowGreenButtonMonitor`), the shared state
-(`AppSettings`, `PaletteState`, `FileSearchSession`, `MenuSearchSession`, `UninstallSession`,
-`MeetingClock`), `NotesStore`, the twenty-one feature coordinators, and the
+(`AppSettings`, `PaletteState`, `FileSearchSession`, `MenuSearchSession`, `WindowPickerSession`, `UninstallSession`,
+`MeetingClock`), `NotesStore`, the twenty-two feature coordinators, and the
 window controllers.
 
 `AppDelegate.applicationDidFinishLaunching` calls `AppCore.shared.start(launchedByUser:)` and nothing
@@ -189,7 +191,7 @@ every live `AnimatedPanel` (see [ui.md](ui.md#non-negotiable-invariants)).
 
 ## Observation
 
-39 types are `@MainActor @Observable`. Nothing uses `ObservableObject` or `@Published`, and views read
+40 types are `@MainActor @Observable`. Nothing uses `ObservableObject` or `@Published`, and views read
 state through `@Environment` rather than `@EnvironmentObject`.
 
 Three things about this model are easy to get wrong:

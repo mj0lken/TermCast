@@ -23,6 +23,7 @@ struct SettingsDetailView: View {
             case .snippets: SnippetsSettingsView()
             case .terminal: TerminalSettingsView()
             case .navigation: NavigationSettingsView()
+            case .windowSwitcher: WindowPickerSettingsView()
             case .windowManagement: WindowManagementSettingsView()
             case .notch: NotchSettingsView()
             case .clipboard: ClipboardSettingsView()

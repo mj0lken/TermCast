@@ -6,6 +6,9 @@ same list the other way, and **Search Menu Bar Items** presses any item in the f
 [menu-search.md](menu-search.md) — because its internals are a menu walk; this page owns the
 switcher and the pane the two share.
 
+The ⌘⇥ **Window Switcher** is a separate feature with its own pane and its own page,
+[window-switcher.md](window-switcher.md).
+
 Ships **off**. Settings › Navigation is the switch, and while it is off none of them is in the
 launcher and a still-recorded shortcut for any does nothing.
 

@@ -621,6 +621,40 @@ final class AppSettings {
         }
     }
 
+    /// Installs a key tap, so like `snippetsEnabled` it rides no backup and no settings file.
+    var windowPickerEnabled: Bool {
+        didSet { defaults.set(windowPickerEnabled, forKey: Key.windowPickerEnabled.rawValue) }
+    }
+
+    var windowPickerChord: WindowPickerChord {
+        didSet { defaults.set(windowPickerChord.rawValue, forKey: Key.windowPickerChord.rawValue) }
+    }
+
+    var windowPickerAppChord: WindowPickerChord {
+        didSet {
+            defaults.set(windowPickerAppChord.rawValue, forKey: Key.windowPickerAppChord.rawValue)
+        }
+    }
+
+    var windowPickerShowsPreviews: Bool {
+        didSet {
+            defaults.set(windowPickerShowsPreviews, forKey: Key.windowPickerShowsPreviews.rawValue)
+        }
+    }
+
+    var windowPickerGroupsByApp: Bool {
+        didSet {
+            defaults.set(windowPickerGroupsByApp, forKey: Key.windowPickerGroupsByApp.rawValue)
+        }
+    }
+
+    var windowPickerGroupDelay: WindowPickerGroupDelay {
+        didSet {
+            defaults.set(
+                windowPickerGroupDelay.rawValue, forKey: Key.windowPickerGroupDelay.rawValue)
+        }
+    }
+
     /// Consent to run third-party JavaScript: it confirms, defaults off, rides no backup.
     var extensionsEnabled: Bool {
         didSet { defaults.set(extensionsEnabled, forKey: Key.extensionsEnabled.rawValue) }
@@ -1172,6 +1206,21 @@ final class AppSettings {
         menuSearchDisabledApps =
             defaults.stringArray(forKey: Key.menuSearchDisabledApps.rawValue) ?? []
         menuSearchShowsAppleMenu = defaults.bool(forKey: Key.menuSearchShowsAppleMenu.rawValue)
+        windowPickerEnabled = defaults.bool(forKey: Key.windowPickerEnabled.rawValue)
+        windowPickerChord =
+            defaults.string(forKey: Key.windowPickerChord.rawValue)
+            .flatMap(WindowPickerChord.init(rawValue:)) ?? .command
+        windowPickerAppChord =
+            defaults.string(forKey: Key.windowPickerAppChord.rawValue)
+            .flatMap(WindowPickerChord.init(rawValue:)) ?? .option
+        windowPickerShowsPreviews =
+            defaults.object(forKey: Key.windowPickerShowsPreviews.rawValue) == nil
+            || defaults.bool(forKey: Key.windowPickerShowsPreviews.rawValue)
+        windowPickerGroupsByApp = defaults.bool(forKey: Key.windowPickerGroupsByApp.rawValue)
+        windowPickerGroupDelay =
+            defaults.object(forKey: Key.windowPickerGroupDelay.rawValue)
+            .flatMap { $0 as? Int }
+            .flatMap(WindowPickerGroupDelay.init(rawValue:)) ?? .medium
         windowManagementEnabled = defaults.bool(forKey: Key.windowManagementEnabled.rawValue)
         windowManagementShowInLauncher =
             defaults.object(forKey: Key.windowManagementShowInLauncher.rawValue) == nil

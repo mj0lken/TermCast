@@ -86,6 +86,11 @@ extension SettingsAnchor {
     static let navigationCommands = Self(tab: .navigation, title: "Commands")
     static let navigationMenuSearch = Self(tab: .navigation, title: "Search Menu Bar Items")
 
+    static let windowSwitcherWindowSwitcher = Self(tab: .windowSwitcher, title: "Window Switcher")
+    static let windowSwitcherPermissions = Self(tab: .windowSwitcher, title: "Permissions")
+    static let windowSwitcherShortcuts = Self(tab: .windowSwitcher, title: "Shortcuts")
+    static let windowSwitcherOptions = Self(tab: .windowSwitcher, title: "Options")
+
     static let windowManagementWindowManagement = Self(
         tab: .windowManagement, title: "Window Management")
     static let windowManagementMouse = Self(tab: .windowManagement, title: "Mouse")

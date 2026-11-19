@@ -110,8 +110,8 @@ enum SettingsSearchCatalog {
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + clipboard + snippets + terminal + fileSearch
-        + windowManagement + notch + navigation + notes + calendar + emoji + ai + quickActions
-        + dictation + extensions + permissions
+        + windowManagement + notch + navigation + windowSwitcher + notes + calendar + emoji + ai
+        + quickActions + dictation + extensions + permissions
         + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -526,6 +526,30 @@ enum SettingsSearchCatalog {
         .init(
             .navigationMenuSearch, "Excluded Applications",
             keywords: ["exclude", "password manager", "ignore", "privacy", "menu bar"])
+    ]
+
+    private static let windowSwitcher: [SettingsSearchEntry] = [
+        .init(
+            pane: .windowSwitcher,
+            keywords: ["command tab", "cmd tab", "alt tab", "thumbnails", "previews", "windows"]),
+        .init(
+            .windowSwitcherWindowSwitcher, "Enable the window switcher",
+            keywords: ["command tab", "cmd tab", "alt tab", "switch", "windows", "thumbnails"]),
+        .init(
+            .windowSwitcherShortcuts, "All windows",
+            keywords: ["command tab", "shortcut", "hotkey", "modifier", "key binding"]),
+        .init(
+            .windowSwitcherShortcuts, "Front app’s windows",
+            keywords: ["cycle", "same app", "shortcut", "hotkey", "modifier", "key binding"]),
+        .init(
+            .windowSwitcherOptions, "Show window previews",
+            keywords: ["thumbnails", "screen recording", "screenshots", "live"]),
+        .init(
+            .windowSwitcherOptions, "Group windows by app",
+            keywords: ["stack", "grouping", "shift", "collapse"]),
+        .init(
+            .windowSwitcherOptions, "Open a selected group after",
+            keywords: ["delay", "milliseconds", "expand", "dwell", "group"])
     ]
 
     private static let windowManagement: [SettingsSearchEntry] = [

@@ -42,6 +42,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [Notch HUD](features/notch-hud.md) ·
 [deeplinks](features/deeplinks.md) ·
 [navigation](features/navigation.md) ·
+[window switcher](features/window-switcher.md) ·
 [window management](features/window-management.md) ·
 [window layouts](features/window-layouts.md) ·
 [rooms](features/window-rooms.md) ·

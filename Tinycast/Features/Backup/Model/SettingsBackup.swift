@@ -84,6 +84,12 @@ struct SettingsBackup: Codable {
         var navigationEnabled: Bool?
         var menuSearchDisabledApps: [String]?
         var menuSearchShowsAppleMenu: Bool?
+        // `windowPickerEnabled` is absent: an import must not install the switcher's key tap.
+        var windowPickerChord: String?
+        var windowPickerAppChord: String?
+        var windowPickerShowsPreviews: Bool?
+        var windowPickerGroupsByApp: Bool?
+        var windowPickerGroupDelay: Int?
         var windowManagementEnabled: Bool?
         var windowManagementShowInLauncher: Bool?
         var windowSnapByDragging: Bool?
@@ -226,6 +232,11 @@ extension SettingsBackup {
             navigationEnabled: s.navigationEnabled,
             menuSearchDisabledApps: s.menuSearchDisabledApps,
             menuSearchShowsAppleMenu: s.menuSearchShowsAppleMenu,
+            windowPickerChord: s.windowPickerChord.rawValue,
+            windowPickerAppChord: s.windowPickerAppChord.rawValue,
+            windowPickerShowsPreviews: s.windowPickerShowsPreviews,
+            windowPickerGroupsByApp: s.windowPickerGroupsByApp,
+            windowPickerGroupDelay: s.windowPickerGroupDelay.rawValue,
             windowManagementEnabled: s.windowManagementEnabled,
             windowManagementShowInLauncher: s.windowManagementShowInLauncher,
             windowSnapByDragging: s.windowSnapByDragging,
@@ -617,6 +628,26 @@ extension SettingsBackup {
         }
         if let flag = s.menuSearchShowsAppleMenu {
             settings.menuSearchShowsAppleMenu = flag
+            count += 1
+        }
+        if let raw = s.windowPickerChord, let chord = WindowPickerChord(rawValue: raw) {
+            settings.windowPickerChord = chord
+            count += 1
+        }
+        if let raw = s.windowPickerAppChord, let chord = WindowPickerChord(rawValue: raw) {
+            settings.windowPickerAppChord = chord
+            count += 1
+        }
+        if let flag = s.windowPickerShowsPreviews {
+            settings.windowPickerShowsPreviews = flag
+            count += 1
+        }
+        if let flag = s.windowPickerGroupsByApp {
+            settings.windowPickerGroupsByApp = flag
+            count += 1
+        }
+        if let raw = s.windowPickerGroupDelay, let delay = WindowPickerGroupDelay(rawValue: raw) {
+            settings.windowPickerGroupDelay = delay
             count += 1
         }
         if let flag = s.windowManagementEnabled {
