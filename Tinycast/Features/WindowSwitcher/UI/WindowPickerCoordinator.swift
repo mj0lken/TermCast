@@ -94,9 +94,11 @@ final class WindowPickerCoordinator: HealthCheckable {
             tileScale: settings.windowPickerTileSize.scale)
     }
 
-    /// W, Q and H by what the keys type, so they hold on a layout that moves them.
+    /// The action letters by what the keys type, so they hold on a layout that moves them.
     private static func actionKeys() -> [UInt16: WindowPickerKeyEngine.Action] {
-        let letters: [String: WindowPickerKeyEngine.Action] = ["w": .close, "q": .quit, "h": .hide]
+        let letters: [String: WindowPickerKeyEngine.Action] = [
+            "w": .close, "q": .quit, "h": .hide, "m": .minimize, "f": .exitFullScreen
+        ]
         let characters = ASCIIKeyboardLayout.baseCharacters(for: 0..<128)
         var keys: [UInt16: WindowPickerKeyEngine.Action] = [:]
         for (keyCode, character) in characters.sorted(by: { $0.key < $1.key }) {
@@ -279,6 +281,15 @@ final class WindowPickerCoordinator: HealthCheckable {
             }
             let hidden = session.handles(of: element.app.processIdentifier)
             change { $0.remove(handles: hidden) }
+        case .minimize:
+            let done =
+                entry.isMinimized
+                ? AXWindowAccess.unminimize(element.window) : AXWindowAccess.minimize(element.window)
+            guard done else { return }
+            change { $0.update(handle: entry.handle) { $0.isMinimized.toggle() } }
+        case .exitFullScreen:
+            guard entry.isFullScreen, AXWindowAccess.exitFullScreen(element.window) else { return }
+            change { $0.update(handle: entry.handle) { $0.isFullScreen = false } }
         }
     }
 

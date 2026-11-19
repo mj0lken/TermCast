@@ -14,7 +14,7 @@ struct WindowPickerKeyEngine: Sendable {
 
     enum Direction: Sendable { case left, right, up, down }
 
-    enum Action: Hashable, Sendable { case close, quit, hide }
+    enum Action: Hashable, Sendable { case close, quit, hide, minimize, exitFullScreen }
 
     enum Command: Equatable, Sendable {
         case open(Scope, backwards: Bool)
@@ -63,7 +63,9 @@ struct WindowPickerKeyEngine: Sendable {
             18: 0, 19: 1, 20: 2, 21: 3, 23: 4, 22: 5, 26: 6, 28: 7, 25: 8
         ]
         /// The ANSI positions, for a layout that cannot be read.
-        static let defaultActions: [UInt16: Action] = [13: .close, 12: .quit, 4: .hide]
+        static let defaultActions: [UInt16: Action] = [
+            13: .close, 12: .quit, 4: .hide, 46: .minimize, 3: .exitFullScreen
+        ]
     }
 
     var triggers: [Trigger]

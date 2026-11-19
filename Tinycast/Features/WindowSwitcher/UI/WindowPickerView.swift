@@ -425,8 +425,10 @@ private struct WindowPickerTileView: View {
     private var accessibilityValue: String {
         switch tile {
         case .window(let entry):
-            entry.isMinimized ? String(localized: "\(entry.appName) · Minimized") : entry.appName
-        case .stack(let stack): String(localized: "\(stack.windows.count) windows")
+            if entry.isMinimized { return String(localized: "\(entry.appName) · Minimized") }
+            if entry.isFullScreen { return String(localized: "\(entry.appName) · Full Screen") }
+            return entry.appName
+        case .stack(let stack): return String(localized: "\(stack.windows.count) windows")
         }
     }
 
@@ -441,7 +443,6 @@ private struct WindowPickerTileView: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity)
         }
-        .opacity(entry?.isMinimized == true ? 0.6 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(accessibilityValue)
@@ -480,6 +481,7 @@ private struct WindowPickerTileView: View {
                     lineWidth: isSelected ? 3 : 1)
             }
             .overlay(alignment: .topLeading) { numberBadge }
+            .overlay(alignment: .topTrailing) { stateBadge }
             .overlay(alignment: .bottomLeading) { badge }
             .shadow(color: .black.opacity(stackCount == nil ? 0 : 0.35), radius: 5, x: 2, y: -2)
     }
@@ -504,6 +506,23 @@ private struct WindowPickerTileView: View {
         } else if showsIcon, let entry {
             WindowPickerAppIcon(iconURL: entry.iconURL, iconStamp: entry.iconStamp)
                 .frame(width: preview.height * 0.5, height: preview.height * 0.5)
+        }
+    }
+
+    /// Dimming is the search's signal, so a window's own state gets a mark of its own.
+    @ViewBuilder
+    private var stateBadge: some View {
+        if case .window(let entry) = tile, entry.isMinimized || entry.isFullScreen {
+            Image(
+                systemName: entry.isMinimized
+                    ? "minus" : "arrow.up.left.and.arrow.down.right"
+            )
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.black.opacity(0.7))
+            .frame(width: Self.numberSize, height: Self.numberSize)
+            .background(Circle().fill(entry.isMinimized ? Color.yellow : Color.green))
+            .padding(Theme.Spacing.xs)
+            .accessibilityHidden(true)
         }
     }
 

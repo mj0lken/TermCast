@@ -280,6 +280,15 @@ struct WindowPickerBoard: Equatable, Sendable {
         leftBundleID = bundleID
     }
 
+    /// A window's state changed under the picker; its tile stays where it is.
+    mutating func update(handle: Int, _ change: (inout WindowSwitchEntry) -> Void) {
+        guard let index = entries.firstIndex(where: { $0.handle == handle }) else { return }
+        let selected = selection
+        change(&entries[index])
+        rebuild()
+        selection = min(selected, max(tiles.count - 1, 0))
+    }
+
     mutating func remove(handles: Set<Int>) {
         guard !handles.isEmpty else { return }
         let anchor = target.flatMap { handles.contains($0.handle) ? nil : $0 }

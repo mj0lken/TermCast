@@ -40,7 +40,9 @@ enum WindowSwitchSweep {
                         handle: handle, appName: app.localizedName ?? bundleID,
                         bundleID: bundleID, iconURL: iconURL, iconStamp: iconStamp,
                         title: AXWindowAccess.string(window, kAXTitleAttribute) ?? "",
-                        isMinimized: minimized, appRank: ranks[pid] ?? .max))
+                        isMinimized: minimized,
+                        isFullScreen: AXWindowAccess.isFullScreen(window),
+                        appRank: ranks[pid] ?? .max))
                 elements[handle] = Element(app: app, application: application, window: window)
             }
         }

@@ -21,9 +21,11 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 | left ⇧ tap | cycle windows → stacks → groups; inside an open stack, step back out |
 | right ⇧ tap | open the selected stack, or close the open one |
 | W / Q / H | close the window, quit its app, hide its app |
+| M | minimize the window, or restore a minimized one |
+| F | take the window out of full screen (never into it) |
 | a letter, with search on | search: bring the windows whose app or title holds it to the front |
 | ⌫, with search on | delete the last letter |
-| ⇧W / ⇧Q / ⇧H, with search on | the three actions, moved off the bare letters |
+| ⇧W ⇧Q ⇧H ⇧M ⇧F, with search on | the five actions, moved off the bare letters |
 | ↵, or release the modifier | switch |
 | esc | clear the search, else step out of the open stack, else cancel |
 
@@ -108,6 +110,13 @@ each box near-square, flows them left to right, levels the boxes on a line to on
 a short line. The view places tiles by those frames rather than a grid so a drop can be matched to
 what lies under it. The arrows use `neighbor(of:_:in:)` — the nearest tile that way — because boxes
 share no rows. A search dims here but reorders nothing, and the row limit does not apply.
+
+**Window state.** A minimized or full-screen window carries a badge in its tile's corner — yellow
+minus, green arrows — rather than being dimmed, because dimming is what a search uses for "no
+match". `WindowSwitchEntry.isFullScreen` is read in the sweep; a state changed from the picker (M,
+F) is written back with `WindowPickerBoard.update(handle:_:)` so the tile stays put. F only ever
+leaves full screen: entering animates the window onto a Space of its own and can carry the screen
+there while the picker is still up.
 
 ## Invariants
 

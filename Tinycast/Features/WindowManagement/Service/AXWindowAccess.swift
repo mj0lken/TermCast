@@ -223,6 +223,11 @@ enum AXWindowAccess {
             == .success
     }
 
+    /// Leaving only: entering would carry the screen off to a new Space mid-switch.
+    static func exitFullScreen(_ window: AXUIElement) -> Bool {
+        AXUIElementSetAttributeValue(window, fullScreenAttribute, kCFBooleanFalse) == .success
+    }
+
     static func minimize(_ window: AXUIElement) -> Bool {
         AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
             == .success

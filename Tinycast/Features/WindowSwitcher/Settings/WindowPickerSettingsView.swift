@@ -145,6 +145,11 @@ struct WindowPickerSettingsView: View {
                 keyRow(
                     "Close the window, quit or hide its app",
                     keys: settings.windowPickerSearchEnabled ? "⇧W   ⇧Q   ⇧H" : "W   Q   H")
+                keyRow(
+                    "Minimize or restore the window",
+                    keys: settings.windowPickerSearchEnabled ? "⇧M" : "M")
+                keyRow(
+                    "Leave full screen", keys: settings.windowPickerSearchEnabled ? "⇧F" : "F")
                 if settings.windowPickerSearchEnabled {
                     keyRow("Search by app or window title", keys: "A – Z")
                 }

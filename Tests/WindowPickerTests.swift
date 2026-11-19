@@ -147,6 +147,10 @@ struct WindowPickerTests {
         expect(keys.keyDown(13, modifiers: .command).command == .perform(.close), "W closes")
         expect(keys.keyDown(12, modifiers: .command).command == .perform(.quit), "Q quits")
         expect(keys.keyDown(4, modifiers: .command).command == .perform(.hide), "H hides")
+        expect(keys.keyDown(46, modifiers: .command).command == .perform(.minimize), "M minimizes")
+        expect(
+            keys.keyDown(3, modifiers: .command).command == .perform(.exitFullScreen),
+            "F leaves full screen")
         expect(keys.keyDown(18, modifiers: .command).command == .pick(0), "1 picks the first tile")
         expect(keys.keyDown(25, modifiers: .command).command == .pick(8), "9 picks the ninth")
         expect(keys.keyDown(29, modifiers: .command).command == nil, "0 picks nothing")
@@ -291,6 +295,13 @@ struct WindowPickerTests {
             board.tiles.map(\.id) == ["stack:com.example.finder", "window:3"],
             "and its tile leaves the board")
         var flat = WindowPickerBoard(entries: desk, mode: .windows)
+        flat.select(3)
+        flat.update(handle: 3) { $0.isMinimized = true }
+        expect(
+            flat.target?.isMinimized == true && flat.selection == 3 && flat.tiles.count == 6,
+            "a window minimized from the picker keeps its tile and the selection")
+        flat.update(handle: 99) { $0.isFullScreen = true }
+        expect(!flat.tiles.contains { $0.target?.isFullScreen == true }, "an unknown handle changes nothing")
         flat.select(5)
         flat.remove(handles: [5])
         expect(flat.selection == 4, "removing the last selected tile clamps the selection")
