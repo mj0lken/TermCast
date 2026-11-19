@@ -9,6 +9,10 @@ final class WindowPickerCoordinator: HealthCheckable {
     private let controller = WindowPickerController()
     private var thumbnails: Task<Void, Never>?
     private var stackOpening: Task<Void, Never>?
+    private let appTypes = WindowPickerAppTypes()
+    /// Hand-made groups outlive a show but not the windows in them, so they key on window IDs.
+    private var customGroups: [CGWindowID: Int] = [:]
+    private var shownWindowIDs: [Int: CGWindowID] = [:]
     /// Bumped per show, so a preview captured for an earlier one is never applied.
     private var generation = 0
 
@@ -123,9 +127,8 @@ final class WindowPickerCoordinator: HealthCheckable {
         case .open: break
         case .step(let offset): change { $0.step(by: offset) }
         case .move(let direction):
-            let columns = session.layout?.columns ?? 1
-            change { $0.move(direction, columns: columns) }
-        case .toggleStacking: change { $0.toggleStacking() }
+            move(direction)
+        case .cycleMode: change { $0.cycleMode() }
         case .toggleStack: change { $0.toggleStack() }
         case .pick(let index): pick(number: index)
         case .perform(let action): perform(action)
@@ -159,10 +162,13 @@ final class WindowPickerCoordinator: HealthCheckable {
 
         tap.install(engine: engine())
         generation &+= 1
+        shownWindowIDs = windowIDs
         session.present(
             WindowPickerBoard(
-                entries: ordered, isStacked: settings.windowPickerStacksByApp,
-                allowsStacking: scope == .allWindows, backwards: backwards),
+                entries: ordered, mode: settings.windowPickerStartMode,
+                allowsStacking: scope == .allWindows, backwards: backwards,
+                appTypes: snapshot.elements.mapValues { appTypes.name(for: $0.app) },
+                customGroups: windowIDs.compactMapValues { customGroups[$0] }),
             elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
         guard let layout = session.layout else { return close() }
         controller.show(
@@ -172,10 +178,31 @@ final class WindowPickerCoordinator: HealthCheckable {
                     self?.close()
                     self?.onOpenSettings?()
                 },
-                onPick: { [weak self] in self?.pick($0) }),
+                onPick: { [weak self] in self?.pick($0) },
+                onDrop: { [weak self] index, drop in self?.regroup(index, onto: drop) }),
             size: layout.panel, on: screen)
         capturePreviews(of: ordered, windowIDs: windowIDs, scale: screen.backingScaleFactor)
         scheduleStackOpening()
+    }
+
+    /// Group boxes share no grid, so there an arrow goes to the nearest tile that way.
+    private func move(_ direction: WindowPickerKeyEngine.Direction) {
+        guard let layout = session.layout, let board = session.board else { return }
+        guard !layout.tileFrames.isEmpty else {
+            return change { $0.move(direction, columns: layout.columns) }
+        }
+        let next = WindowPickerGeometry.neighbor(
+            of: board.selection, direction, in: layout.tileFrames)
+        if let next { change { $0.select(next) } }
+    }
+
+    private func regroup(_ index: Int, onto drop: WindowPickerBoard.Drop) {
+        change { $0.drop(tileAt: index, on: drop) }
+        guard let board = session.board else { return }
+        for windowID in shownWindowIDs.values { customGroups[windowID] = nil }
+        for (handle, number) in board.customGroups {
+            if let windowID = shownWindowIDs[handle] { customGroups[windowID] = number }
+        }
     }
 
     private func change(_ mutation: (inout WindowPickerBoard) -> Void) {

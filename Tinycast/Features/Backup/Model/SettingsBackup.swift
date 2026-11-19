@@ -88,7 +88,7 @@ struct SettingsBackup: Codable {
         var windowPickerChord: String?
         var windowPickerAppChord: String?
         var windowPickerShowsPreviews: Bool?
-        var windowPickerStacksByApp: Bool?
+        var windowPickerStartMode: String?
         var windowPickerStackDelay: Int?
         var windowPickerMaxColumns: Int?
         var windowPickerMaxRows: Int?
@@ -241,7 +241,7 @@ extension SettingsBackup {
             windowPickerChord: s.windowPickerChord.rawValue,
             windowPickerAppChord: s.windowPickerAppChord.rawValue,
             windowPickerShowsPreviews: s.windowPickerShowsPreviews,
-            windowPickerStacksByApp: s.windowPickerStacksByApp,
+            windowPickerStartMode: s.windowPickerStartMode.rawValue,
             windowPickerStackDelay: s.windowPickerStackDelay.rawValue,
             windowPickerMaxColumns: s.windowPickerMaxColumns.rawValue,
             windowPickerMaxRows: s.windowPickerMaxRows.rawValue,
@@ -654,8 +654,8 @@ extension SettingsBackup {
             settings.windowPickerShowsPreviews = flag
             count += 1
         }
-        if let flag = s.windowPickerStacksByApp {
-            settings.windowPickerStacksByApp = flag
+        if let raw = s.windowPickerStartMode, let mode = WindowPickerMode(rawValue: raw) {
+            settings.windowPickerStartMode = mode
             count += 1
         }
         if let raw = s.windowPickerStackDelay, let delay = WindowPickerStackDelay(rawValue: raw) {

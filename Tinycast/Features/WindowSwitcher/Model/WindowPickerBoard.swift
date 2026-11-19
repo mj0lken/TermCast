@@ -1,6 +1,7 @@
 import Foundation
 
-/// What the picker shows and where its selection is: flat, stacked by app, or inside one stack.
+/// What the picker shows and where its selection is: flat, stacked by app, inside one stack, or
+/// laid out in outlined groups.
 struct WindowPickerBoard: Equatable, Sendable {
     struct Stack: Identifiable, Hashable, Sendable {
         let bundleID: String
@@ -32,10 +33,32 @@ struct WindowPickerBoard: Equatable, Sendable {
         }
     }
 
+    /// An outline in groups mode: the kind of app its windows belong to, or one made by hand.
+    enum Group: Hashable, Sendable {
+        case appType(String)
+        case custom(Int)
+    }
+
+    struct Section: Equatable, Sendable {
+        let group: Group
+        let count: Int
+    }
+
+    /// Where a dragged tile was let go: on another tile, or on a section's own background.
+    enum Drop: Equatable, Sendable {
+        case tile(Int)
+        case section(Int)
+    }
+
     private(set) var entries: [WindowSwitchEntry]
     private(set) var tiles: [Tile] = []
     private(set) var selection = 0
-    private(set) var isStacked: Bool
+    private(set) var mode: WindowPickerMode
+    /// Groups mode only, in tile order: each section's tiles follow the one before.
+    private(set) var sections: [Section] = []
+    /// Handle to a hand-made group's number; every other window falls in its app's type.
+    private(set) var customGroups: [Int: Int]
+    private let appTypes: [Int: String]
     private(set) var expandedBundleID: String?
     /// What has been typed. It reorders the tiles, matches first, and never removes one.
     private(set) var query = ""
@@ -47,16 +70,27 @@ struct WindowPickerBoard: Equatable, Sendable {
     let allowsStacking: Bool
 
     init(
-        entries: [WindowSwitchEntry], isStacked: Bool, allowsStacking: Bool = true,
-        backwards: Bool = false
+        entries: [WindowSwitchEntry], mode: WindowPickerMode, allowsStacking: Bool = true,
+        backwards: Bool = false, appTypes: [Int: String] = [:], customGroups: [Int: Int] = [:]
     ) {
         self.entries = entries
         self.allowsStacking = allowsStacking
-        self.isStacked = isStacked && allowsStacking
+        self.mode = allowsStacking ? mode : .windows
+        self.appTypes = appTypes
+        self.customGroups = customGroups
+        dissolveLoneGroups()
         rebuild()
-        // The first tile is where the user already is, so a press lands on the one behind it.
-        if tiles.count > 1 { selection = backwards ? tiles.count - 1 : 1 }
+        guard tiles.count > 1 else { return }
+        // The first window is where the user already is, so a press lands on the one behind it.
+        if self.mode == .groups {
+            let behind = backwards ? entries[entries.count - 1] : entries[1]
+            selection = index(holding: behind) ?? 0
+        } else {
+            selection = backwards ? tiles.count - 1 : 1
+        }
     }
+
+    var isStacked: Bool { mode == .stacks }
 
     var selectedTile: Tile? { tiles.indices.contains(selection) ? tiles[selection] : nil }
 
@@ -116,14 +150,53 @@ struct WindowPickerBoard: Equatable, Sendable {
         forgetLeftStackIfMoved()
     }
 
-    mutating func toggleStacking() {
+    /// Left ⇧: windows, stacks, groups, and round again. Inside a stack it steps back out first.
+    mutating func cycleMode() {
         guard allowsStacking else { return }
         guard expandedBundleID == nil else { return collapse() }
         let anchor = target
-        isStacked.toggle()
+        mode = mode.next
         rebuild()
         selection = anchor.flatMap(index(holding:)) ?? 0
         leftBundleID = nil
+    }
+
+    /// Dropping on a window joins its hand-made group, or starts one with it.
+    mutating func drop(tileAt index: Int, on drop: Drop) {
+        guard mode == .groups, tiles.indices.contains(index), let moved = tiles[index].target
+        else { return }
+        switch drop {
+        case .tile(let targetIndex):
+            guard targetIndex != index, tiles.indices.contains(targetIndex),
+                let target = tiles[targetIndex].target
+            else { return }
+            let number = customGroups[target.handle] ?? (customGroups.values.max() ?? 0) + 1
+            customGroups[target.handle] = number
+            customGroups[moved.handle] = number
+        case .section(let sectionIndex):
+            guard sections.indices.contains(sectionIndex) else { return }
+            // An app-type outline takes nothing in: letting go there sends the window home.
+            if case .custom(let number) = sections[sectionIndex].group {
+                customGroups[moved.handle] = number
+            } else {
+                customGroups[moved.handle] = nil
+            }
+        }
+        dissolveLoneGroups()
+        rebuild()
+        selection = self.index(holding: moved) ?? 0
+    }
+
+    /// A group of one is no group, so its window returns to its app's type.
+    private mutating func dissolveLoneGroups() {
+        let present = Set(entries.map(\.handle))
+        customGroups = customGroups.filter { present.contains($0.key) }
+        let sizes = Dictionary(grouping: customGroups.values, by: \.self).mapValues(\.count)
+        customGroups = customGroups.filter { (sizes[$0.value] ?? 0) > 1 }
+    }
+
+    private func group(of entry: WindowSwitchEntry) -> Group {
+        customGroups[entry.handle].map(Group.custom) ?? .appType(appTypes[entry.handle] ?? "")
     }
 
     mutating func toggleStack() {
@@ -164,7 +237,8 @@ struct WindowPickerBoard: Equatable, Sendable {
     private mutating func search(_ text: String) {
         query = text
         rebuild()
-        selection = 0
+        // Groups keep their places, so the selection goes to the first match instead of the front.
+        selection = mode == .groups ? tiles.firstIndex { !isDimmed($0) } ?? 0 : 0
         forgetLeftStackIfMoved()
     }
 
@@ -181,6 +255,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         let anchor = target.flatMap { handles.contains($0.handle) ? nil : $0 }
         let previous = selection
         entries.removeAll { handles.contains($0.handle) }
+        dissolveLoneGroups()
         if let expandedBundleID, stack(for: expandedBundleID, in: entries) == nil {
             self.expandedBundleID = nil
         }
@@ -229,8 +304,10 @@ struct WindowPickerBoard: Equatable, Sendable {
 
     private mutating func rebuild() {
         let ranked = ranked()
-        let entries = ranked.entries
         unmatched = ranked.unmatched
+        sections = []
+        if mode == .groups, expandedBundleID == nil { return rebuildGroups() }
+        let entries = ranked.entries
         if let expandedBundleID {
             tiles = entries.filter { $0.bundleID == expandedBundleID }.map(Tile.window)
             return
@@ -247,5 +324,18 @@ struct WindowPickerBoard: Equatable, Sendable {
             // An app with one window has nothing to open, so it stays a plain window tile.
             return stack.windows.count > 1 ? .stack(stack) : .window(entry)
         }
+    }
+
+    /// Sections in the order their frontmost window appears; a search dims but never moves one.
+    private mutating func rebuildGroups() {
+        var order: [Group] = []
+        var members: [Group: [WindowSwitchEntry]] = [:]
+        for entry in entries {
+            let group = group(of: entry)
+            if members[group] == nil { order.append(group) }
+            members[group, default: []].append(entry)
+        }
+        sections = order.map { Section(group: $0, count: members[$0]?.count ?? 0) }
+        tiles = order.flatMap { members[$0] ?? [] }.map(Tile.window)
     }
 }

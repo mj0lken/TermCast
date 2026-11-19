@@ -147,7 +147,7 @@ enum SettingsFileSchema {
         case .windowPickerChord: return bind(settings, \.windowPickerChord)
         case .windowPickerAppChord: return bind(settings, \.windowPickerAppChord)
         case .windowPickerShowsPreviews: return bind(settings, \.windowPickerShowsPreviews)
-        case .windowPickerStacksByApp: return bind(settings, \.windowPickerStacksByApp)
+        case .windowPickerStartMode: return bind(settings, \.windowPickerStartMode)
         case .windowPickerStackDelay: return bind(settings, \.windowPickerStackDelay)
         case .windowPickerMaxColumns: return bind(settings, \.windowPickerMaxColumns)
         case .windowPickerMaxRows: return bind(settings, \.windowPickerMaxRows)
@@ -252,6 +252,7 @@ extension WindowCycle: SettingsFileRawValue {}
 extension WindowPickerChord: SettingsFileRawValue {}
 extension WindowPickerStackDelay: SettingsFileRawValue {}
 extension WindowPickerGridLimit: SettingsFileRawValue {}
+extension WindowPickerMode: SettingsFileRawValue {}
 extension WindowPickerTileSize: SettingsFileRawValue {}
 extension WindowPickerScreenShare: SettingsFileRawValue {}
 extension WindowTrafficLightButton: SettingsFileRawValue {}

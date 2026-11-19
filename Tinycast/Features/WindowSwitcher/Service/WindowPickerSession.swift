@@ -64,9 +64,13 @@ final class WindowPickerSession {
 
     private func relayout() {
         guard let board else { return }
-        let next = WindowPickerGeometry.layout(
-            tileCount: board.tiles.count, screen: screenSize,
-            showsHeader: board.showsHeader, limits: limits)
+        let next =
+            board.sections.isEmpty
+            ? WindowPickerGeometry.layout(
+                tileCount: board.tiles.count, screen: screenSize,
+                showsHeader: board.showsHeader, limits: limits)
+            : WindowPickerGeometry.groupLayout(
+                sectionSizes: board.sections.map(\.count), screen: screenSize, limits: limits)
         if next != layout { layout = next }
     }
 

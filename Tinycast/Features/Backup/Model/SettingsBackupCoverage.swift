@@ -66,7 +66,7 @@ enum SettingsBackupCoverage {
         "windowPickerChord": .windowPickerChord,
         "windowPickerAppChord": .windowPickerAppChord,
         "windowPickerShowsPreviews": .windowPickerShowsPreviews,
-        "windowPickerStacksByApp": .windowPickerStacksByApp,
+        "windowPickerStartMode": .windowPickerStartMode,
         "windowPickerStackDelay": .windowPickerStackDelay,
         "windowPickerMaxColumns": .windowPickerMaxColumns,
         "windowPickerMaxRows": .windowPickerMaxRows,

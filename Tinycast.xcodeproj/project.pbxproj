@@ -106,6 +106,7 @@
 		1A7F214D77D831C7A223631E /* QuickActionResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2C83F4B985EA6CD03BC69 /* QuickActionResultView.swift */; };
 		1A9FCDB7A1C1CA3A93E4FB91 /* QuickActionModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE61289308F47E3572C293D0 /* QuickActionModelPicker.swift */; };
 		1B22A7E45ADF2FEA95957698 /* ExtensionFieldChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C8025ED5F2833127E20C05 /* ExtensionFieldChrome.swift */; };
+		1B2698885AB4D7E27DD42773 /* WindowPickerAppTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D4F32F767330AD1273B3D0 /* WindowPickerAppTypes.swift */; };
 		1B4130196FC1EBE425524116 /* WindowGreenButtonMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F802298B17D85B87BD384917 /* WindowGreenButtonMonitor.swift */; };
 		1B9BC6B00770D1F002E62E0D /* ExtensionBootConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5AAA98FFF7A4D34D7B490D /* ExtensionBootConfig.swift */; };
 		1BC16048EE05A1FD25739CB4 /* PaletteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A6D3C5B6BC67716F15F83 /* PaletteState.swift */; };
@@ -752,6 +753,7 @@
 		C0642512B709EF0517ABF4CB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C37CCD024267EB21876C7E9 /* AppDelegate.swift */; };
 		C0651BDDE927FD3FAD3BB0FC /* HyperScrollRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6263300C61452C12FAE2E6A4 /* HyperScrollRunner.swift */; };
 		C0D1D4D7D03F48E8AC7901CF /* MCPOAuthHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A05EA2484C7E9EC8B05A69 /* MCPOAuthHTTP.swift */; };
+		C0FFBFC36A6ED7038D3292FB /* WindowPickerMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A032EF1F194E9D1A4F4975 /* WindowPickerMode.swift */; };
 		C1236C0EB496068BFC0DB18C /* ClaudeMCPLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134523530108C7EE37EB5B18 /* ClaudeMCPLaunch.swift */; };
 		C1FC3507BFC408DCD7F142D8 /* ExtensionCommandMetadataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4C0743DE901F5E248991B4 /* ExtensionCommandMetadataStore.swift */; };
 		C215695FE671BC591DC99C2B /* DialogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB241B179A08518424F7C1B /* DialogPanel.swift */; };
@@ -1120,6 +1122,7 @@
 		131B15F5EF86A067FA6C36D7 /* RedactedPlaceholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactedPlaceholder.swift; sourceTree = "<group>"; };
 		132C5A534C02305C1A29CC74 /* LauncherList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherList.swift; sourceTree = "<group>"; };
 		134523530108C7EE37EB5B18 /* ClaudeMCPLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeMCPLaunch.swift; sourceTree = "<group>"; };
+		13A032EF1F194E9D1A4F4975 /* WindowPickerMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerMode.swift; sourceTree = "<group>"; };
 		13AFD1411015045388813522 /* UpdatePill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatePill.swift; sourceTree = "<group>"; };
 		140D704D2B8F12F7D623DB8F /* CameraStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraStage.swift; sourceTree = "<group>"; };
 		142EE14C0BB59FD904238B96 /* AppURLScheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppURLScheme.swift; sourceTree = "<group>"; };
@@ -1270,6 +1273,7 @@
 		37A48095F6487DEE76663F88 /* UninstallProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UninstallProtection.swift; sourceTree = "<group>"; };
 		37A4A767EB3BD7219675B1A0 /* AIChatWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatWindowChrome.swift; sourceTree = "<group>"; };
 		37B00EC4FD8D4D0CD2FE596A /* SnippetKeywordPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetKeywordPolicy.swift; sourceTree = "<group>"; };
+		37D4F32F767330AD1273B3D0 /* WindowPickerAppTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerAppTypes.swift; sourceTree = "<group>"; };
 		384485BD1794D25503534525 /* AppSettingsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsKey.swift; sourceTree = "<group>"; };
 		38765BC6C35D03659655BD2B /* ExtensionHostBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionHostBridge.swift; sourceTree = "<group>"; };
 		387BE675F580496656E72559 /* SymbolCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolCatalog.swift; sourceTree = "<group>"; };
@@ -3294,6 +3298,7 @@
 		8F3266436A6F4456C74811A4 /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				37D4F32F767330AD1273B3D0 /* WindowPickerAppTypes.swift */,
 				5B8DFB864A47795F30214480 /* WindowPickerSession.swift */,
 				71333167E1D81E82923DBD8B /* WindowPickerTap.swift */,
 				491B8A6ED9732D9B0A33026C /* WindowSwitchSession.swift */,
@@ -4234,6 +4239,7 @@
 				9D4C9A8736252E3B76F24E71 /* WindowPickerGeometry.swift */,
 				CB1D16CD5671459000189485 /* WindowPickerGridLimit.swift */,
 				2AAA3892CC34F7F8AC0FAA28 /* WindowPickerKeyEngine.swift */,
+				13A032EF1F194E9D1A4F4975 /* WindowPickerMode.swift */,
 				59E318B142943A1633A6522C /* WindowPickerOrder.swift */,
 				00A731BF25F9700F2B68ABA2 /* WindowPickerScreenShare.swift */,
 				8F9B5EE3F1370BF701A730FF /* WindowPickerStackDelay.swift */,
@@ -5475,6 +5481,7 @@
 				BD0D91ADFEC096476788939C /* WindowManagementSettingsFile.swift in Sources */,
 				EE6A9E899566ACCB8258D901 /* WindowManagementSettingsView.swift in Sources */,
 				018324CD7AB1996821F4070D /* WindowMover.swift in Sources */,
+				1B2698885AB4D7E27DD42773 /* WindowPickerAppTypes.swift in Sources */,
 				6E8DE25684E7C1CB815B7EF5 /* WindowPickerBoard.swift in Sources */,
 				2E5F00887256470ABE841428 /* WindowPickerChord.swift in Sources */,
 				AB0280AED208F1E6A3BE3C18 /* WindowPickerController.swift in Sources */,
@@ -5482,6 +5489,7 @@
 				13CC4556C34746CE18675E02 /* WindowPickerGeometry.swift in Sources */,
 				57BAF69BF778A19635BAF7B3 /* WindowPickerGridLimit.swift in Sources */,
 				D692E33454F1D4DABE3346A1 /* WindowPickerKeyEngine.swift in Sources */,
+				C0FFBFC36A6ED7038D3292FB /* WindowPickerMode.swift in Sources */,
 				32F07745203DE68464A2EBBA /* WindowPickerOrder.swift in Sources */,
 				032D93320D4C1A12F9B101F9 /* WindowPickerScreenShare.swift in Sources */,
 				0AB41FA2AEFFE8C726950AE6 /* WindowPickerSession.swift in Sources */,

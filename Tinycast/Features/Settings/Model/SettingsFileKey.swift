@@ -89,7 +89,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case windowPickerChord = "windowSwitcher.modifier"
     case windowPickerAppChord = "windowSwitcher.appModifier"
     case windowPickerShowsPreviews = "windowSwitcher.showsPreviews"
-    case windowPickerStacksByApp = "windowSwitcher.stacksByApp"
+    case windowPickerStartMode = "windowSwitcher.startMode"
     case windowPickerStackDelay = "windowSwitcher.stackOpenDelayMs"
     case windowPickerMaxColumns = "windowSwitcher.maxColumns"
     case windowPickerMaxRows = "windowSwitcher.maxRows"

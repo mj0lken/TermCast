@@ -83,7 +83,7 @@ enum AppSettingsKey: String, CaseIterable {
     case windowPickerChord = "windowPickerChord"
     case windowPickerAppChord = "windowPickerAppChord"
     case windowPickerShowsPreviews = "windowPickerShowsPreviews"
-    case windowPickerStacksByApp = "windowPickerStacksByApp"
+    case windowPickerStartMode = "windowPickerStartMode"
     case windowPickerStackDelay = "windowPickerStackDelay"
     case windowPickerMaxColumns = "windowPickerMaxColumns"
     case windowPickerMaxRows = "windowPickerMaxRows"

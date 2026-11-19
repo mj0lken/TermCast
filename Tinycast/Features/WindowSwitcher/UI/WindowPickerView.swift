@@ -4,6 +4,17 @@ struct WindowPickerView: View {
     let session: WindowPickerSession
     let onOpenSettings: () -> Void
     let onPick: (Int) -> Void
+    let onDrop: (Int, WindowPickerBoard.Drop) -> Void
+
+    /// The tile under the pointer mid-drag, and how far it has come.
+    private struct Drag: Equatable {
+        let index: Int
+        var translation: CGSize
+        var location: CGPoint
+    }
+
+    @State private var drag: Drag?
+    private static let boardSpace = "windowPickerBoard"
 
     var body: some View {
         if let board = session.board, let layout = session.layout {
@@ -12,7 +23,11 @@ struct WindowPickerView: View {
                     WindowPickerStackHeader(stack: stack)
                         .frame(height: WindowPickerGeometry.headerHeight, alignment: .top)
                 }
-                grid(board, layout: layout)
+                if layout.tileFrames.count == board.tiles.count, !board.sections.isEmpty {
+                    groups(board, layout: layout)
+                } else {
+                    grid(board, layout: layout)
+                }
                 WindowPickerFooter(query: board.query, onOpenSettings: onOpenSettings)
                     .frame(height: WindowPickerGeometry.footerHeight, alignment: .bottom)
             }
@@ -31,19 +46,97 @@ struct WindowPickerView: View {
             count: layout.columns)
         return LazyVGrid(columns: columns, spacing: WindowPickerGeometry.gap) {
             ForEach(Array(board.tiles.enumerated()), id: \.element.id) { index, tile in
-                WindowPickerTileView(
-                    tile: tile, preview: layout.preview,
-                    thumbnail: tile.target.flatMap { session.thumbnails[$0.handle] },
-                    stackThumbnails: stackThumbnails(of: tile),
-                    number: index < WindowPickerTileView.numberedTiles ? index + 1 : nil,
-                    isSelected: index == board.selection
-                )
-                .opacity(board.isDimmed(tile) ? 0.3 : 1)
-                .frame(width: layout.tile.width, height: layout.tile.height)
-                .contentShape(Rectangle())
-                .onTapGesture { onPick(index) }
+                tileView(tile, at: index, board: board, layout: layout)
+                    .onTapGesture { onPick(index) }
             }
         }
+    }
+
+    private func tileView(
+        _ tile: WindowPickerBoard.Tile, at index: Int, board: WindowPickerBoard,
+        layout: WindowPickerGeometry.Layout
+    ) -> some View {
+        WindowPickerTileView(
+            tile: tile, preview: layout.preview,
+            thumbnail: tile.target.flatMap { session.thumbnails[$0.handle] },
+            stackThumbnails: stackThumbnails(of: tile),
+            number: index < WindowPickerTileView.numberedTiles ? index + 1 : nil,
+            isSelected: index == board.selection
+        )
+        .opacity(board.isDimmed(tile) ? 0.3 : 1)
+        .frame(width: layout.tile.width, height: layout.tile.height)
+        .contentShape(Rectangle())
+    }
+
+    // MARK: - Groups
+
+    /// Placed by frame rather than by a grid, so a drop can be matched to what lies under it.
+    private func groups(
+        _ board: WindowPickerBoard, layout: WindowPickerGeometry.Layout
+    ) -> some View {
+        let target = dropTarget(in: layout)
+        return ZStack(alignment: .topLeading) {
+            ForEach(Array(board.sections.enumerated()), id: \.offset) { index, section in
+                if layout.sectionFrames.indices.contains(index) {
+                    WindowPickerSectionOutline(
+                        group: section.group, isTargeted: target == .section(index)
+                    )
+                    .frame(
+                        width: layout.sectionFrames[index].width,
+                        height: layout.sectionFrames[index].height
+                    )
+                    .offset(x: layout.sectionFrames[index].minX, y: layout.sectionFrames[index].minY)
+                }
+            }
+            ForEach(Array(board.tiles.enumerated()), id: \.element.id) { index, tile in
+                let frame = layout.tileFrames[index]
+                let moved = drag?.index == index ? drag?.translation ?? .zero : .zero
+                tileView(tile, at: index, board: board, layout: layout)
+                    .overlay {
+                        if target == .tile(index) {
+                            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [5]))
+                        }
+                    }
+                    .scaleEffect(drag?.index == index ? 0.92 : 1)
+                    .offset(x: frame.minX + moved.width, y: frame.minY + moved.height)
+                    .zIndex(drag?.index == index ? 1 : 0)
+                    .onTapGesture { onPick(index) }
+                    .gesture(dragGesture(for: index, in: layout))
+            }
+        }
+        .frame(
+            width: layout.panel.width - WindowPickerGeometry.inset * 2,
+            height: layout.panel.height - WindowPickerGeometry.inset * 2
+                - WindowPickerGeometry.footerHeight,
+            alignment: .topLeading
+        )
+        .coordinateSpace(.named(Self.boardSpace))
+    }
+
+    private func dragGesture(
+        for index: Int, in layout: WindowPickerGeometry.Layout
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.boardSpace))
+            .onChanged { value in
+                drag = Drag(index: index, translation: value.translation, location: value.location)
+            }
+            .onEnded { value in
+                drag = Drag(index: index, translation: value.translation, location: value.location)
+                let target = dropTarget(in: layout)
+                drag = nil
+                if let target { onDrop(index, target) }
+            }
+    }
+
+    /// A tile wins over the outline it sits in; the dragged tile's own frame is no target.
+    private func dropTarget(in layout: WindowPickerGeometry.Layout) -> WindowPickerBoard.Drop? {
+        guard let drag else { return nil }
+        let tile = layout.tileFrames.enumerated().first {
+            $0.offset != drag.index && $0.element.contains(drag.location)
+        }
+        if let tile { return .tile(tile.offset) }
+        return layout.sectionFrames.firstIndex { $0.contains(drag.location) }.map { .section($0) }
     }
 
     /// The windows behind a stack's front one, so its stack shows what it actually holds.
@@ -52,6 +145,37 @@ struct WindowPickerView: View {
         return stack.windows.dropFirst().prefix(WindowPickerTileView.stackDepth).map {
             session.thumbnails[$0.handle]
         }
+    }
+}
+
+private struct WindowPickerSectionOutline: View {
+    let group: WindowPickerBoard.Group
+    let isTargeted: Bool
+
+    private var title: String {
+        switch group {
+        case .appType(let name): name.isEmpty ? String(localized: "Other") : name
+        case .custom(let number): String(localized: "Group \(number)")
+        }
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row + 4, style: .continuous)
+        shape.fill(Theme.Colors.cardFill.opacity(isTargeted ? 1 : 0.5))
+            .overlay {
+                shape.strokeBorder(
+                    isTargeted ? Color.accentColor : Theme.Colors.cardStroke,
+                    lineWidth: isTargeted ? 2 : 1)
+            }
+            .overlay(alignment: .topLeading) {
+                Text(verbatim: title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .padding(.horizontal, WindowPickerGeometry.sectionPadding)
+                    .frame(height: WindowPickerGeometry.sectionTitleHeight + 4, alignment: .bottom)
+            }
+            .accessibilityLabel(title)
     }
 }
 

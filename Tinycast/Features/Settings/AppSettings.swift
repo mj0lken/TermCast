@@ -642,9 +642,9 @@ final class AppSettings {
         }
     }
 
-    var windowPickerStacksByApp: Bool {
+    var windowPickerStartMode: WindowPickerMode {
         didSet {
-            defaults.set(windowPickerStacksByApp, forKey: Key.windowPickerStacksByApp.rawValue)
+            defaults.set(windowPickerStartMode.rawValue, forKey: Key.windowPickerStartMode.rawValue)
         }
     }
 
@@ -1253,7 +1253,9 @@ final class AppSettings {
         windowPickerShowsPreviews =
             defaults.object(forKey: Key.windowPickerShowsPreviews.rawValue) == nil
             || defaults.bool(forKey: Key.windowPickerShowsPreviews.rawValue)
-        windowPickerStacksByApp = defaults.bool(forKey: Key.windowPickerStacksByApp.rawValue)
+        windowPickerStartMode =
+            defaults.string(forKey: Key.windowPickerStartMode.rawValue)
+            .flatMap(WindowPickerMode.init(rawValue:)) ?? .windows
         windowPickerStackDelay =
             defaults.object(forKey: Key.windowPickerStackDelay.rawValue)
             .flatMap { $0 as? Int }

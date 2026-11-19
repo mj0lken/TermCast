@@ -47,6 +47,7 @@ struct WindowPickerTests {
         togglingKeepsTheWindow()
         frontAppBoard()
         removal()
+        groupsBoard()
         searching()
         geometry()
 
@@ -116,7 +117,7 @@ struct WindowPickerTests {
             "a Shift going down decides nothing yet")
         expect(
             keys.modifiersChanged(keyCode: Key.leftShift, isDown: false, modifiers: .command)
-                == .toggleStacking, "a left Shift tap toggles stacking")
+                == .cycleMode, "a left Shift tap toggles stacking")
         _ = keys.modifiersChanged(
             keyCode: Key.rightShift, isDown: true, modifiers: [.command, .shift])
         expect(
@@ -204,7 +205,7 @@ struct WindowPickerTests {
     // MARK: - Board
 
     static func flatBoard() {
-        var board = WindowPickerBoard(entries: desk, isStacked: false)
+        var board = WindowPickerBoard(entries: desk, mode: .windows)
         expect(board.tiles.count == 6, "unstacked, every window is a tile")
         expect(board.selection == 1, "it opens on the window behind the current one")
         expect(!board.canExpandSelection, "a window has nothing to open")
@@ -217,16 +218,16 @@ struct WindowPickerTests {
         board.move(.down, columns: 4)
         expect(board.selection == 4, "and stays put with no row below")
         expect(
-            WindowPickerBoard(entries: desk, isStacked: false, backwards: true).selection == 5,
+            WindowPickerBoard(entries: desk, mode: .windows, backwards: true).selection == 5,
             "opened backwards it starts on the last tile")
         expect(
-            WindowPickerBoard(entries: [entry(0)], isStacked: false).selection == 0,
+            WindowPickerBoard(entries: [entry(0)], mode: .windows).selection == 0,
             "a single window is selected itself")
-        expect(WindowPickerBoard(entries: [], isStacked: true).target == nil, "no windows, no target")
+        expect(WindowPickerBoard(entries: [], mode: .stacks).target == nil, "no windows, no target")
     }
 
     static func stackedBoard() {
-        let board = WindowPickerBoard(entries: desk, isStacked: true)
+        let board = WindowPickerBoard(entries: desk, mode: .stacks)
         expect(
             board.tiles.map(\.id) == ["stack:com.example.finder", "stack:com.example.safari", "window:3"],
             "apps stack in first-seen order, a lone window stays a window: \(board.tiles.map(\.id))")
@@ -235,7 +236,7 @@ struct WindowPickerTests {
     }
 
     static func expanding() {
-        var board = WindowPickerBoard(entries: desk, isStacked: true)
+        var board = WindowPickerBoard(entries: desk, mode: .stacks)
         board.toggleStack()
         expect(board.expandedStack?.appName == "Safari", "the selected stack opened")
         expect(board.tiles.compactMap(\.target).map(\.handle) == [1, 4], "showing only its windows")
@@ -251,42 +252,44 @@ struct WindowPickerTests {
         board.select(0)
         board.expandSelection()
         expect(board.selection == 1, "the front app's stack opens past the current window")
-        board.toggleStacking()
+        board.cycleMode()
         expect(
             board.expandedStack == nil && board.isStacked,
             "left Shift inside a stack steps back out rather than unstacking")
     }
 
     static func togglingKeepsTheWindow() {
-        var board = WindowPickerBoard(entries: desk, isStacked: false)
+        var board = WindowPickerBoard(entries: desk, mode: .windows)
         board.select(4)
-        board.toggleStacking()
+        board.cycleMode()
         expect(
             board.isStacked && board.selectedTile?.id == "stack:com.example.safari",
             "stacking selects the stack holding the selected window")
-        board.toggleStacking()
+        board.cycleMode()
         expect(
-            !board.isStacked && board.target?.handle == 1,
-            "unstacking selects that stack's frontmost window")
+            board.mode == .groups && board.target?.handle == 1,
+            "a second press moves on to groups, still on that stack's frontmost window")
+        board.cycleMode()
+        expect(board.mode == .windows && board.target?.handle == 1, "and a third comes back round")
     }
 
     static func frontAppBoard() {
         let finder = desk.filter { $0.appName == "Finder" }
-        var board = WindowPickerBoard(entries: finder, isStacked: true, allowsStacking: false)
+        var board = WindowPickerBoard(entries: finder, mode: .stacks, allowsStacking: false)
         expect(!board.isStacked && board.tiles.count == 3, "one app's windows never stack")
-        board.toggleStacking()
+        board.cycleMode()
         expect(!board.isStacked, "and the toggle is inert there")
     }
 
     static func removal() {
-        var board = WindowPickerBoard(entries: desk, isStacked: true)
+        var board = WindowPickerBoard(entries: desk, mode: .stacks)
         board.toggleStack()
         board.remove(handles: [1, 4])
         expect(board.expandedStack == nil, "an open stack whose app quit closes")
         expect(
             board.tiles.map(\.id) == ["stack:com.example.finder", "window:3"],
             "and its tile leaves the board")
-        var flat = WindowPickerBoard(entries: desk, isStacked: false)
+        var flat = WindowPickerBoard(entries: desk, mode: .windows)
         flat.select(5)
         flat.remove(handles: [5])
         expect(flat.selection == 4, "removing the last selected tile clamps the selection")
@@ -295,8 +298,62 @@ struct WindowPickerTests {
         expect(flat.target?.handle == 2, "removing an earlier tile keeps the selected window")
     }
 
+    /// Finder and Mail are "Productivity", Safari a "Browser": two outlines to start from.
+    static let kinds = [
+        0: "Productivity", 1: "Browser", 2: "Productivity", 3: "Productivity", 4: "Browser",
+        5: "Productivity"
+    ]
+
+    static func groupsBoard() {
+        typealias Group = WindowPickerBoard.Group
+        var board = WindowPickerBoard(entries: desk, mode: .groups, appTypes: kinds)
+        func handles() -> [Int] { board.tiles.compactMap { $0.target?.handle } }
+        expect(
+            board.sections.map(\.group) == [.appType("Productivity"), .appType("Browser")],
+            "windows gather by kind of app, in the order each kind first appears")
+        expect(board.sections.map(\.count) == [4, 2] && handles() == [0, 2, 3, 5, 1, 4], "kind by kind")
+        expect(board.target?.handle == 1, "and it still opens on the window behind the current one")
+        expect(!board.canExpandSelection, "groups hold windows, never stacks")
+
+        board.drop(tileAt: 4, on: .tile(2))
+        expect(
+            board.sections.map(\.group) == [.appType("Productivity"), .custom(1), .appType("Browser")],
+            "dropping one window on another starts a group of the two: \(board.sections)")
+        expect(board.customGroups == [1: 1, 3: 1] && board.target?.handle == 1, "selecting the moved one")
+        board.drop(tileAt: 0, on: .tile(board.tiles.firstIndex { $0.target?.handle == 3 } ?? -1))
+        expect(board.customGroups == [0: 1, 1: 1, 3: 1], "dropping on a grouped window joins its group")
+        let custom = board.sections.firstIndex { $0.group == .custom(1) } ?? -1
+        board.drop(tileAt: board.tiles.firstIndex { $0.target?.handle == 5 } ?? -1, on: .section(custom))
+        expect(board.customGroups[5] == 1, "as does dropping on the group's own outline")
+
+        let kind = board.sections.firstIndex { $0.group == .appType("Productivity") } ?? -1
+        board.drop(tileAt: board.tiles.firstIndex { $0.target?.handle == 5 } ?? -1, on: .section(kind))
+        expect(board.customGroups[5] == nil, "an app-type outline sends a window back to its kind")
+        board.remove(handles: [0, 3])
+        expect(
+            board.customGroups.isEmpty && !board.sections.contains { $0.group == .custom(1) },
+            "a group left with one window dissolves")
+
+        board.drop(tileAt: 0, on: .tile(0))
+        expect(board.customGroups.isEmpty, "a window dropped on itself changes nothing")
+        var flat = WindowPickerBoard(entries: desk, mode: .windows)
+        flat.drop(tileAt: 0, on: .tile(1))
+        expect(flat.customGroups.isEmpty, "and nothing regroups outside groups mode")
+
+        var seeded = WindowPickerBoard(
+            entries: desk, mode: .groups, appTypes: kinds, customGroups: [1: 7, 3: 7, 5: 9])
+        expect(seeded.customGroups == [1: 7, 3: 7], "remembered groups return, minus the lone ones")
+        seeded.type("saf")
+        expect(
+            seeded.tiles.compactMap { $0.target?.handle } == [0, 2, 5, 1, 3, 4] && seeded.target?.handle == 1,
+            "a search leaves groups where they are and selects the first match")
+        expect(
+            WindowPickerBoard(entries: desk, mode: .groups, allowsStacking: false).mode == .windows,
+            "one app's windows are never grouped")
+    }
+
     static func searching() {
-        var board = WindowPickerBoard(entries: desk, isStacked: false)
+        var board = WindowPickerBoard(entries: desk, mode: .windows)
         func handles() -> [Int] { board.tiles.compactMap { $0.target?.handle } }
         board.type("s")
         board.type("a")
@@ -320,7 +377,7 @@ struct WindowPickerTests {
         board.type("m")
         expect(board.target?.appName == "Mail", "an app-name prefix leads")
 
-        var stacked = WindowPickerBoard(entries: desk, isStacked: true)
+        var stacked = WindowPickerBoard(entries: desk, mode: .stacks)
         stacked.type("fi")
         expect(
             stacked.tiles.count == 3 && stacked.selectedTile?.id == "stack:com.example.finder",
@@ -379,6 +436,30 @@ struct WindowPickerTests {
         expect(
             narrow.panel.width <= screen.width * 0.5 && narrow.panel.height <= screen.height * 0.5,
             "the panel stays inside its share of the screen: \(narrow.panel)")
+        let grouped = WindowPickerGeometry.groupLayout(sectionSizes: [4, 2, 1], screen: screen)
+        expect(
+            grouped.tileFrames.count == 7 && grouped.sectionFrames.count == 3,
+            "groups lay out a frame per tile and per outline")
+        expect(
+            zip(grouped.sectionFrames, [0..<4, 4..<6, 6..<7]).allSatisfy { box, tiles in
+                tiles.allSatisfy { box.contains(grouped.tileFrames[$0]) }
+            }, "every tile sits inside its own outline")
+        expect(
+            !grouped.sectionFrames[0].intersects(grouped.sectionFrames[1]), "and outlines never overlap")
+        expect(
+            grouped.sectionFrames[0].width < grouped.tile.width * 3,
+            "four windows sit two by two rather than in a ribbon")
+        let crowded = WindowPickerGeometry.groupLayout(
+            sectionSizes: Array(repeating: 6, count: 8), screen: screen)
+        expect(
+            crowded.panel.width <= screen.width && crowded.panel.height <= screen.height,
+            "a crowded board wraps and shrinks to stay on screen: \(crowded.panel)")
+        let frames = grouped.tileFrames
+        expect(WindowPickerGeometry.neighbor(of: 0, .right, in: frames) == 1, "→ goes to the next tile")
+        expect(WindowPickerGeometry.neighbor(of: 0, .down, in: frames) == 2, "↓ to the one below")
+        expect(WindowPickerGeometry.neighbor(of: 1, .right, in: frames) == 4, "→ crosses into the next box")
+        expect(WindowPickerGeometry.neighbor(of: 0, .left, in: frames) == nil, "and stops at the edge")
+
         expect(
             laid(3, Limits(tileScale: 1.35)).preview.width > few.preview.width
                 && laid(3, Limits(tileScale: 0.75)).preview.width < few.preview.width,

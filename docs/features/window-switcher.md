@@ -18,7 +18,7 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 | modifier + ` | open on the front app's windows only |
 | 1 – 9 | switch to that tile's window; on a closed stack, open it |
 | ← → ↑ ↓ | move in the grid |
-| left ⇧ tap | toggle stacking by app; inside an open stack, step back out |
+| left ⇧ tap | cycle windows → stacks → groups; inside an open stack, step back out |
 | right ⇧ tap | open the selected stack, or close the open one |
 | W / Q / H | close the window, quit its app, hide its app |
 | a letter, with search on | search: bring the windows whose app or title holds it to the front |
@@ -55,7 +55,7 @@ once; on a closed stack it opens the stack, whose windows are then numbered in t
 app with a single window stays a plain window tile. Releasing on a stack switches to its frontmost
 window. A selected stack opens by itself after `windowPickerStackDelay` (400–1500 ms, or never),
 or at once on a right ⇧ tap; opened, the panel shows only that app's windows and stepping stays
-inside it. `windowPickerStacksByApp` is only how a show *starts* — the left ⇧ toggle lasts for that
+inside it. `windowPickerStartMode` is only how a show *starts* — a left ⇧ change lasts for that
 show and is never written back. A stack stepped out of does not reopen by itself while it is
 still selected (`canAutoExpandSelection`): moving off it and back re-arms the delay, and right ⇧
 or its number opens it at once regardless. A stack's stack is drawn from its next two windows' previews.
@@ -70,6 +70,26 @@ windows dropped.
 **The panel carries no instructions.** Its footer holds only the search as typed and a cog that
 closes the picker and opens Settings › Window Switcher, whose **Keyboard** section lists every key
 — including which form of W/Q/H the search setting currently leaves.
+
+**Modes.** `WindowPickerMode` is windows, stacks or groups; `windowPickerStartMode` is how a show
+starts and left ⇧ walks the three for that show only. One app's windows (the second shortcut) are
+always plain windows.
+
+**Groups.** In groups mode every window is its own tile, gathered into outlined boxes
+(`WindowPickerBoard.Section`). A window's group is the kind of app it belongs to — the system's own
+category name, read by `WindowPickerAppTypes` from Spotlight's `kMDItemAppStoreCategory`, with
+"Other" for an app that declares none — unless it has been put in a hand-made one:
+
+- dropping a tile on another window joins that window's hand-made group, or starts "Group N" with it;
+- dropping on a hand-made group's outline joins it; on an app-type outline, sends the window home;
+- a hand-made group left with one window dissolves.
+
+Hand-made groups are per window and last until the app quits: the coordinator keeps them by
+`CGWindowID` and seeds each show's board from that, so nothing is written to disk. Boxes are laid out
+by `WindowPickerGeometry.groupLayout`, near-square each and flowing left to right, and the view
+places tiles by those frames rather than a grid so a drop can be matched to what lies under it. The
+arrows use `neighbor(of:_:in:)` — the nearest tile that way — because boxes share no rows. A search
+dims here but reorders nothing, and the row limit does not apply.
 
 ## Invariants
 
@@ -105,7 +125,8 @@ closes the picker and opens Settings › Window Switcher, whose **Keyboard** sec
 | `Model/WindowPickerBoard.swift` | tiles, selection, stacking and the open stack; pure |
 | `Model/WindowPickerOrder.swift` | per-window front-to-back order over the per-app fallback |
 | `Model/WindowPickerGeometry.swift` | the grid: columns, tile size, panel size |
-| `Model/WindowPickerChord.swift`, `…StackDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare` | the setting enums |
+| `Model/WindowPickerChord.swift`, `…StackDelay`, `…GridLimit`, `…TileSize`, `…ScreenShare`, `…Mode` | the setting enums |
+| `Service/WindowPickerAppTypes.swift` | an app's category name, cached per bundle |
 | `Service/WindowPickerTap.swift` | the event tap and its worker thread |
 | `Service/WindowPickerSession.swift` | one show's observable state and its live AX elements |
 | `Service/WindowThumbnailProvider.swift` | ScreenCaptureKit captures, off the main actor |

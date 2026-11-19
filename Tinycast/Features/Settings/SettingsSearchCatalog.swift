@@ -563,8 +563,8 @@ enum SettingsSearchCatalog {
             .windowSwitcherOptions, "Type to search",
             keywords: ["filter", "find", "letters", "close", "quit", "hide", "shift"]),
         .init(
-            .windowSwitcherOptions, "Stack windows by app",
-            keywords: ["group", "pile", "shift", "collapse"]),
+            .windowSwitcherOptions, "Start with",
+            keywords: ["stacks", "groups", "windows", "mode", "pile", "outline", "shift"]),
         .init(
             .windowSwitcherOptions, "Open a selected stack after",
             keywords: ["delay", "milliseconds", "expand", "dwell", "group"])

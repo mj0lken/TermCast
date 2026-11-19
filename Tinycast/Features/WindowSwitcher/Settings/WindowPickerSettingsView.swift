@@ -88,9 +88,13 @@ struct WindowPickerSettingsView: View {
                             ? "Close, quit and hide are now ⇧W, ⇧Q and ⇧H, so every letter can be typed."
                             : "Letters bring matching windows to the front of the grid.")
                 }
-                Toggle(isOn: $settings.windowPickerStacksByApp) {
-                    SettingsRowTitle(.windowSwitcherOptions, "Stack windows by app")
-                    Text("Tap left ⇧ while the switcher is open to switch between the two.")
+                Picker(selection: $settings.windowPickerStartMode) {
+                    ForEach(WindowPickerMode.allCases) { mode in
+                        Text(verbatim: mode.title).tag(mode)
+                    }
+                } label: {
+                    SettingsRowTitle(.windowSwitcherOptions, "Start with")
+                    Text("Stacks pile each app’s windows; groups outline them by kind of app.")
                 }
                 Picker(selection: $settings.windowPickerStackDelay) {
                     ForEach(WindowPickerStackDelay.allCases) { delay in
@@ -110,9 +114,10 @@ struct WindowPickerSettingsView: View {
                 keyRow("Move in the grid", keys: "←  →  ↑  ↓")
                 keyRow("Switch to a numbered window", keys: "1 – 9")
                 keyRow("Switch to the selected window", keys: "↵")
-                keyRow("Stack or unstack by app", keys: String(localized: "Left ⇧"))
+                keyRow("Cycle windows, stacks and groups", keys: String(localized: "Left ⇧"))
                 keyRow("Open or close the selected stack", keys: String(localized: "Right ⇧"))
                 keyRow("Step back, then cancel", keys: "esc")
+                keyRow("Move a window to another group", keys: String(localized: "Drag"))
                 keyRow(
                     "Close the window, quit or hide its app",
                     keys: settings.windowPickerSearchEnabled ? "⇧W   ⇧Q   ⇧H" : "W   Q   H")

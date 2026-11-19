@@ -20,7 +20,7 @@ struct WindowPickerKeyEngine: Sendable {
         case open(Scope, backwards: Bool)
         case step(Int)
         case move(Direction)
-        case toggleStacking
+        case cycleMode
         case toggleStack
         case pick(Int)
         case type(String)
@@ -124,7 +124,7 @@ struct WindowPickerKeyEngine: Sendable {
         }
         guard pendingShiftTap == keyCode else { return nil }
         pendingShiftTap = nil
-        return keyCode == KeyCode.leftShift ? .toggleStacking : .toggleStack
+        return keyCode == KeyCode.leftShift ? .cycleMode : .toggleStack
     }
 
     private mutating func opening(_ keyCode: UInt16, modifiers: Modifiers) -> Outcome {
