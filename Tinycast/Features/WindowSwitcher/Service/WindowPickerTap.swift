@@ -109,6 +109,7 @@ final class WindowPickerTap {
             state.withLock { state in
                 state.engine.triggers = engine.triggers
                 state.engine.actionKeys = engine.actionKeys
+                state.engine.characters = engine.characters
             }
         }
 

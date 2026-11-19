@@ -23,9 +23,12 @@ struct WindowPickerKeyEngine: Sendable {
         case toggleGrouping
         case toggleGroup
         case pick(Int)
+        case type(String)
+        case deleteBackward
         case perform(Action)
         case commit
-        case cancel
+        /// Escape: the coordinator knows whether that leaves a search, a group or the picker.
+        case back
     }
 
     struct Trigger: Equatable, Sendable {
@@ -45,6 +48,8 @@ struct WindowPickerKeyEngine: Sendable {
         static let tab: UInt16 = 48
         static let grave: UInt16 = 50
         static let escape: UInt16 = 53
+        static let delete: UInt16 = 51
+        static let space: UInt16 = 49
         static let returnKey: UInt16 = 36
         static let keypadEnter: UInt16 = 76
         static let leftShift: UInt16 = 56
@@ -63,13 +68,19 @@ struct WindowPickerKeyEngine: Sendable {
 
     var triggers: [Trigger]
     var actionKeys: [UInt16: Action]
+    /// The letters this layout types, by key; what a search is spelled with. Empty turns search off.
+    var characters: [UInt16: String]
     private(set) var active: Trigger?
     /// A Shift that went down while open and has seen no key since: its release is a tap.
     private var pendingShiftTap: UInt16?
 
-    init(triggers: [Trigger] = [], actionKeys: [UInt16: Action] = KeyCode.defaultActions) {
+    init(
+        triggers: [Trigger] = [], actionKeys: [UInt16: Action] = KeyCode.defaultActions,
+        characters: [UInt16: String] = [:]
+    ) {
         self.triggers = triggers
         self.actionKeys = actionKeys
+        self.characters = characters
     }
 
     static func triggers(allWindows: WindowPickerChord, frontApp: WindowPickerChord) -> [Trigger] {
@@ -135,15 +146,18 @@ struct WindowPickerKeyEngine: Sendable {
         case KeyCode.rightArrow: return .move(.right)
         case KeyCode.upArrow: return .move(.up)
         case KeyCode.downArrow: return .move(.down)
-        case KeyCode.escape:
-            reset()
-            return .cancel
+        case KeyCode.escape: return .back
         case KeyCode.returnKey, KeyCode.keypadEnter:
             reset()
             return .commit
         default:
             if let index = KeyCode.digits[keyCode] { return .pick(index) }
-            return actionKeys[keyCode].map(Command.perform)
+            guard !characters.isEmpty else { return actionKeys[keyCode].map(Command.perform) }
+            // Searching, Shift marks an action so every bare letter is free to spell a query.
+            if modifiers.contains(.shift), let action = actionKeys[keyCode] { return .perform(action) }
+            if keyCode == KeyCode.delete { return .deleteBackward }
+            if keyCode == KeyCode.space { return .type(" ") }
+            return characters[keyCode].map(Command.type)
         }
     }
 }

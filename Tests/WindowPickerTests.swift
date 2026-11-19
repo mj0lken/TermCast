@@ -47,6 +47,7 @@ struct WindowPickerTests {
         togglingKeepsTheWindow()
         frontAppBoard()
         removal()
+        searching()
         geometry()
 
         print(failures == 0 ? "Window picker tests passed" : "\(failures) window picker tests failed")
@@ -150,7 +151,21 @@ struct WindowPickerTests {
         expect(
             keys.keyDown(0, modifiers: .command) == .init(command: nil, swallows: true),
             "an unbound key is swallowed, so ⌘A never reaches the app underneath")
-        expect(keys.keyDown(Key.escape, modifiers: .command).command == .cancel, "Escape cancels")
+        expect(keys.keyDown(Key.escape, modifiers: .command).command == .back, "Escape steps back")
+        expect(keys.active != nil, "and leaves closing to whoever knows what is open")
+        expect(keys.keyDown(51, modifiers: .command).command == nil, "⌫ is nothing with search off")
+        var typing = Engine(
+            triggers: Engine.triggers(allWindows: .command, frontApp: .off),
+            characters: [3: "f", 13: "w"])
+        _ = typing.keyDown(Key.tab, modifiers: .command)
+        expect(typing.keyDown(3, modifiers: .command).command == .type("f"), "a letter types")
+        expect(typing.keyDown(13, modifiers: .command).command == .type("w"), "W types too")
+        expect(typing.keyDown(51, modifiers: .command).command == .deleteBackward, "⌫ deletes")
+        expect(
+            typing.keyDown(13, modifiers: [.command, .shift]).command == .perform(.close),
+            "and ⇧W is still the action")
+        expect(typing.keyDown(49, modifiers: .command).command == .type(" "), "space types")
+        keys.reset()
         expect(
             keys.modifiersChanged(keyCode: 55, isDown: false, modifiers: []) == nil,
             "and the ⌘ release after it switches nothing")
@@ -278,6 +293,51 @@ struct WindowPickerTests {
         flat.select(2)
         flat.remove(handles: [0])
         expect(flat.target?.handle == 2, "removing an earlier tile keeps the selected window")
+    }
+
+    static func searching() {
+        var board = WindowPickerBoard(entries: desk, isGrouped: false)
+        func handles() -> [Int] { board.tiles.compactMap { $0.target?.handle } }
+        board.type("s")
+        board.type("a")
+        expect(board.tiles.count == desk.count, "a search never removes a tile")
+        expect(handles() == [1, 4, 0, 2, 3, 5] && board.selection == 0, "it brings the matches first")
+        expect(board.unmatched == [0, 2, 3, 5], "and marks the rest to be dimmed")
+        board.type("x")
+        expect(handles() == [0, 1, 2, 3, 4, 5], "a query matching nothing leaves the order alone")
+        expect(board.tiles.allSatisfy(board.isDimmed), "with every tile dimmed")
+        board.deleteBackward()
+        expect(handles().prefix(2) == [1, 4], "⌫ brings the matches back")
+        expect(board.stepBack() && board.query.isEmpty, "Escape clears the search first")
+        expect(handles() == [0, 1, 2, 3, 4, 5] && board.unmatched.isEmpty, "restoring the board")
+        expect(!board.stepBack(), "and with nothing open Escape leaves the picker")
+
+        board.type(" ")
+        expect(board.query.isEmpty, "a leading space starts no search")
+        board.type("WINDOW 3")
+        expect(board.target?.handle == 3, "titles match, whatever the case")
+        _ = board.stepBack()
+        board.type("m")
+        expect(board.target?.appName == "Mail", "an app-name prefix leads")
+
+        var grouped = WindowPickerBoard(entries: desk, isGrouped: true)
+        grouped.type("fi")
+        expect(
+            grouped.tiles.count == 3 && grouped.selectedTile?.id == "group:com.example.finder",
+            "grouped, a search lands on the app's stack")
+        expect(
+            grouped.tiles.filter(grouped.isDimmed).count == 2, "and dims the stacks that hold no match")
+        grouped.expandSelection()
+        expect(grouped.tiles.count == 3 && grouped.showsHeader, "which opens as usual")
+        expect(grouped.stepBack() && grouped.expandedGroup != nil, "Escape drops the search first")
+        expect(grouped.stepBack() && grouped.expandedGroup == nil, "then steps out of the group")
+        expect(
+            grouped.canExpandSelection && !grouped.canAutoExpandSelection,
+            "a group just left opens by hand but not by itself")
+        grouped.step(by: 1)
+        grouped.step(by: -1)
+        expect(grouped.canAutoExpandSelection, "until the selection has been somewhere else")
+        expect(!grouped.stepBack(), "then leaves")
     }
 
     // MARK: - Geometry

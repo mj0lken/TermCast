@@ -38965,6 +38965,58 @@
         }
       }
     },
+    "Close the window, quit or hide its app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster schließen, App beenden oder ausblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar la ventana, salir de su app u ocultarla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer la fenêtre, quitter ou masquer son app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを閉じる、アプリを終了または隠す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "윈도우 닫기, 앱 종료 또는 가리기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar a janela, encerrar ou ocultar o app"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть окно, завершить или скрыть приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭窗口、退出或隐藏其 App"
+          }
+        }
+      }
+    },
     "Close Window" : {
       "localizations" : {
         "de" : {
@@ -39169,6 +39221,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭“%@”？"
+          }
+        }
+      }
+    },
+    "Close, quit and hide are now ⇧W, ⇧Q and ⇧H, so every letter can be typed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen, Beenden und Ausblenden liegen jetzt auf ⇧W, ⇧Q und ⇧H, damit jeder Buchstabe getippt werden kann."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar, salir y ocultar son ahora ⇧W, ⇧Q y ⇧H, para que se pueda escribir cualquier letra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer, quitter et masquer sont désormais ⇧W, ⇧Q et ⇧H, afin que chaque lettre puisse être saisie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる・終了・隠すは⇧W、⇧Q、⇧Hに変わり、すべての文字を入力できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "닫기, 종료, 가리기는 이제 ⇧W, ⇧Q, ⇧H이며 모든 글자를 입력할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar, encerrar e ocultar agora são ⇧W, ⇧Q e ⇧H, para que qualquer letra possa ser digitada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрытие, завершение и скрытие теперь на ⇧W, ⇧Q и ⇧H, чтобы можно было вводить любую букву."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭、退出和隐藏现在是 ⇧W、⇧Q 和 ⇧H，这样每个字母都可以输入。"
           }
         }
       }
@@ -65263,6 +65367,58 @@
         }
       }
     },
+    "Group or ungroup by app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach App gruppieren oder Gruppierung aufheben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrupar o desagrupar por app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grouper ou dégrouper par app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリごとにグループ化または解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱별로 그룹화 또는 해제"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrupar ou desagrupar por app"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группировать по приложениям или разгруппировать"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按 App 分组或取消分组"
+          }
+        }
+      }
+    },
     "Group windows by app" : {
       "localizations" : {
         "de" : {
@@ -77586,106 +77742,54 @@
         }
       }
     },
-    "Left ⇧ groups by app" : {
+    "Left ⇧" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Linke ⇧ gruppiert nach App"
+            "value" : "Linke ⇧"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ izquierda agrupa por app"
+            "value" : "⇧ izquierda"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ gauche regroupe par app"
+            "value" : "⇧ gauche"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左 ⇧ でアプリごとにまとめる"
+            "value" : "左⇧"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "왼쪽 ⇧: 앱별로 그룹화"
+            "value" : "왼쪽 ⇧"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ esquerda agrupa por app"
+            "value" : "⇧ esquerda"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Левый ⇧ группирует по приложениям"
+            "value" : "Левый ⇧"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左 ⇧ 按应用分组"
-          }
-        }
-      }
-    },
-    "Left ⇧ shows every window" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Linke ⇧ zeigt alle Fenster"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ izquierda muestra todas las ventanas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ gauche affiche toutes les fenêtres"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "左 ⇧ ですべてのウインドウを表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "왼쪽 ⇧: 모든 윈도우 보기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ esquerda mostra todas as janelas"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Левый ⇧ показывает все окна"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "左 ⇧ 显示所有窗口"
+            "value" : "左 ⇧"
           }
         }
       }
@@ -77900,6 +78004,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许 Termcast 将项目粘贴回你正在使用的 App。"
+          }
+        }
+      }
+    },
+    "Letters bring matching windows to the front of the grid." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchstaben holen passende Fenster an den Anfang des Rasters."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las letras llevan las ventanas coincidentes al principio de la cuadrícula."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les lettres placent les fenêtres correspondantes en tête de la grille."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字を入力すると、一致するウインドウがグリッドの先頭に来ます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "글자를 입력하면 일치하는 윈도우가 격자 맨 앞으로 옵니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As letras trazem as janelas correspondentes para o início da grade."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Буквы переносят подходящие окна в начало сетки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入字母会把匹配的窗口排到网格最前面。"
           }
         }
       }
@@ -83646,6 +83802,58 @@
         }
       }
     },
+    "Move in the grid" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Raster bewegen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moverse por la cuadrícula"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déplacer dans la grille"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッド内を移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "격자에서 이동"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover-se na grade"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемещение по сетке"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在网格中移动"
+          }
+        }
+      }
+    },
     "Move Left" : {
       "localizations" : {
         "de" : {
@@ -87002,6 +87210,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下一个匹配项  ⌘G"
+          }
+        }
+      }
+    },
+    "Next or previous window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächstes oder vorheriges Fenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ventana siguiente o anterior"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre suivante ou précédente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次または前のウインドウ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 또는 이전 윈도우"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Janela seguinte ou anterior"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Следующее или предыдущее окно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一个或上一个窗口"
           }
         }
       }
@@ -97729,6 +97989,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展开式刘海与暂存架"
+          }
+        }
+      }
+    },
+    "Open or close the selected group" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewählte Gruppe öffnen oder schließen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir o cerrar el grupo seleccionado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir ou fermer le groupe sélectionné"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したグループを開くまたは閉じる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택한 그룹 열기 또는 닫기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ou fechar o grupo selecionado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть или закрыть выбранную группу"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开或关闭所选群组"
           }
         }
       }
@@ -113985,106 +114297,54 @@
         }
       }
     },
-    "Right ⇧ closes the group" : {
+    "Right ⇧" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rechte ⇧ schließt die Gruppe"
+            "value" : "Rechte ⇧"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ derecha cierra el grupo"
+            "value" : "⇧ derecha"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ droite ferme le groupe"
+            "value" : "⇧ droite"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "右 ⇧ でグループを閉じる"
+            "value" : "右⇧"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오른쪽 ⇧: 그룹 닫기"
+            "value" : "오른쪽 ⇧"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⇧ direita fecha o grupo"
+            "value" : "⇧ direita"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Правый ⇧ закрывает группу"
+            "value" : "Правый ⇧"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "右 ⇧ 收起分组"
-          }
-        }
-      }
-    },
-    "Right ⇧ opens a group" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechte ⇧ öffnet eine Gruppe"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ derecha abre un grupo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ droite ouvre un groupe"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "右 ⇧ でグループを開く"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "오른쪽 ⇧: 그룹 열기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⇧ direita abre um grupo"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Правый ⇧ открывает группу"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "右 ⇧ 展开分组"
+            "value" : "右 ⇧"
           }
         }
       }
@@ -116797,6 +117057,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索"
+          }
+        }
+      }
+    },
+    "Search by app or window title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach App oder Fenstertitel suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar por app o título de ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher par app ou titre de fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ名またはウインドウタイトルで検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱 또는 윈도우 제목으로 검색"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar por app ou título da janela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск по приложению или заголовку окна"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按 App 或窗口标题搜索"
           }
         }
       }
@@ -127601,6 +127913,58 @@
         }
       }
     },
+    "Step back, then cancel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Schritt zurück, dann abbrechen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retroceder y, después, cancelar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir en arrière, puis annuler"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一段階戻り、その後キャンセル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 단계 뒤로, 그다음 취소"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar um passo e depois cancelar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шаг назад, затем отмена"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后退一步，然后取消"
+          }
+        }
+      }
+    },
     "Stop" : {
       "comment" : "Quick AI primary action: stop generating",
       "localizations" : {
@@ -128980,6 +129344,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "切换房间"
+          }
+        }
+      }
+    },
+    "Switch to a numbered window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu einem nummerierten Fenster wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar a una ventana numerada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer à une fenêtre numérotée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "番号付きのウインドウに切り替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번호가 붙은 윈도우로 전환"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar para uma janela numerada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перейти к окну по номеру"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到带编号的窗口"
+          }
+        }
+      }
+    },
+    "Switch to the selected window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum ausgewählten Fenster wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar a la ventana seleccionada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer à la fenêtre sélectionnée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したウインドウに切り替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택한 윈도우로 전환"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar para a janela selecionada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перейти к выбранному окну"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到所选窗口"
           }
         }
       }
@@ -138080,6 +138548,58 @@
         }
       }
     },
+    "These work while the switcher is open and the modifier is held." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie funktionieren, solange der Umschalter geöffnet ist und die Sondertaste gehalten wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funcionan mientras el selector está abierto y se mantiene pulsado el modificador."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elles fonctionnent tant que le sélecteur est ouvert et que la touche de modification est maintenue."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーが開いていて修飾キーを押している間に使えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전환기가 열려 있고 보조 키를 누르고 있는 동안 작동합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funcionam enquanto o alternador está aberto e o modificador está pressionado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работают, пока переключатель открыт и удерживается клавиша-модификатор."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在切换器打开且按住修饰键时有效。"
+          }
+        }
+      }
+    },
     "Thinking blocks start expanded instead of collapsed." : {
       "localizations" : {
         "de" : {
@@ -147045,6 +147565,58 @@
         }
       }
     },
+    "Type to search" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippen zum Suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para buscar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez pour rechercher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力して検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "입력하여 검색"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite para buscar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите для поиска"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入以搜索"
+          }
+        }
+      }
+    },
     "Type to search files and folders" : {
       "localizations" : {
         "de" : {
@@ -150349,58 +150921,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "宽"
-          }
-        }
-      }
-    },
-    "W closes, Q quits, H hides" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W schließt, Q beendet, H blendet aus"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W cierra, Q sale, H oculta"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W ferme, Q quitte, H masque"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W で閉じる、Q で終了、H で隠す"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W 닫기, Q 종료, H 가리기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W fecha, Q encerra, H oculta"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W закрывает, Q завершает, H скрывает"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W 关闭，Q 退出，H 隐藏"
           }
         }
       }

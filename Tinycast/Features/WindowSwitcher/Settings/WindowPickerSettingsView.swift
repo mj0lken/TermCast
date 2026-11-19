@@ -81,6 +81,13 @@ struct WindowPickerSettingsView: View {
                     SettingsRowTitle(.windowSwitcherOptions, "Show window previews")
                     Text("Needs Screen Recording access. Without it, tiles show the app icon.")
                 }
+                Toggle(isOn: $settings.windowPickerSearchEnabled) {
+                    SettingsRowTitle(.windowSwitcherOptions, "Type to search")
+                    Text(
+                        settings.windowPickerSearchEnabled
+                            ? "Close, quit and hide are now ⇧W, ⇧Q and ⇧H, so every letter can be typed."
+                            : "Letters bring matching windows to the front of the grid.")
+                }
                 Toggle(isOn: $settings.windowPickerGroupsByApp) {
                     SettingsRowTitle(.windowSwitcherOptions, "Group windows by app")
                     Text("Tap left ⇧ while the switcher is open to switch between the two.")
@@ -95,6 +102,27 @@ struct WindowPickerSettingsView: View {
                 }
             } header: {
                 SettingsSectionHeader(.windowSwitcherOptions)
+            }
+            .settingsEnabled(settings.windowPickerEnabled)
+
+            Section {
+                keyRow("Next or previous window", keys: "⇥   ⇧⇥")
+                keyRow("Move in the grid", keys: "←  →  ↑  ↓")
+                keyRow("Switch to a numbered window", keys: "1 – 9")
+                keyRow("Switch to the selected window", keys: "↵")
+                keyRow("Group or ungroup by app", keys: String(localized: "Left ⇧"))
+                keyRow("Open or close the selected group", keys: String(localized: "Right ⇧"))
+                keyRow("Step back, then cancel", keys: "esc")
+                keyRow(
+                    "Close the window, quit or hide its app",
+                    keys: settings.windowPickerSearchEnabled ? "⇧W   ⇧Q   ⇧H" : "W   Q   H")
+                if settings.windowPickerSearchEnabled {
+                    keyRow("Search by app or window title", keys: "A – Z")
+                }
+            } header: {
+                SettingsSectionHeader(.windowSwitcherKeys)
+            } footer: {
+                Text("These work while the switcher is open and the modifier is held.")
             }
             .settingsEnabled(settings.windowPickerEnabled)
         }
@@ -155,6 +183,16 @@ struct WindowPickerSettingsView: View {
         guard isWalkingGrants, trusted else { return }
         if needsScreenRecording { grantScreenRecording() }
         isWalkingGrants = false
+    }
+
+    private func keyRow(_ action: LocalizedStringKey, keys: String) -> some View {
+        LabeledContent {
+            Text(verbatim: keys)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        } label: {
+            Text(action)
+        }
     }
 
     private func optionPicker<Option: CaseIterable & Identifiable & Hashable>(

@@ -13,6 +13,7 @@ final class WindowPickerCoordinator: HealthCheckable {
     private var generation = 0
 
     weak var healthTicker: HealthTicker?
+    var onOpenSettings: (() -> Void)?
 
     init(settings: AppSettings, session: WindowPickerSession) {
         self.settings = settings
@@ -77,7 +78,8 @@ final class WindowPickerCoordinator: HealthCheckable {
         WindowPickerKeyEngine(
             triggers: WindowPickerKeyEngine.triggers(
                 allWindows: settings.windowPickerChord, frontApp: settings.windowPickerAppChord),
-            actionKeys: Self.actionKeys())
+            actionKeys: Self.actionKeys(),
+            characters: settings.windowPickerSearchEnabled ? Self.letters() : [:])
     }
 
     private func limits() -> WindowPickerGeometry.Limits {
@@ -102,6 +104,14 @@ final class WindowPickerCoordinator: HealthCheckable {
         return keys.count == letters.count ? keys : WindowPickerKeyEngine.KeyCode.defaultActions
     }
 
+    /// Letters only: digits pick a tile and punctuation has no window to find.
+    private static func letters() -> [UInt16: String] {
+        ASCIIKeyboardLayout.baseCharacters(for: 0..<128).reduce(into: [:]) { letters, key in
+            guard key.value.count == 1, key.value.allSatisfy(\.isLetter) else { return }
+            letters[UInt16(key.key)] = key.value.lowercased()
+        }
+    }
+
     // MARK: - Commands
 
     private func handle(_ command: WindowPickerKeyEngine.Command) {
@@ -120,7 +130,12 @@ final class WindowPickerCoordinator: HealthCheckable {
         case .pick(let index): pick(number: index)
         case .perform(let action): perform(action)
         case .commit: commit()
-        case .cancel: close()
+        case .type(let text): change { $0.type(text) }
+        case .deleteBackward: change { $0.deleteBackward() }
+        case .back:
+            var steppedBack = false
+            session.update { steppedBack = $0.stepBack() }
+            if steppedBack { change { _ in } } else { close() }
         }
     }
 
@@ -151,7 +166,13 @@ final class WindowPickerCoordinator: HealthCheckable {
             elements: snapshot.elements, screenSize: screen.visibleFrame.size, limits: limits())
         guard let layout = session.layout else { return close() }
         controller.show(
-            WindowPickerView(session: session) { [weak self] in self?.pick($0) },
+            WindowPickerView(
+                session: session,
+                onOpenSettings: { [weak self] in
+                    self?.close()
+                    self?.onOpenSettings?()
+                },
+                onPick: { [weak self] in self?.pick($0) }),
             size: layout.panel, on: screen)
         capturePreviews(of: ordered, windowIDs: windowIDs, scale: screen.backingScaleFactor)
         scheduleGroupOpening()
@@ -225,7 +246,7 @@ final class WindowPickerCoordinator: HealthCheckable {
         groupOpening?.cancel()
         groupOpening = nil
         guard let delay = settings.windowPickerGroupDelay.duration,
-            session.board?.canExpandSelection == true
+            session.board?.canAutoExpandSelection == true
         else { return }
         groupOpening = Task { [weak self] in
             try? await Task.sleep(for: delay)

@@ -560,6 +560,9 @@ enum SettingsSearchCatalog {
             .windowSwitcherOptions, "Show window previews",
             keywords: ["thumbnails", "screen recording", "screenshots", "live"]),
         .init(
+            .windowSwitcherOptions, "Type to search",
+            keywords: ["filter", "find", "letters", "close", "quit", "hide", "shift"]),
+        .init(
             .windowSwitcherOptions, "Group windows by app",
             keywords: ["stack", "grouping", "shift", "collapse"]),
         .init(

@@ -66,7 +66,7 @@ final class WindowPickerSession {
         guard let board else { return }
         let next = WindowPickerGeometry.layout(
             tileCount: board.tiles.count, screen: screenSize,
-            showsHeader: board.expandedGroup != nil, limits: limits)
+            showsHeader: board.showsHeader, limits: limits)
         if next != layout { layout = next }
     }
 

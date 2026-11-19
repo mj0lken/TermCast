@@ -397,6 +397,9 @@ final class AppCore {
             windowGreenButtonMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
             windowPickerCoordinator.healthTicker = healthTicker
+            windowPickerCoordinator.onOpenSettings = { [weak self] in
+                self?.settingsCoordinator.showSettings(tab: .windowSwitcher)
+            }
             windowPickerCoordinator.applyEnabled()
 
             hotKeys.onTogglePalette = { [weak self] in self?.paletteCoordinator.togglePalette() }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WindowPickerView: View {
     let session: WindowPickerSession
+    let onOpenSettings: () -> Void
     let onPick: (Int) -> Void
 
     var body: some View {
@@ -12,7 +13,7 @@ struct WindowPickerView: View {
                         .frame(height: WindowPickerGeometry.headerHeight, alignment: .top)
                 }
                 grid(board, layout: layout)
-                WindowPickerHints(board: board)
+                WindowPickerFooter(query: board.query, onOpenSettings: onOpenSettings)
                     .frame(height: WindowPickerGeometry.footerHeight, alignment: .bottom)
             }
             .padding(WindowPickerGeometry.inset)
@@ -37,6 +38,7 @@ struct WindowPickerView: View {
                     number: index < WindowPickerTileView.numberedTiles ? index + 1 : nil,
                     isSelected: index == board.selection
                 )
+                .opacity(board.isDimmed(tile) ? 0.3 : 1)
                 .frame(width: layout.tile.width, height: layout.tile.height)
                 .contentShape(Rectangle())
                 .onTapGesture { onPick(index) }
@@ -72,27 +74,33 @@ private struct WindowPickerGroupHeader: View {
     }
 }
 
-private struct WindowPickerHints: View {
-    let board: WindowPickerBoard
+/// The search as typed, and the way to Settings, where the keys are listed.
+private struct WindowPickerFooter: View {
+    let query: String
+    let onOpenSettings: () -> Void
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.xl) {
-            if board.expandedGroup != nil {
-                hint("Right ⇧ closes the group")
-            } else if board.allowsGrouping {
-                hint(board.isGrouped ? "Left ⇧ shows every window" : "Left ⇧ groups by app")
-                if board.isGrouped { hint("Right ⇧ opens a group") }
+        HStack(spacing: Theme.Spacing.md) {
+            if !query.isEmpty {
+                Label {
+                    Text(verbatim: query)
+                } icon: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .font(Theme.Typography.rowTrailing)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .lineLimit(1)
             }
-            hint("W closes, Q quits, H hides")
+            Spacer(minLength: 0)
+            Image(systemName: "gearshape")
+                .font(.body)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .padding(Theme.Spacing.xs)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onOpenSettings)
+                .accessibilityLabel("Settings")
+                .accessibilityAddTraits(.isButton)
         }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func hint(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .font(.caption)
-            .foregroundStyle(Theme.Colors.textTertiary)
-            .lineLimit(1)
     }
 }
 

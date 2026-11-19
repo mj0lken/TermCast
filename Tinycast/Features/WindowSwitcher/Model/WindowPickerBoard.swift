@@ -37,6 +37,12 @@ struct WindowPickerBoard: Equatable, Sendable {
     private(set) var selection = 0
     private(set) var isGrouped: Bool
     private(set) var expandedBundleID: String?
+    /// What has been typed. It reorders the tiles, matches first, and never removes one.
+    private(set) var query = ""
+    /// The handles the query leaves out; their tiles stay in place, dimmed.
+    private(set) var unmatched: Set<Int> = []
+    /// The group just stepped out of: it must not reopen by itself while still selected.
+    private var leftBundleID: String?
     /// False for one app's windows, where a single group would be the whole board.
     let allowsGrouping: Bool
 
@@ -57,7 +63,17 @@ struct WindowPickerBoard: Equatable, Sendable {
     var target: WindowSwitchEntry? { selectedTile?.target }
 
     var expandedGroup: Group? {
-        expandedBundleID.flatMap { group(for: $0) }
+        expandedBundleID.flatMap { group(for: $0, in: entries) }
+    }
+
+    var showsHeader: Bool { expandedBundleID != nil }
+
+    /// A group counts as a match while any window in it does.
+    func isDimmed(_ tile: Tile) -> Bool {
+        switch tile {
+        case .window(let entry): unmatched.contains(entry.handle)
+        case .group(let group): group.windows.allSatisfy { unmatched.contains($0.handle) }
+        }
     }
 
     var canExpandSelection: Bool {
@@ -65,9 +81,23 @@ struct WindowPickerBoard: Equatable, Sendable {
         return true
     }
 
+    /// What the dwell delay asks; right ⇧ and a number still open a group just left.
+    var canAutoExpandSelection: Bool {
+        guard canExpandSelection, case .group(let group) = selectedTile else { return false }
+        return group.bundleID != leftBundleID
+    }
+
     mutating func step(by offset: Int) {
         guard !tiles.isEmpty else { return }
         selection = ((selection + offset) % tiles.count + tiles.count) % tiles.count
+        forgetLeftGroupIfMoved()
+    }
+
+    private mutating func forgetLeftGroupIfMoved() {
+        guard case .group(let group) = selectedTile, group.bundleID == leftBundleID else {
+            leftBundleID = nil
+            return
+        }
     }
 
     /// Rows do not wrap: past the first or last one the selection stays where it is.
@@ -83,6 +113,7 @@ struct WindowPickerBoard: Equatable, Sendable {
     mutating func select(_ index: Int) {
         guard tiles.indices.contains(index) else { return }
         selection = index
+        forgetLeftGroupIfMoved()
     }
 
     mutating func toggleGrouping() {
@@ -92,6 +123,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         isGrouped.toggle()
         rebuild()
         selection = anchor.flatMap(index(holding:)) ?? 0
+        leftBundleID = nil
     }
 
     mutating func toggleGroup() {
@@ -107,11 +139,41 @@ struct WindowPickerBoard: Equatable, Sendable {
         selection = holdsCurrent && tiles.count > 1 ? 1 : 0
     }
 
+    mutating func type(_ text: String) {
+        // A leading space would only hide every tile behind a query that looks empty.
+        guard !(query.isEmpty && text.allSatisfy(\.isWhitespace)) else { return }
+        search(query + text)
+    }
+
+    mutating func deleteBackward() {
+        guard !query.isEmpty else { return }
+        search(String(query.dropLast()))
+    }
+
+    /// Escape, one layer at a time: the search, then the open group. False leaves the picker.
+    mutating func stepBack() -> Bool {
+        if !query.isEmpty {
+            search("")
+            return true
+        }
+        guard expandedBundleID != nil else { return false }
+        collapse()
+        return true
+    }
+
+    private mutating func search(_ text: String) {
+        query = text
+        rebuild()
+        selection = 0
+        forgetLeftGroupIfMoved()
+    }
+
     mutating func collapse() {
         guard let bundleID = expandedBundleID else { return }
         expandedBundleID = nil
         rebuild()
         selection = tiles.firstIndex { $0.target?.bundleID == bundleID } ?? 0
+        leftBundleID = bundleID
     }
 
     mutating func remove(handles: Set<Int>) {
@@ -119,7 +181,9 @@ struct WindowPickerBoard: Equatable, Sendable {
         let anchor = target.flatMap { handles.contains($0.handle) ? nil : $0 }
         let previous = selection
         entries.removeAll { handles.contains($0.handle) }
-        if let expandedBundleID, group(for: expandedBundleID) == nil { self.expandedBundleID = nil }
+        if let expandedBundleID, group(for: expandedBundleID, in: entries) == nil {
+            self.expandedBundleID = nil
+        }
         rebuild()
         selection = anchor.flatMap(index(holding:)) ?? min(previous, max(tiles.count - 1, 0))
     }
@@ -133,7 +197,7 @@ struct WindowPickerBoard: Equatable, Sendable {
         }
     }
 
-    private func group(for bundleID: String) -> Group? {
+    private func group(for bundleID: String, in entries: [WindowSwitchEntry]) -> Group? {
         let windows = entries.filter { $0.bundleID == bundleID }
         guard let first = windows.first else { return nil }
         return Group(
@@ -141,7 +205,32 @@ struct WindowPickerBoard: Equatable, Sendable {
             iconStamp: first.iconStamp, windows: windows)
     }
 
+    /// Name-prefix matches, then the other matches, then the rest, each still front to back.
+    private func ranked() -> (entries: [WindowSwitchEntry], unmatched: Set<Int>) {
+        let needle = Self.folded(query.trimmingCharacters(in: .whitespaces))
+        guard !needle.isEmpty else { return (entries, []) }
+        var ranks: [[WindowSwitchEntry]] = [[], [], []]
+        for entry in entries {
+            let app = Self.folded(entry.appName)
+            if app.hasPrefix(needle) {
+                ranks[0].append(entry)
+            } else if app.contains(needle) || Self.folded(entry.displayTitle).contains(needle) {
+                ranks[1].append(entry)
+            } else {
+                ranks[2].append(entry)
+            }
+        }
+        return (ranks[0] + ranks[1] + ranks[2], Set(ranks[2].map(\.handle)))
+    }
+
+    private static func folded(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+    }
+
     private mutating func rebuild() {
+        let ranked = ranked()
+        let entries = ranked.entries
+        unmatched = ranked.unmatched
         if let expandedBundleID {
             tiles = entries.filter { $0.bundleID == expandedBundleID }.map(Tile.window)
             return
@@ -152,7 +241,8 @@ struct WindowPickerBoard: Equatable, Sendable {
         }
         var seen: Set<String> = []
         tiles = entries.compactMap { entry in
-            guard seen.insert(entry.bundleID).inserted, let group = group(for: entry.bundleID)
+            guard seen.insert(entry.bundleID).inserted,
+                let group = group(for: entry.bundleID, in: entries)
             else { return nil }
             // An app with one window has nothing to open, so it stays a plain window tile.
             return group.windows.count > 1 ? .group(group) : .window(entry)

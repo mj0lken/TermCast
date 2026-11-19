@@ -21,13 +21,31 @@ Ships **off**. Settings › Window Switcher is the switch, and it is independent
 | left ⇧ tap | toggle grouping by app; inside an open group, step back out |
 | right ⇧ tap | open the selected group, or close the open one |
 | W / Q / H | close the window, quit its app, hide its app |
+| a letter, with search on | search: bring the windows whose app or title holds it to the front |
+| ⌫, with search on | delete the last letter |
+| ⇧W / ⇧Q / ⇧H, with search on | the three actions, moved off the bare letters |
 | ↵, or release the modifier | switch |
-| esc | cancel |
+| esc | clear the search, else step out of the open group, else cancel |
 
 Each chord's modifier is ⌘, ⌥, ⌃ or Off (`windowPickerChord`, default ⌘; `windowPickerAppChord`,
 default ⌥). The key is fixed per scope — ⇥ and the key above it — so the two can never collide.
 Settings shows the second key as the current layout types it, since the backtick's position holds
 § or < on other keyboards.
+
+**Search** is opt-in (`windowPickerSearchEnabled`, off by default), because it costs the bare
+W, Q and H: every letter has to be free to spell a query, so the three actions move to ⇧ and the
+setting says so beneath itself once it is on. The engine is searching exactly when it was handed
+the layout's letters (`characters`); off, that map is empty and nothing types.
+
+**A search never reshapes the panel.** `WindowPickerBoard.ranked()` only reorders — apps whose name
+starts with the query, then other matches, then everything else, each still front to back — and
+records the rest in `unmatched`, which the view dims. No tile is removed, so the grid, the panel
+size and the number badges' positions hold while typing; the query itself is shown in the footer,
+in place of the hints, for the same reason. Matching folds case and diacritics.
+
+**Escape is layered.** The engine emits `.back` and stays open; `WindowPickerBoard.stepBack()`
+clears the search, then collapses the open group, and only reports false — close — when neither
+was there.
 
 **Numbers.** The first nine tiles carry a badge, 1–9, matched by key position rather than
 character so they hold on a layout that needs Shift for digits. A number on a window switches at
@@ -38,7 +56,9 @@ app with a single window stays a plain window tile. Releasing on a group switche
 window. A selected group opens by itself after `windowPickerGroupDelay` (400–1500 ms, or never),
 or at once on a right ⇧ tap; opened, the panel shows only that app's windows and stepping stays
 inside it. `windowPickerGroupsByApp` is only how a show *starts* — the left ⇧ toggle lasts for that
-show and is never written back. A group's stack is drawn from its next two windows' previews.
+show and is never written back. A group stepped out of does not reopen by itself while it is
+still selected (`canAutoExpandSelection`): moving off it and back re-arms the delay, and right ⇧
+or its number opens it at once regardless. A group's stack is drawn from its next two windows' previews.
 
 **Layout.** Five settings shape the panel, gathered in `WindowPickerGeometry.Limits`: the window
 size (`windowPickerTileSize`), the most windows per row and the most rows (`windowPickerMaxColumns`,
@@ -47,11 +67,15 @@ panel may take (`windowPickerMaxWidth`, `windowPickerMaxHeight`, 40–100 %). Ti
 the row limit and the screen share; once they can shrink no further, rows are added rather than
 windows dropped.
 
+**The panel carries no instructions.** Its footer holds only the search as typed and a cog that
+closes the picker and opens Settings › Window Switcher, whose **Keyboard** section lists every key
+— including which form of W/Q/H the search setting currently leaves.
+
 ## Invariants
 
 - **The enabling flag grants a capability, so it travels nowhere.** `windowPickerEnabled` installs a
   keyboard event tap; like `snippetsEnabled` it has no `SettingsFileKey` and is in
-  `SettingsBackupCoverage.deliberatelyExcluded`. The ten behaviour settings ride both.
+  `SettingsBackupCoverage.deliberatelyExcluded`. The eleven behaviour settings ride both.
 - **No tap while off.** `WindowPickerCoordinator.applyEnabled()` tears the tap down and leaves the
   `HealthTicker`; nothing of the feature runs until the switch is on.
 - **The tap callback only feeds the engine.** `WindowPickerTap` runs a `.cgSessionEventTap` on its
