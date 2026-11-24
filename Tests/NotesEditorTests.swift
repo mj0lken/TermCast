@@ -1140,6 +1140,8 @@ struct NotesEditorTests {
             backing: .buffered,
             defer: false)
         window.contentView = scrollView
+        // A window never shown has its posted events placed from the screen's top-left, so sit there.
+        window.setFrameTopLeftPoint(NSPoint(x: 0, y: NSScreen.screens.first?.frame.maxY ?? 0))
         coordinator.textView = textView
         coordinator.install(input, resetUndo: false)
         window.makeFirstResponder(textView)
