@@ -58,8 +58,11 @@ Hardware-blended inline Notch HUD, persistent closed-notch live activities, and 
 | `Features/NotchHUD/UI/NotchTrayShelfPage.swift` | `Shelf`: the AirDrop target and the staged items |
 | `Features/NotchHUD/UI/NotchTrayTerminalPage.swift` | `Terminal`: the live sessions list |
 | `Features/NotchHUD/Model/NotchShortcut.swift` | Pure header shortcut list: the options, the stored row's validity, the limit and what is drawn |
+| `Features/NotchHUD/Model/NotchShortcutLayout.swift` | Pure arrangement of the shortcuts over the row and the two sides of the cutout: capacities, placing, swapping, removing, and repair of stored lists |
+| `Features/NotchHUD/Settings/AppSettings+NotchShortcuts.swift` | `isAvailable`: whether a shortcut's own feature is on |
 | `Features/NotchHUD/Settings/NotchSettingsView.swift` | **Settings → Features → Notch** controls and live HUD / Tray previews |
-| `Features/NotchHUD/Settings/NotchShortcutsSection.swift` | The pane's Shortcuts section: add, reorder and remove header shortcuts |
+| `Features/NotchHUD/Settings/NotchShortcutsSection.swift` | The pane's Shortcuts section: hosts the board |
+| `Features/NotchHUD/Settings/NotchShortcutBoard.swift` | A replica of the open notch above a Hidden Shortcuts row: drag between the row, either side of the cutout and the hidden list, or onto a shortcut in a full zone to swap (`NotchShortcutLayout`); spaced by the header's own `NotchHeaderMetrics` |
 
 ## Now Playing relay
 
@@ -117,17 +120,28 @@ model stays pure. With the tray open a notice becomes the header's inline chip.
 ## Header shortcuts
 
 The open notch's header holds the tabs on the leading side of the cutout and a row of shortcuts on the
-trailing side. `AppSettings.notchShortcuts` is that row, in order: any of Clipboard History, Notebook,
-Camera Mirror, Window Management, Timer and Notch Settings, edited in the pane's **Shortcuts** section
-and mirrored in `settings.json` as `notch.shortcuts`. The default is Clipboard, Notebook, Camera and
-Settings.
+trailing side, plus up to two shortcuts against each side of the cutout. `NotchShortcutLayout` is the
+whole arrangement, stored as three lists: `AppSettings.notchShortcuts` (the row),
+`notchShortcutsBeforeNotch` and `notchShortcutsAfterNotch`, mirrored in `settings.json` as
+`notch.shortcuts`, `notch.shortcutsBeforeNotch` and `notch.shortcutsAfterNotch`. Any of Clipboard
+History, Notebook, Camera Mirror, Window Management, Timer, Snippets, Emoji & Symbols and Notch
+Settings can sit in any zone, once; the pane's **Shortcuts** board edits them by drag. The default is
+Clipboard, Notebook, Camera and Settings in the row.
 
+- **The stored lists are untrusted.** `NotchShortcutLayout.init` keeps a repeated shortcut's first
+  place (row first) and cuts each zone to its capacity, so a bad edit never draws twice.
 - **The row is cut to what fits.** `NotchShortcut.limit(showsBattery:)` is five, or four while the
-  battery readout shares the side. `NotchShortcut.visible` drops a shortcut whose feature is off and
-  hands its slot to the next one, so the stored row is never rewritten by a feature toggle.
-- **Window Management and Timer are menus; the rest are buttons.** Window Management lists the halves,
-  quarters and sizing placements and runs one through `WindowCommandCoordinator` on the frontmost
-  window, which the non-activating tray never displaces. Every other shortcut closes the tray first.
+  battery readout shares the side, and the trailing half holds `NotchShortcut.slots` in all, so the
+  shortcuts right of the cutout take their room first. `NotchShortcut.visible` drops a shortcut whose
+  feature is off and hands its slot to the next one, so a feature toggle never rewrites what is stored.
+- **Only an enabled feature has a shortcut.** `AppSettings.isAvailable` decides it for the tray and
+  the board alike; the board leaves an unavailable shortcut out, and its next edit drops it from the
+  stored lists.
+- **Window Management, Timer and Snippets are menus; the rest are buttons.** Window Management lists
+  the halves, quarters and sizing placements and runs one through `WindowCommandCoordinator` on the
+  frontmost window, which the non-activating tray never displaces. Snippets lists the enabled snippets
+  and expands the chosen one at the caret through `SnippetCoordinator.expandSnippetFromHotKey`. Every
+  other shortcut closes the tray first.
 - **The app's own menu stays in the menu bar.** The notch carries no Termcast menu, so
   `showInMenuBar` is independent of `notchShelfEnabled`.
 

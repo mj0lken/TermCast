@@ -7,6 +7,8 @@ enum NotchShortcut: String, CaseIterable, Sendable {
     case camera
     case windowManagement
     case timer
+    case snippets
+    case emoji
     case settings
 
     static let defaults: [NotchShortcut] = [.clipboard, .notebook, .camera, .settings]
@@ -28,9 +30,16 @@ enum NotchShortcut: String, CaseIterable, Sendable {
 
     /// What the header draws: the configured row, minus what is unavailable, cut to what fits.
     static func visible(
-        _ shortcuts: [NotchShortcut], showsBattery: Bool, isAvailable: (NotchShortcut) -> Bool
+        _ shortcuts: [NotchShortcut], showsBattery: Bool, reserved: Int = 0,
+        isAvailable: (NotchShortcut) -> Bool
     ) -> [NotchShortcut] {
-        Array(shortcuts.filter(isAvailable).prefix(limit(showsBattery: showsBattery)))
+        let room = min(limit(showsBattery: showsBattery), slots(showsBattery: showsBattery) - reserved)
+        return Array(shortcuts.filter(isAvailable).prefix(max(room, 0)))
+    }
+
+    /// Everything the trailing half has room for: the row plus the shortcuts kept beside the cutout.
+    static func slots(showsBattery: Bool) -> Int {
+        showsBattery ? 4 : 6
     }
 
     var symbol: String {
@@ -40,6 +49,8 @@ enum NotchShortcut: String, CaseIterable, Sendable {
         case .camera: "web.camera"
         case .windowManagement: "rectangle.split.2x1"
         case .timer: "timer"
+        case .snippets: "text.quote"
+        case .emoji: "face.smiling"
         case .settings: "gearshape"
         }
     }
@@ -51,6 +62,8 @@ enum NotchShortcut: String, CaseIterable, Sendable {
         case .camera: String(localized: "Camera Mirror")
         case .windowManagement: String(localized: "Window Management")
         case .timer: String(localized: "Timer")
+        case .snippets: String(localized: "Snippets")
+        case .emoji: String(localized: "Emoji & Symbols")
         case .settings: String(localized: "Notch Settings")
         }
     }
