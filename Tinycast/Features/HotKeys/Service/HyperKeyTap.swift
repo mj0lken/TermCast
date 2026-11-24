@@ -28,6 +28,7 @@ final class HyperKeyTap {
     private var quickPress: HyperKeyQuickPress = .none
     private var trackpadSliders = false
     private var session: Session?
+    private var forwardedPresses: ForwardedQuickPressMonitor?
     private var hidConnect: io_connect_t = IO_OBJECT_NULL
 
     // Isolated so teardown can release the main-actor IOKit connection.
@@ -64,6 +65,7 @@ final class HyperKeyTap {
     }
 
     func cancelHold() {
+        forwardedPresses?.cancelHold()
         guard session?.cancelHold() == true else { return }
         Self.postModifierRelease()
     }
@@ -92,11 +94,36 @@ final class HyperKeyTap {
 
     func tearDown() {
         cancelHold()
+        forwardedPresses = nil
         session?.stop()
         session = nil
     }
 
     // MARK: - Effects
+
+    private var isForwarding: Bool {
+        NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.universalcontrol"
+    }
+
+    // Universal Control can forward the chord's letter before it reaches the sending Mac's tap.
+    func updateForwarding() {
+        guard let session, let mapping = route?.remap, quickPress != .none, isForwarding,
+            !IsSecureEventInputEnabled(), Permissions.hasInputMonitoring()
+        else {
+            guard forwardedPresses != nil else { return }
+            forwardedPresses = nil
+            session?.setForwarding(false)
+            return
+        }
+        guard forwardedPresses?.mapping != mapping else { return }
+        forwardedPresses = ForwardedQuickPressMonitor(mapping: mapping) { [weak self] timestamp, duration in
+            guard let self, let confirmed = session.physicalRelease(timestamp: timestamp, heldFor: duration),
+                isForwarding, session.isEnabled
+            else { return }
+            performQuickPress(heldFor: confirmed)
+        }
+        session.setForwarding(forwardedPresses != nil)
+    }
 
     private func handle(_ effect: HyperKeyEngine.Effect, from route: HyperKeyRoute) {
         guard session != nil, route == self.route else { return }
@@ -104,7 +131,7 @@ final class HyperKeyTap {
         case .unmappedCapsLock:
             onUnmappedCapsLock?()
         case .unusedPress(let duration):
-            performQuickPress(heldFor: duration)
+            if forwardedPresses == nil || isForwarding { performQuickPress(heldFor: duration) }
         }
     }
 
@@ -286,6 +313,14 @@ final class HyperKeyTap {
             return needsRelease
         }
 
+        func setForwarding(_ enabled: Bool) {
+            state.withLock { $0.engine.setForwarding(enabled) }
+        }
+
+        func physicalRelease(timestamp: UInt64, heldFor duration: TimeInterval) -> TimeInterval? {
+            state.withLock { $0.engine.physicalRelease(timestamp: timestamp, heldFor: duration) }
+        }
+
         func stop() {
             touchMonitor?.stop()
             state.withLock { state in
@@ -349,16 +384,16 @@ final class HyperKeyTap {
             let flags = event.flags.rawValue
             let isAutorepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             let now = ProcessInfo.processInfo.systemUptime
-            let (route, result, wasActive, nowActive) = state.withLock { state in
+            let (route, result, generation, wasActive, nowActive) = state.withLock { state in
                 let wasActive = state.engine.isActive
                 let route = state.engine.route
                 let insideSecureInput = keyCode == route?.tapKeyCode && IsSecureEventInputEnabled()
                 let result = state.engine.handle(
                     type: type, keyCode: keyCode, flags: flags, isAutorepeat: isAutorepeat, at: now,
-                    insideSecureInput: insideSecureInput)
+                    insideSecureInput: insideSecureInput, timestamp: event.timestamp)
                 let nowActive = state.engine.isActive
                 if wasActive, !nowActive { state.scrollEngine.endHyperHold() }
-                return (route, result, wasActive, nowActive)
+                return (route, result, state.engine.quickPressGeneration, wasActive, nowActive)
             }
             if nowActive != wasActive {
                 if nowActive {
@@ -369,7 +404,14 @@ final class HyperKeyTap {
                 }
             }
             if let route, let effect = result.effect {
-                Task { @MainActor [deliver] in deliver(route, effect) }
+                Task { @MainActor [self] in
+                    if case .unusedPress = effect,
+                        !state.withLock({ $0.isRunning && $0.engine.quickPressGeneration == generation })
+                    {
+                        return
+                    }
+                    deliver(route, effect)
+                }
             }
             switch result.decision {
             case .pass:

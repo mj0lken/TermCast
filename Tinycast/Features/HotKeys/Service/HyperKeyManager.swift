@@ -5,7 +5,7 @@ import Carbon.HIToolbox
 @MainActor
 @Observable
 final class HyperKeyManager: HealthCheckable {
-    enum Status: Equatable {
+    enum Status: Codable, Equatable, Sendable {
         case off
         case active
         case needsAccessibility
@@ -62,6 +62,7 @@ final class HyperKeyManager: HealthCheckable {
         tap.onUnmappedCapsLock = { [weak self] in self?.repairRemap() }
         tap.onScrollAdjustment = { [weak self] adjustment in self?.scrollRunner.apply(adjustment) }
         tap.onHoldEnded = { [weak self] in self?.resetScrollGestureIfLoaded() }
+        remapper.onKeyboardConnected = { [weak self] in self?.updateForwarding() }
         remapper.clearLeftovers()
         observeSettings()
         observeSystem()
@@ -136,6 +137,7 @@ final class HyperKeyManager: HealthCheckable {
         guard remapper.apply(route.remap) || route.remap == nil else { return retryLater(.remapUnavailable) }
         healthTicker?.unsubscribe(self)
         status = .active
+        updateForwarding()
         syncSecureInputHotKeys()
     }
 
@@ -234,6 +236,7 @@ final class HyperKeyManager: HealthCheckable {
     private func secureInputChanged() {
         // The tap saw neither end of anything typed inside, so a half-held chord is stale.
         tap.cancelHold()
+        updateForwarding()
         syncSecureInputHotKeys()
     }
 
@@ -251,6 +254,10 @@ final class HyperKeyManager: HealthCheckable {
     }
 
     // MARK: - Observation
+
+    private func updateForwarding() {
+        if status == .active { tap.updateForwarding() }
+    }
 
     /// Fires synchronously on main before the write lands, so the task re-arms, then applies.
     private func observeSettings() {
@@ -273,6 +280,7 @@ final class HyperKeyManager: HealthCheckable {
         let workspace = NSWorkspace.shared.notificationCenter
         let distributed = DistributedNotificationCenter.default()
         observers = [
+            observe(workspace, NSWorkspace.didActivateApplicationNotification) { $0.updateForwarding() },
             observe(workspace, NSWorkspace.willSleepNotification) { $0.pause(.asleep) },
             observe(workspace, NSWorkspace.didWakeNotification) { $0.resume(.asleep) },
             observe(workspace, NSWorkspace.sessionDidResignActiveNotification) {

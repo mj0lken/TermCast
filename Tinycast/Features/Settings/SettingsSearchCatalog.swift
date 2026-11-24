@@ -108,7 +108,7 @@ enum SettingsSearchCatalog {
     // Pane order, then section order within a pane, so this reads as a table of contents.
 
     static let entries: [SettingsSearchEntry] =
-        general + applications + systemSettings + systemActions + commands + quicklinks
+        general + iCloudSync + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + terminal + notch + hyperKey + windowManagement
         + windowSwitcher + notes + clipboard + snippets + fileSearch + navigation + calendar
         + emoji + ai + quickActions + dictation + extensions + permissions
@@ -143,6 +143,9 @@ enum SettingsSearchCatalog {
         .init(
             .generalAppearance, "Appearance",
             keywords: ["dark", "light", "mode", "theme"]),
+        .init(
+            .generalAppearance, "Icon style",
+            keywords: ["icons", "colorful", "clear", "tinted", "dark", "widget", "theme"]),
         .init(
             .generalAppearance, "Show animations",
             keywords: ["motion", "transitions", "reduce motion", "effects", "instant"]),
@@ -381,6 +384,9 @@ enum SettingsSearchCatalog {
         .init(
             group: .fileSearchSearchScopes, "Search Scopes",
             keywords: ["folders", "locations", "home", "whole disk", "add folder"]),
+        .init(
+            .fileSearchSearchScopes, "Include hidden files",
+            keywords: ["dotfiles", "dot folders", "invisible"]),
         .init(
             group: .fileSearchIgnorePatterns, "Ignore Patterns",
             keywords: ["exclude", "glob", "node_modules", "skip", "ignore folder"])
@@ -902,6 +908,20 @@ enum SettingsSearchCatalog {
             keywords: ["dictation", "recording", "privacy", "grant"])
     ]
 
+    private static let iCloudSync: [SettingsSearchEntry] = [
+        .init(pane: .iCloudSync, keywords: ["icloud", "sync", "cloud", "cloudkit", "other macs"]),
+        .init(.iCloudSyncSwitch, "Sync with iCloud", keywords: ["turn on", "enable", "sync"]),
+        .init(
+            group: .iCloudSyncContent, "Synced Content",
+            keywords: [
+                "notes", "snippets", "quicklinks", "chats", "extensions", "presets", "clipboard", "images"
+            ]),
+        .init(group: .iCloudSyncGeneral, "Synced Settings", keywords: ["appearance", "login", "menu bar"]),
+        .init(group: .iCloudSyncNotSynced, "Not Synced", keywords: ["copied files", "passwords", "excluded"]),
+        .init(group: .iCloudSyncMacs, "Synced Macs", keywords: ["devices", "remove", "rename", "computers"]),
+        .init(.iCloudSyncData, "Delete iCloud Data", keywords: ["reset", "erase", "remove", "cloud data"])
+    ]
+
     private static let backup: [SettingsSearchEntry] = [
         .init(
             pane: .backup,
@@ -909,6 +929,9 @@ enum SettingsSearchCatalog {
         .init(
             .backupExport, "Export Backup",
             keywords: ["save", "termcast file", "tinycast file", "archive"]),
+        .init(
+            group: .backupNotIncluded, "Not Included",
+            keywords: ["excluded", "extensions", "chats", "passwords", "api keys"]),
         .init(
             .backupImport, "Backup File",
             keywords: ["restore", "choose", "termcast file", "tinycast file"]),

@@ -219,7 +219,6 @@ private struct ClipboardRow: View {
     let ownsImage: Bool
     let metadataCache: ClipboardMetadataCache
     let slot: Character?
-    @Environment(PaletteState.self) private var palette
     @State private var hovered = false
 
     private var fill: Color {
@@ -280,12 +279,7 @@ private struct ClipboardRow: View {
                         .accessibilityLabel(appInfo.name)
                 }
 
-                if let slot, palette.commandHeld {
-                    HStack(spacing: metrics.spacing.xxs) {
-                        KeyCapChip(text: "⌘", style: .outline)
-                        KeyCapChip(text: String(slot), style: .outline)
-                    }
-                } else {
+                SlotChordReveal(slot: slot) {
                     Text(verbatim: formattedTimestamp)
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Theme.Colors.textTertiary)

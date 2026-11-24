@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsSidebarView: View {
     @Environment(SettingsNavigationState.self) private var navigation
-    @Environment(\.appearsActive) private var appearsActive
     @State private var query = ""
     @State private var highlighted: SettingsSearchEntry.ID?
     @State private var searching = false
@@ -31,11 +30,7 @@ struct SettingsSidebarView: View {
                         Label {
                             Text(tab.title)
                         } icon: {
-                            SettingsTabIcon(
-                                systemImage: tab.systemImage,
-                                tint: appearsActive
-                                    ? (navigation.tab == tab ? Color.primary : Color.accentColor)
-                                    : Color.secondary)
+                            SettingsTabIcon(tab: tab)
                         }
                         .tag(tab)
                     }
@@ -90,19 +85,19 @@ struct SettingsSidebarView: View {
 
 /// Actions, not panes: outside both lists, so neither can ever select one.
 private struct SettingsSidebarActions: View {
-    @Environment(AppCore.self) private var core
+    @Environment(MainAppLink.self) private var mainApp
 
     var body: some View {
         VStack(spacing: 0) {
             Divider()
             VStack(spacing: Theme.Spacing.xxs) {
                 Button {
-                    core.updateCoordinator.checkForUpdates()
+                    mainApp.send(.checkForUpdates)
                 } label: {
                     Label("Check for Updates…", systemImage: "arrow.down.circle")
                 }
                 Button {
-                    NSApp.terminate(nil)
+                    mainApp.send(.quit)
                 } label: {
                     Label("Quit \(Bundle.main.appDisplayName)", systemImage: "power")
                 }
@@ -167,7 +162,7 @@ private struct SettingsSearchResultRow: View {
                     .truncationMode(.middle)
             }
         } icon: {
-            SettingsTabIcon(systemImage: entry.tab.systemImage, tint: .accentColor)
+            SettingsTabIcon(tab: entry.tab)
         }
         // Centred, not first-baseline: the tile sits against a two-line title and breadcrumb.
         .labelStyle(CenteredLabelStyle())

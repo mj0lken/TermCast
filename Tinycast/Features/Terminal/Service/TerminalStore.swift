@@ -466,6 +466,15 @@ final class TerminalStore {
         selectedTabID = nil
     }
 
+    /// The other process wrote these, so adopt them instead of writing a stale copy back.
+    func reloadPersisted() {
+        let folders = defaults.stringArray(forKey: AppSettingsKey.terminalRecentFolders.rawValue) ?? []
+        if !folders.isEmpty, folders != recentFolders { recentFolders = folders }
+        let history = TerminalCommandHistory.sanitized(
+            defaults.stringArray(forKey: AppSettingsKey.terminalCommandHistory.rawValue) ?? [])
+        if history != commandHistory { commandHistory = history }
+    }
+
     private func persistRecentFolders() {
         defaults.set(recentFolders, forKey: AppSettingsKey.terminalRecentFolders.rawValue)
     }

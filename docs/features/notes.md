@@ -34,7 +34,10 @@ notch tray.
   collection navigation cannot abandon an in-memory draft.
 - **Tinycast is the only writer while editing.** There is no watcher or disk revision check: a save
   replaces the file with what is in the editor. Every show re-lists the folder and reloads the clean
-  active note; an unsaved draft is retained, including after a failed save.
+  active note; an unsaved draft is retained, including after a failed save. [iCloud
+  Sync](icloud-sync.md) writes a note another Mac changed only while the editor holds no unsaved
+  edit to it; one that does keeps its edit, which then uploads as the newer copy. A note deleted on
+  another Mac goes to the Trash.
 - **Search is on demand and unindexed.** An empty query lists metadata plus the first 4 KB of every
   note, which is where a row's preview comes from; a nonempty query reads bodies sequentially off-main
   and retains no collection-sized source cache.
@@ -76,18 +79,18 @@ files, and symbolic links are ignored.
 
 Create uses `Untitled.md`, then `Untitled 2.md`, and so on, and rename claims a free name by the same
 rule. `importNotes` claims one the same way, so a note restored from a backup lands beside the note it
-shares a title with rather than over it. Collisions with *another* note are case- and diacritic-insensitive, so `plán` beside `Plan`
+shares a title with rather than over it. Collisions with _another_ note are case- and diacritic-insensitive, so `plán` beside `Plan`
 becomes `plán 2.md`. A note never collides with itself: only an exact filename match is a no-op, which
 is what lets a rename change nothing but the case or the accents. The active filename is local UI state
 in UserDefaults and does not ride settings backups.
 
 ## Derived titles
 
-A note still carrying a name `create` claimed — `Untitled`, `Untitled 2`, … — shows the first line of
+A note still carrying a name `create` claimed (`Untitled`, `Untitled 2`, …) shows the first line of
 its source that carries visible text. `NoteTitle` owns that rule: blank, rule and fence lines are
 skipped, block and inline Markdown markers are dropped whether or not rendering is on, and the line is
 capped to 120 characters so no row has to carry a paragraph. `NoteSummary.title` remains the filename; `displayTitle` is what every
-surface renders — list rows and their VoiceOver labels, the Actions menu's header, the Trash
+surface renders: list rows and their VoiceOver labels, the Actions menu's header, the Trash
 confirmation, and the title band of `NoteSearch`, so a fuzzy query reaches a note nobody has named.
 An empty unnamed note displays a localized Untitled label, preserving its filename and numeric suffix.
 
@@ -112,7 +115,7 @@ coordinator, which `PaletteEnvironment` puts in `@Environment`, and never mutate
 Settings > Notes owns `AppSettings.notesEnabled`, which is false when absent. The pane lists
 **Notebook** from `CommandCatalog`, so it can still render it while `AppIndex` omits it. It is that
 command's only pane: `SettingsTab.ownedCommands` names it, which takes it out of Settings > Commands
-and out of reach of `Enable Commands` — Notes' own switch is the one that decides it exists.
+and out of reach of `Enable Commands`; Notes' own switch is the one that decides it exists.
 
 `AppCore` observes enablement and calls `NotesCoordinator.applyEnabled()`. Disabling hides the palette
 if it is on the Notes screen, invalidates pending presentation work, cancels search, flushes the
@@ -317,6 +320,18 @@ and quote lines hang their source marker left of the content indent, so text sta
 line had it. Empty list items keep body-sized invisible markers so their line height does not collapse.
 Other caret lines are raw, keeping the caret out of hidden text.
 
+**A caret never rests inside syntax its line hides.** Every position in a hidden marker draws at the
+same spot, so a click before an item's first letter could land before its `- ` and typing would split
+the item (`like- this`). `NoteRevealPolicy.restingCaret` moves a caret proposed there to the content
+start. Only a character step back (←, or → in right-to-left text) from the content start crosses the
+marker to the end of the line above's content, before its terminator even when that is CRLF;
+`NoteTextView.isSteppingByCharacter` tells that step apart from a second click on the same spot, which
+proposes the same position. A caret inside a hidden inline
+delimiter (`**`, a backtick, a link's `](url)`) moves to the formatted text's side of it. A bullet hides
+its marker even on the caret line, so `hidesMarker` is the one rule the styler and the caret share. The
+renderer applies the rule to every selection change, clicks and keys alike, but only while its parse is
+current, never to a caret AppKit moves mid-edit.
+
 ### Block drawing
 
 `NoteLayoutFragmentProvider` is the text layout manager's delegate. A paragraph whose first character
@@ -351,17 +366,17 @@ reaches autosave.
   last glyph, which places the caret. Only `http`, `https` and `mailto` open. A revealed line carries
   no link attribute, so its URL is edited as text.
 
-| Shortcut | Does |
-| --- | --- |
-| ⌘Z, ⇧⌘Z | undo, redo |
-| ⌘B, ⌘I, ⌘E | bold, italic, inline code |
-| ⇧⌘X | strikethrough |
-| ⌥⌘C | code block |
-| ⇧⌘B | quote |
-| ⌘K | link |
+| Shortcut      | Does                        |
+| ------------- | --------------------------- |
+| ⌘Z, ⇧⌘Z       | undo, redo                  |
+| ⌘B, ⌘I, ⌘E    | bold, italic, inline code   |
+| ⇧⌘X           | strikethrough               |
+| ⌥⌘C           | code block                  |
+| ⇧⌘B           | quote                       |
+| ⌘K            | link                        |
 | ⇧⌘7, ⇧⌘8, ⇧⌘9 | numbered, bullet, task list |
-| ⌥⌘1, ⌥⌘2, ⌥⌘3 | heading 1, 2, 3 |
-| ⌥⌘0 | plain paragraph |
+| ⌥⌘1, ⌥⌘2, ⌥⌘3 | heading 1, 2, 3             |
+| ⌥⌘0           | plain paragraph             |
 
 Digits match by key code. `NoteTextView.performKeyEquivalent` answers these only while it is first
 responder, so the same key can mean something else from the search field: ⌘E is inline code in a note
@@ -433,7 +448,7 @@ hiding the palette both flush at once rather than waiting out the debounce. Term
 flush before the app exits, but never vetoes the quit.
 
 **A save overwrites whatever is on disk.** There is no watcher, no revision comparison and no conflict
-state: editing the *active* note in another app while Tinycast has it open loses that edit the next time
+state: editing the _active_ note in another app while Tinycast has it open loses that edit the next time
 the debounce fires. Show in Finder (⌘F) invites exactly that, and this is the accepted trade for a
 feature whose whole job is one local editor. Opening the screen re-lists the folder and reloads the
 active note if it is clean, waiting for an in-flight save first. An unsaved draft, including one whose

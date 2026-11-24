@@ -2,12 +2,11 @@ import SwiftUI
 
 struct NotchSettingsView: View {
     @Environment(AppCore.self) private var core
+    @Environment(MainAppLink.self) private var mainApp
     @Environment(AppSettings.self) private var settings
     @Environment(CalendarStore.self) private var calendarStore
 
     private static let hoverDelaysMs = [150, 250, 350, 500, 750]
-
-    private var manager: NotchHUDManager { core.notchHUD }
 
     private var hudEnabledBinding: Binding<Bool> {
         Binding(
@@ -27,8 +26,17 @@ struct NotchSettingsView: View {
             get: { settings.notchShowsCalendar },
             set: { next in
                 settings.notchShowsCalendar = next
-                if next, needsCalendar { core.calendarCoordinator.setCalendarEnabled(true) }
+                if next, needsCalendar { enableCalendar() }
             })
+    }
+
+    /// A grant can leave the switch where it was, so the main app is told to read access again.
+    private func enableCalendar() {
+        Task {
+            guard await core.calendarCoordinator.setCalendarEnabled(true) else { return }
+            calendarStore.start()
+            mainApp.send(.reloadCalendar)
+        }
     }
 
     private var needsCalendar: Bool {
@@ -47,7 +55,7 @@ struct NotchSettingsView: View {
                 }
 
                 if settings.notchHUDEnabled {
-                    NotchHUDStatusRow(status: manager.status)
+                    NotchHUDStatusRow(status: mainApp.status.notch)
                 }
 
                 Toggle(isOn: $settings.notchShowsPercentage) {
@@ -129,9 +137,7 @@ struct NotchSettingsView: View {
                 }
                 if settings.notchShowsCalendar, needsCalendar {
                     LabeledContent {
-                        Button("Enable Calendar…") {
-                            core.calendarCoordinator.setCalendarEnabled(true)
-                        }
+                        Button("Enable Calendar…", action: enableCalendar)
                     } label: {
                         Text("Calendar is off, so the notch has no events to show.")
                             .foregroundStyle(.secondary)
@@ -155,7 +161,7 @@ struct NotchSettingsView: View {
             Section {
                 LabeledContent {
                     Button("Preview") {
-                        manager.showPreview()
+                        mainApp.send(.previewNotchHUD)
                     }
                 } label: {
                     SettingsRowTitle(.notchPreview, "Preview Notch HUD")
@@ -165,10 +171,10 @@ struct NotchSettingsView: View {
                 LabeledContent {
                     HStack(spacing: Theme.Spacing.sm) {
                         Button("Open Home") {
-                            manager.openTrayPreview(tab: .home)
+                            mainApp.send(.previewNotchTray(.home))
                         }
                         Button("Open Shelf") {
-                            manager.openTrayPreview(tab: .shelf)
+                            mainApp.send(.previewNotchTray(.shelf))
                         }
                     }
                 } label: {

@@ -108,7 +108,7 @@ struct TerminalShortcutRecorder: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(KeyCapChip.inlineText(caps, separator: " "))
+        .accessibilityLabel(caps.joined(separator: " "))
         .frame(maxWidth: .infinity)
         .overlay(alignment: .trailing) {
             Button {

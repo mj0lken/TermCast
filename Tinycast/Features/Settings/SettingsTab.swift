@@ -1,8 +1,8 @@
 enum SettingsTab: CaseIterable, Identifiable {
-    case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, notch, hyperKey,
-        navigation, windowSwitcher, notes, calendar, emoji, dictation, ai, quickActions, extensions,
-        permissions, backup, about
+    case general, iCloudSync, applications, systemSettings, systemActions, commands, quicklinks,
+        appleShortcuts, fallbacks, clipboard, snippets, terminal, fileSearch, windowManagement, notch,
+        hyperKey, navigation, windowSwitcher, notes, calendar, emoji, dictation, ai, quickActions,
+        extensions, permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
 
@@ -15,6 +15,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     var slug: String {
         switch self {
         case .general: "general"
+        case .iCloudSync: "icloud-sync"
         case .applications: "applications"
         case .systemSettings: "system-settings"
         case .systemActions: "system-actions"
@@ -47,6 +48,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: return String(localized: "General")
+        case .iCloudSync: return String(localized: "iCloud Sync")
         case .applications: return String(localized: "Applications")
         case .systemSettings: return String(localized: "System Settings")
         case .systemActions: return String(localized: "System Actions")
@@ -79,32 +81,51 @@ enum SettingsTab: CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .general: return "switch.2"
-        case .applications: return "square.grid.2x2"
-        case .systemSettings: return "gearshape"
-        case .systemActions: return "bolt"
-        case .commands: return "terminal"
+        case .iCloudSync: return "icloud.fill"
+        case .applications: return "square.grid.2x2.fill"
+        case .systemSettings: return "gearshape.fill"
+        case .systemActions: return "bolt.fill"
+        case .commands: return "terminal.fill"
         case .quicklinks: return "link"
-        case .appleShortcuts: return "square.2.layers.3d"
+        case .appleShortcuts: return "square.2.layers.3d.fill"
         case .fallbacks: return "arrow.turn.down.right"
         case .ai: return "sparkles"
         case .quickActions: return "wand.and.sparkles"
         case .dictation: return "waveform"
         case .fileSearch: return "doc.text.magnifyingglass"
-        case .notes: return "text.page"
+        case .notes: return "text.page.fill"
         case .snippets: return "curlybraces"
         case .navigation: return "arrow.left.arrow.right"
         case .windowSwitcher: return "rectangle.on.rectangle"
         case .windowManagement: return "macwindow"
         case .notch: return "menubar.dock.rectangle"
-        case .hyperKey: return "capslock"
-        case .clipboard: return "paperclip"
-        case .emoji: return "face.smiling"
-        case .terminal: return "apple.terminal"
+        case .hyperKey: return "capslock.fill"
+        case .clipboard: return "list.clipboard.fill"
+        case .emoji: return "face.smiling.inverse"
+        case .terminal: return "apple.terminal.fill"
         case .calendar: return "calendar"
-        case .extensions: return "puzzlepiece.extension"
-        case .permissions: return "lock.shield"
-        case .backup: return "arrow.up.arrow.down.circle"
-        case .about: return "info.circle"
+        case .extensions: return "puzzlepiece.extension.fill"
+        case .permissions: return "lock.shield.fill"
+        case .backup: return "arrow.up.arrow.down.circle.fill"
+        case .about: return "info.circle.fill"
+        }
+    }
+
+    var tint: IconTint {
+        switch self {
+        case .general, .systemSettings, .fallbacks, .about: return .gray
+        case .commands, .navigation, .terminal, .notch: return .graphite
+        case .permissions, .quicklinks, .fileSearch: return .blue
+        case .applications, .iCloudSync, .backup: return .cyan
+        case .windowManagement, .windowSwitcher: return .mint
+        case .extensions: return .green
+        case .notes: return .yellow
+        case .systemActions, .emoji: return .orange
+        case .calendar: return .red
+        case .appleShortcuts, .dictation: return .pink
+        case .ai, .hyperKey: return .purple
+        case .clipboard, .quickActions: return .indigo
+        case .snippets: return .brown
         }
     }
 }
@@ -126,7 +147,7 @@ enum SettingsSection: CaseIterable, Identifiable {
 
     var tabs: [SettingsTab] {
         switch self {
-        case .general: return [.general, .permissions]
+        case .general: return [.general, .iCloudSync, .permissions]
         case .launcher:
             return [
                 .applications, .systemSettings, .systemActions, .commands, .quicklinks,
@@ -141,5 +162,22 @@ enum SettingsSection: CaseIterable, Identifiable {
             ]
         case .advanced: return [.backup, .about]
         }
+    }
+}
+
+/// By slug, the spelling saved links use, so a renamed case still decodes.
+extension SettingsTab: Codable {
+    init(from decoder: any Decoder) throws {
+        let slug = try decoder.singleValueContainer().decode(String.self)
+        guard let tab = Self(slug: slug) else {
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: decoder.codingPath, debugDescription: "Unknown tab \(slug)"))
+        }
+        self = tab
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(slug)
     }
 }

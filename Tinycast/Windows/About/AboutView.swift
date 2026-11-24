@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct AboutView: View {
-    @Environment(AppCore.self) private var core
+    @Environment(MainAppLink.self) private var mainApp
 
     private static var version: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -22,6 +22,7 @@ struct AboutView: View {
     }()
 
     private static let iconSize: CGFloat = 88
+    private static let tileSize: CGFloat = 30
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,6 +33,7 @@ struct AboutView: View {
                         .padding(.vertical, Theme.Spacing.lg)
                 }
                 .settingsAnchor(.aboutAbout)
+                updates
                 termcastLinks
                 tinycastLinks
             }
@@ -56,30 +58,66 @@ struct AboutView: View {
                 Text(Bundle.main.appDisplayName)
                     .font(.title.weight(.bold))
                 Text(Self.version)
-                    .font(.caption.monospacedDigit())
+                    .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                    .padding(.horizontal, Theme.Spacing.md)
-                    .padding(.vertical, Theme.Spacing.xs / 2)
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.xs)
                     .background(
                         Capsule().fill(Theme.Colors.cardFill)
                     )
                     .overlay(
                         Capsule().strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
                     )
-                Button {
-                    core.updateCoordinator.checkForUpdates()
-                } label: {
-                    SettingsRowTitle(.aboutAbout, "Check for Updates")
-                }
-                .buttonStyle(.link)
-                .font(.caption)
             }
 
-            Text("A native macOS launcher for everyday productivity. Lightweight and open source.")
-                .font(.callout)
+            Text("A native macOS launcher built for productivity. Fast, lightweight, and open source.")
+                .font(.body)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+    }
+
+    private var updates: some View {
+        let updates = mainApp.status.updates
+        return Section {
+            HStack(spacing: Theme.Spacing.xl) {
+                tile("arrow.down.circle.fill", tint: Theme.Colors.progress)
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    SettingsRowTitle(.aboutAbout, "Check for Updates")
+                        .font(.body.weight(.medium))
+                    updateStatus(updates)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: Theme.Spacing.lg)
+                Button("Check Now") { mainApp.send(.checkForUpdates) }
+                    .disabled(updates.isChecking)
+            }
+            .padding(.vertical, Theme.Spacing.xs)
+        }
+    }
+
+    private func updateStatus(_ updates: MainAppStatus.Updates) -> Text {
+        guard updates.updatesItself else {
+            return Text("This is a local build — rebuild it to move it forward.")
+        }
+        if updates.isChecking {
+            return Text("Checking for updates…")
+        }
+        if let version = updates.availableVersion {
+            return Text("Version \(version) is available")
+        }
+        guard let lastCheckedAt = updates.lastCheckedAt else {
+            return Text("Not checked yet")
+        }
+        return Text("Last checked \(.currentDate, format: Self.elapsed(since: lastCheckedAt))")
+    }
+
+    /// Minutes at the finest, so the line re-renders once a minute rather than every second.
+    private static func elapsed(since date: Date) -> SystemFormatStyle.DateReference {
+        .reference(to: date, allowedFields: [.day, .hour, .minute], maxFieldCount: 1)
     }
 
     private var termcastLinks: some View {
@@ -100,6 +138,18 @@ struct AboutView: View {
         } header: {
             SettingsSectionHeader(.aboutTinycast)
         }
+    }
+
+    /// Both tints are fixed hues, so an alpha on them holds up in both appearances.
+    private func tile(_ symbol: String, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+            .fill(tint.opacity(0.16))
+            .frame(width: Self.tileSize, height: Self.tileSize)
+            .overlay(
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(tint)
+            )
     }
 
     private var footer: some View {
