@@ -10,8 +10,8 @@ CEILING_MB=100
 CYCLES="${LEAKS_CYCLES:-5}"
 GROWTH_LIMIT_MB=5
 SETTLE_SECONDS=8
-# Apple's App Intents leaves three XPC connection cycles at launch; no frame of ours is in them.
-KNOWN_SYSTEM_LEAKS='com\.apple\.linkd\.autoShortcut'
+# Apple's App Intents leaves three XPC cycles at launch; `leaks` cannot always read their name.
+KNOWN_SYSTEM_LEAKS='com\.apple\.linkd\.autoShortcut|Protocol: LNDaemonApplicationInterface'
 REPORT="${LEAKS_REPORT:-build/leaks-report.txt}"
 
 [ -d "$APP" ] || { echo "✗ no app at $APP — build it first" >&2 && exit 1; }
