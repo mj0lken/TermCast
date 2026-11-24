@@ -72,6 +72,10 @@ needed. Run it from the **Actions** tab (`Release` → **Run workflow**) and pic
   version as-is.
 - **version**: base semver, e.g. `0.2.0`.
 
+**Before starting a release, run `./Scripts/check-leaks.sh` locally on the commit being released**
+([testing.md](testing.md#leaks-and-memory)). The Actions runner cannot launch the app or measure
+memory, so this gate is run by hand, every release.
+
 Its first step is `Scripts/check-migrations.sh`: a migration that a stable release already shipped
 stops the run until it is deleted ([migrations.md](migrations.md)). The check reads tags and history,
 so the checkout fetches every commit without blobs.

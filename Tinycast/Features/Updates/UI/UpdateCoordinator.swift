@@ -153,7 +153,7 @@ final class UpdateCoordinator {
         core.showProgress(String(localized: "Checking for updates…"))
         Task { [weak self] in
             guard let self else { return }
-            let answered = await store.check()
+            let failure = await checkFailure()
             if let release = store.update {
                 core.hideProgress()
                 stage = .available(release)
@@ -161,13 +161,34 @@ final class UpdateCoordinator {
                 return
             }
             stage = .idle
-            if answered {
+            guard let failure else {
                 core.showMessage(
                     String(localized: "\(Bundle.main.appDisplayName) is up to date"))
-            } else {
-                core.showMessage(
-                    String(localized: "Tinycast could not reach GitHub."), tone: .danger)
+                return
             }
+            core.showMessage(Self.message(for: failure), tone: .danger)
+        }
+    }
+
+    private func checkFailure() async -> UpdateCheckStore.CheckFailure? {
+        do {
+            try await store.check()
+            return nil
+        } catch {
+            return error
+        }
+    }
+
+    private static func message(for failure: UpdateCheckStore.CheckFailure) -> String {
+        switch failure {
+        case .unreachable:
+            return String(localized: "Tinycast could not reach GitHub.")
+        case .rateLimited(let until?):
+            let time = until.formatted(date: .omitted, time: .shortened)
+            return String(
+                localized: "GitHub is limiting requests from this network. Try again after \(time).")
+        case .rateLimited(nil):
+            return String(localized: "GitHub is limiting requests from this network. Try again later.")
         }
     }
 

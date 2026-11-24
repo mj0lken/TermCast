@@ -475,6 +475,16 @@ final class AppCore {
             notchHUD.onOpenNotes = { [weak self] in
                 self?.notesCoordinator.toggle()
             }
+            notchHUD.onOpenEmoji = { [weak self] in
+                self?.paletteCoordinator.showPalette(mode: .emoji)
+            }
+            notchHUD.snippets = { [weak self] in
+                (self?.snippetsStore.snippets ?? []).filter(\.snippet.isEnabled)
+                    .map { NotchSnippetChoice(id: $0.id, name: $0.snippet.name) }
+            }
+            notchHUD.onExpandSnippet = { [weak self] id in
+                self?.snippetCoordinator.expandSnippetFromHotKey(id: id)
+            }
             notchHUD.terminalSessions = { [weak self] in
                 guard let self, self.settings.terminalEnabled else { return [] }
                 let home = self.terminalStore.homeDirectory

@@ -288,6 +288,34 @@ final class AppSettings {
         didSet { defaults.set(notchShortcuts.map(\.rawValue), forKey: Key.notchShortcuts.rawValue) }
     }
 
+    var notchShortcutsBeforeNotch: [NotchShortcut] {
+        didSet {
+            defaults.set(
+                notchShortcutsBeforeNotch.map(\.rawValue), forKey: Key.notchShortcutsBeforeNotch.rawValue)
+        }
+    }
+
+    var notchShortcutsAfterNotch: [NotchShortcut] {
+        didSet {
+            defaults.set(
+                notchShortcutsAfterNotch.map(\.rawValue), forKey: Key.notchShortcutsAfterNotch.rawValue)
+        }
+    }
+
+    /// The three stored lists as one arrangement; reading it repairs repeats and overfull zones.
+    var notchShortcutLayout: NotchShortcutLayout {
+        get {
+            NotchShortcutLayout(
+                beforeNotch: notchShortcutsBeforeNotch, afterNotch: notchShortcutsAfterNotch,
+                row: notchShortcuts)
+        }
+        set {
+            notchShortcuts = newValue.row
+            notchShortcutsBeforeNotch = newValue.beforeNotch
+            notchShortcutsAfterNotch = newValue.afterNotch
+        }
+    }
+
     var notchShowsLiveActivities: Bool {
         didSet {
             defaults.set(notchShowsLiveActivities, forKey: Key.notchShowsLiveActivities.rawValue)
@@ -1037,6 +1065,8 @@ final class AppSettings {
         case .notchRemembersLastTab: adopt(\.notchRemembersLastTab, from: stored)
         case .notchShelfEnabled: adopt(\.notchShelfEnabled, from: stored)
         case .notchShortcuts: adopt(\.notchShortcuts, from: stored)
+        case .notchShortcutsBeforeNotch: adopt(\.notchShortcutsBeforeNotch, from: stored)
+        case .notchShortcutsAfterNotch: adopt(\.notchShortcutsAfterNotch, from: stored)
         case .notchShowsBattery: adopt(\.notchShowsBattery, from: stored)
         case .notchShowsCalendar: adopt(\.notchShowsCalendar, from: stored)
         case .notchShowsLiveActivities: adopt(\.notchShowsLiveActivities, from: stored)
@@ -1281,6 +1311,12 @@ final class AppSettings {
         notchShortcuts =
             defaults.stringArray(forKey: Key.notchShortcuts.rawValue)
             .flatMap(NotchShortcut.shortcuts(from:)) ?? NotchShortcut.defaults
+        notchShortcutsBeforeNotch =
+            defaults.stringArray(forKey: Key.notchShortcutsBeforeNotch.rawValue)
+            .flatMap(NotchShortcut.shortcuts(from:)) ?? []
+        notchShortcutsAfterNotch =
+            defaults.stringArray(forKey: Key.notchShortcutsAfterNotch.rawValue)
+            .flatMap(NotchShortcut.shortcuts(from:)) ?? []
         notchShowsLiveActivities =
             defaults.object(forKey: Key.notchShowsLiveActivities.rawValue) == nil
             || defaults.bool(forKey: Key.notchShowsLiveActivities.rawValue)

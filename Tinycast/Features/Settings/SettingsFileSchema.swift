@@ -66,6 +66,14 @@ enum SettingsFileSchema {
             return bind(settings, \.notchShortcuts) {
                 NotchShortcut.isValid($0) ? $0 : nil
             }
+        case .notchShortcutsBeforeNotch:
+            return bind(settings, \.notchShortcutsBeforeNotch) {
+                NotchShortcut.isValid($0) ? $0 : nil
+            }
+        case .notchShortcutsAfterNotch:
+            return bind(settings, \.notchShortcutsAfterNotch) {
+                NotchShortcut.isValid($0) ? $0 : nil
+            }
         case .notchShowsLiveActivities: return bind(settings, \.notchShowsLiveActivities)
         case .notchInputSourceNotifications: return bind(settings, \.notchInputSourceNotifications)
         case .hyperKey: return bind(settings, \.hyperKey)

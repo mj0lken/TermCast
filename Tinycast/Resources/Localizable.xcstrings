@@ -1721,6 +1721,58 @@
         }
       }
     },
+    "%@ has no room in the header." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hat in der Kopfzeile keinen Platz."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no cabe en la cabecera."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’a pas de place dans l’en-tête."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ヘッダに%@を置く場所がありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "헤더에 %@을(를) 놓을 자리가 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ não cabe no cabeçalho."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для «%@» нет места в заголовке."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题栏中没有位置放置%@。"
+          }
+        }
+      }
+    },
     "%@ hasn't been downloaded yet." : {
       "localizations" : {
         "de" : {
@@ -18309,6 +18361,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务器会运行代码，并依赖保存在这台 Mac 上的凭证。"
+          }
+        }
+      }
+    },
+    "A shortcut appears here only while its feature is on." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kurzbefehl erscheint hier nur, solange seine Funktion aktiviert ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un atajo aparece aquí solo mientras su función está activada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un raccourci n’apparaît ici que si sa fonctionnalité est activée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットは、その機能がオンの間だけここに表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키는 해당 기능이 켜져 있는 동안에만 여기에 표시됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um atalho só aparece aqui enquanto a respetiva funcionalidade está ativada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ярлык отображается здесь, только пока его функция включена."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在对应功能开启时，快捷方式才会显示在这里。"
           }
         }
       }
@@ -55334,6 +55438,58 @@
         }
       }
     },
+    "Drag a shortcut here to take it out of the notch." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurzbefehl hierher ziehen, um ihn aus der Notch zu entfernen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra un atajo aquí para quitarlo del notch."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser un raccourci ici pour le retirer de l’encoche."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットをここにドラッグするとノッチから外れます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키를 여기로 드래그하면 노치에서 빠집니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste um atalho para cá para tirá-lo do notch."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащите ярлык сюда, чтобы убрать его из выреза."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将快捷方式拖到此处即可从刘海中移除。"
+          }
+        }
+      }
+    },
     "Drag a window to a screen edge or corner to tile it." : {
       "localizations" : {
         "de" : {
@@ -66646,6 +66802,58 @@
         }
       }
     },
+    "Full places swap: drop on the one to replace, and it goes back to its list." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volle Plätze tauschen: Auf das zu ersetzende Symbol ziehen, es kehrt in seine Liste zurück."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los huecos llenos se intercambian: suelta sobre el que quieras reemplazar y volverá a su lista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les emplacements pleins s’échangent : déposez sur celui à remplacer, il retourne dans sa liste."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空きがない場合は入れ替わります。置き換えたいものの上にドロップすると、それは元のリストに戻ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자리가 가득 차면 서로 바뀝니다. 바꿀 항목 위에 놓으면 그 항목은 원래 목록으로 돌아갑니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lugares cheios trocam: solte sobre o que quer substituir e ele volta para a lista."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Занятые места меняются: отпустите над тем, что нужно заменить, и оно вернётся в свой список."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置已满时会互换：拖到要替换的那个上面，它会回到自己的列表。"
+          }
+        }
+      }
+    },
     "Fullscreen" : {
       "localizations" : {
         "de" : {
@@ -67008,6 +67216,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始使用"
+          }
+        }
+      }
+    },
+    "GitHub is limiting requests from this network. Try again after %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub begrenzt Anfragen aus diesem Netzwerk. Versuche es nach %@ erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub está limitando las solicitudes de esta red. Inténtalo de nuevo después de las %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub limite les requêtes de ce réseau. Réessayez après %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHubがこのネットワークからのリクエストを制限しています。%@以降にもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub에서 이 네트워크의 요청을 제한하고 있습니다. %@ 이후에 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O GitHub está limitando as solicitações desta rede. Tente novamente após %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub ограничивает запросы из этой сети. Повторите попытку после %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 正在限制来自此网络的请求。请在 %@ 之后重试。"
+          }
+        }
+      }
+    },
+    "GitHub is limiting requests from this network. Try again later." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub begrenzt Anfragen aus diesem Netzwerk. Versuche es später erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub está limitando las solicitudes de esta red. Inténtalo de nuevo más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub limite les requêtes de ce réseau. Réessayez plus tard."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHubがこのネットワークからのリクエストを制限しています。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub에서 이 네트워크의 요청을 제한하고 있습니다. 나중에 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O GitHub está limitando as solicitações desta rede. Tente novamente mais tarde."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub ограничивает запросы из этой сети. Повторите попытку позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 正在限制来自此网络的请求。请稍后重试。"
           }
         }
       }
@@ -69148,6 +69460,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已显示隐藏文件"
+          }
+        }
+      }
+    },
+    "Hidden Shortcuts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendete Kurzbefehle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atajos ocultos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourcis masqués"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示のショートカット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가려진 단축키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atalhos ocultos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрытые ярлыки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏的快捷方式"
           }
         }
       }
@@ -91884,6 +92248,58 @@
         }
       }
     },
+    "No Snippets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Snippets"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin fragmentos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun extrait"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スニペットなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스니펫 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem snippets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет сниппетов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有片段"
+          }
+        }
+      }
+    },
     "No app yet" : {
       "localizations" : {
         "de" : {
@@ -97396,6 +97812,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刘海设置"
+          }
+        }
+      }
+    },
+    "Notch Shortcuts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notch-Kurzbefehle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atajos del notch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourcis de l’encoche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノッチのショートカット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "노치 단축키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atalhos do notch"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ярлыки выреза"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刘海快捷方式"
           }
         }
       }
@@ -152976,6 +153444,58 @@
         }
       }
     },
+    "Two more fit against each side of the notch. Those on the right share the row’s room." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei weitere passen an jede Seite der Notch. Die rechten teilen sich den Platz mit der Reihe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caben dos más a cada lado del notch. Los de la derecha comparten el espacio de la fila."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deux autres tiennent de chaque côté de l’encoche. Ceux de droite partagent la place de la rangée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノッチの左右にそれぞれあと2つ置けます。右側のものは列のスペースを共有します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "노치 양쪽에 각각 두 개씩 더 놓을 수 있습니다. 오른쪽에 둔 것은 행의 공간을 함께 씁니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cabem mais dois de cada lado do notch. Os da direita partilham o espaço da fila."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ещё по два помещаются с каждой стороны выреза. Правые делят место с рядом."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刘海两侧各可再放两个。右侧的与这一行共用空间。"
+          }
+        }
+      }
+    },
     "Two-finger vertical scroll" : {
       "localizations" : {
         "de" : {
@@ -159379,7 +159899,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "单词数"
+            "value" : "字数"
           }
         }
       }

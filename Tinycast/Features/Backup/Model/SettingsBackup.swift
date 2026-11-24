@@ -45,6 +45,8 @@ struct SettingsBackup: Codable {
         var notchHidesAllDayEvents: Bool?
         var notchShowsBattery: Bool?
         var notchShortcuts: [String]?
+        var notchShortcutsBeforeNotch: [String]?
+        var notchShortcutsAfterNotch: [String]?
         var notchShowsLiveActivities: Bool?
         var notchInputSourceNotifications: Bool?
         var emojiSkinTone: String?

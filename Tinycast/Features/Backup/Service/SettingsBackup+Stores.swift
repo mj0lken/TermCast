@@ -31,6 +31,8 @@ extension SettingsBackup {
             notchHidesAllDayEvents: s.notchHidesAllDayEvents,
             notchShowsBattery: s.notchShowsBattery,
             notchShortcuts: s.notchShortcuts.map(\.rawValue),
+            notchShortcutsBeforeNotch: s.notchShortcutsBeforeNotch.map(\.rawValue),
+            notchShortcutsAfterNotch: s.notchShortcutsAfterNotch.map(\.rawValue),
             notchShowsLiveActivities: s.notchShowsLiveActivities,
             notchInputSourceNotifications: s.notchInputSourceNotifications,
             emojiSkinTone: s.emojiSkinTone.rawValue,
@@ -322,6 +324,18 @@ extension SettingsBackup {
             let shortcuts = NotchShortcut.shortcuts(from: identifiers)
         {
             settings.notchShortcuts = shortcuts
+            count += 1
+        }
+        if let identifiers = s.notchShortcutsBeforeNotch,
+            let shortcuts = NotchShortcut.shortcuts(from: identifiers)
+        {
+            settings.notchShortcutsBeforeNotch = shortcuts
+            count += 1
+        }
+        if let identifiers = s.notchShortcutsAfterNotch,
+            let shortcuts = NotchShortcut.shortcuts(from: identifiers)
+        {
+            settings.notchShortcutsAfterNotch = shortcuts
             count += 1
         }
         if let flag = s.notchShowsLiveActivities {

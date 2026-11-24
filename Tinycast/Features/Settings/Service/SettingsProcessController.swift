@@ -236,6 +236,8 @@ final class SettingsProcessController {
             if stagedBackup?.preview.id == id { discardStagedBackup() }
         case .checkForUpdates:
             core.updateCoordinator.checkForUpdates()
+        case .quit:
+            core.terminate()
         case .previewNotchHUD:
             core.notchHUD.showPreview()
         case .previewNotchTray(let tab):

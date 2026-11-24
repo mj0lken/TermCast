@@ -797,6 +797,9 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   with a hairline, which no `scrollEdgeEffectStyle` or accessory style could soften.
   `.toolbar(removing: .sidebarToggle)` goes _before_ `navigationSplitViewColumnWidth`, or the column
   shrinks to AppKit's default thickness.
+- **The sidebar ends in two actions, not panes.** Check for Updates… and Quit sit under a hairline
+  below the list (`SettingsSidebarActions`), as plain buttons outside both `List`s, so they are never
+  a `SettingsTab`, never selectable and never scroll away. They call what the menu-bar item calls.
 - **The pane's own title is not in the pane.** `.navigationTitle` puts it in the titlebar beside the
   Back/Forward chevrons. `SettingsWindowChrome` installs _before_ the content mounts: the bridged toolbar
   restores the title flags it mounted over, so a later `titleVisibility = .visible` is undone on the

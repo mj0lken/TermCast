@@ -491,7 +491,7 @@ enum SettingsSearchCatalog {
             group: .notchShortcuts, "Shortcuts",
             keywords: [
                 "buttons", "header", "clipboard", "notebook", "notes", "camera", "window management",
-                "timer", "settings", "cog", "reorder"
+                "timer", "snippets", "emoji", "settings", "cog", "reorder"
             ]),
         .init(
             .notchPreview, "Preview Notch HUD",
