@@ -39,6 +39,7 @@ enum SettingsFileSchema {
         case .language: return bind(settings, \.language)
         case .appearance: return bind(settings, \.appearance)
         case .animationsEnabled: return bind(settings, \.animationsEnabled)
+        case .iconStyle: return bind(settings, \.iconStyle)
         case .interfaceSize: return bind(settings, \.interfaceSize)
         case .compactMode: return bind(settings, \.compactMode)
         case .compactBarCommands:
@@ -110,6 +111,7 @@ enum SettingsFileSchema {
         case .quickActionCommands: return launcher.commandsBinding(for: key, owner: .quickActions)
         case .fileSearchEnabled: return bind(settings, \.fileSearchEnabled)
         case .fileSearchScopes: return bind(settings, \.fileSearchScopes)
+        case .fileSearchIncludesHiddenFiles: return bind(settings, \.fileSearchIncludesHiddenFiles)
         case .fileSearchIgnorePatterns: return bind(settings, \.fileSearchIgnorePatterns)
         case .fileSearchRemovedDefaultPatterns:
             return bind(settings, \.fileSearchRemovedDefaultPatterns)
@@ -243,6 +245,7 @@ extension EscapeKeyBehavior: SettingsFileRawValue {}
 extension CommandID: SettingsFileRawValue {}
 extension NotchShortcut: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
+extension IconStyle: SettingsFileRawValue {}
 extension AppLanguage: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}
 extension HyperKeyPhysicalKey: SettingsFileRawValue {}

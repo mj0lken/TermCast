@@ -5,7 +5,7 @@ import CoreGraphics
 @MainActor
 @Observable
 final class NotchHUDManager: HealthCheckable {
-    enum Status: Equatable {
+    enum Status: String, Codable, Sendable {
         case off
         case active
         case needsAccessibility

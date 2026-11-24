@@ -11,8 +11,17 @@ final class WindowPickerGroupStore {
         fileURL: URL = AppPaths.applicationSupport().appendingPathComponent("window-groups.json")
     ) {
         self.fileURL = fileURL
-        book =
-            (try? Data(contentsOf: fileURL))
+        book = Self.read(fileURL)
+    }
+
+    /// The other process wrote the file, so adopt it instead of writing a stale copy back.
+    func reload() {
+        let stored = Self.read(fileURL)
+        if stored != book { book = stored }
+    }
+
+    private static func read(_ fileURL: URL) -> WindowPickerGroupBook {
+        (try? Data(contentsOf: fileURL))
             .flatMap { try? JSONDecoder().decode(WindowPickerGroupBook.self, from: $0) }
             ?? WindowPickerGroupBook()
     }

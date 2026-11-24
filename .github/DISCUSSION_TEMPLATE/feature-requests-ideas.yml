@@ -21,3 +21,10 @@ body:
         Tell us what workflow this improves and why it belongs in Termcast.
     validations:
       required: true
+  - type: checkboxes
+    id: acknowledge
+    attributes:
+      label: "I confirm that:"
+      options:
+        - label: I wrote this in my own words. If I used AI, I checked and edited the text myself ([AI usage](https://github.com/abue-ammar/tinycast/blob/main/CODE_OF_CONDUCT.md#ai-usage)).
+          required: true

@@ -123,7 +123,7 @@ extension KeyShortcut {
         (key: KeyEquivalent, modifiers: SwiftUI.EventModifiers)?
     {
         let flags = modifierFlags
-        guard !flags.contains(.function), !isDictationKey, let key = menuKeyEquivalent else {
+        guard !flags.contains(.function), let key = menuKeyEquivalent else {
             return nil
         }
         var modifiers: SwiftUI.EventModifiers = []

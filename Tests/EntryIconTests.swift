@@ -15,9 +15,6 @@ struct EntryIconTests {
         }
     }
 
-    static let red = SymbolTint(key: "red", color: .systemRed)
-    static let blue = SymbolTint(key: "blue", color: .systemBlue)
-
     // MARK: - Identity
 
     /// Two icons that render differently but print the same would share a bitmap.
@@ -27,9 +24,9 @@ struct EntryIconTests {
             .file(stamp: 1),
             .symbol("star"),
             .symbol("bolt"),
-            .tintedSymbol(name: "star", tint: red),
-            .tintedSymbol(name: "star", tint: blue),
-            .tintedSymbol(name: "bolt", tint: red),
+            .tile(symbol: "star", tint: .red),
+            .tile(symbol: "star", tint: .blue),
+            .tile(symbol: "bolt", tint: .red),
             .windowTile(WindowTileIcon(unitRect: CGRect(x: 0, y: 0, width: 0.5, height: 1))),
             .windowTile(WindowTileIcon(unitRect: CGRect(x: 1.0 / 3, y: 0, width: 1.0 / 3, height: 1))),
             .artwork(path: "/tmp/a.png", extent: 0.76),
@@ -45,12 +42,11 @@ struct EntryIconTests {
         expect(EntryIcon.symbol("star") == EntryIcon.symbol("star"), "the same symbol is equal")
         expect(EntryIcon.symbol("star") != EntryIcon.symbol("bolt"), "two symbols differ")
         expect(
-            EntryIcon.tintedSymbol(name: "star", tint: red)
-                != EntryIcon.tintedSymbol(name: "star", tint: blue),
+            EntryIcon.tile(symbol: "star", tint: .red) != EntryIcon.tile(symbol: "star", tint: .blue),
             "two tints of one symbol differ")
         expect(
-            EntryIcon.symbol("star") != EntryIcon.tintedSymbol(name: "star", tint: red),
-            "a tinted tile differs from the plain one")
+            EntryIcon.symbol("star") != EntryIcon.tile(symbol: "star", tint: .red),
+            "a pack tile differs from the plain one")
         expect(
             EntryIcon.artwork(path: "/tmp/a.png", extent: 0.76)
                 != EntryIcon.artwork(path: "/tmp/a.png", extent: 0.83),
@@ -71,25 +67,13 @@ struct EntryIconTests {
         let cases: [(String, EntryIcon)] = [
             ("file", .file(stamp: 0)),
             ("symbol", .symbol("star")),
-            ("tintedSymbol", .tintedSymbol(name: "star", tint: red)),
+            ("tile", .tile(symbol: "star", tint: .red)),
             ("windowTile", .windowTile(WindowTileIcon(unitRect: CGRect(x: 0, y: 0, width: 0.5, height: 1))))
         ]
         for (label, icon) in cases {
             let image = IconCache.icon(for: icon, fileURL: url)
             expect(image.size.width > 0, "\(label) draws something")
         }
-    }
-
-    /// A tint has to reach the tile. Same glyph, two tints, three different bitmaps.
-    static func tintsAndSymbolsDoNotShareABitmap() {
-        let url = URL(fileURLWithPath: "/System/Applications/Calculator.app")
-        let plain = bitmap(IconCache.icon(for: .symbol("star"), fileURL: url))
-        let redTile = bitmap(IconCache.icon(for: .tintedSymbol(name: "star", tint: red), fileURL: url))
-        let blueTile = bitmap(IconCache.icon(for: .tintedSymbol(name: "star", tint: blue), fileURL: url))
-
-        expect(plain != nil && redTile != nil && blueTile != nil, "all three rasterize")
-        expect(plain != redTile, "a tinted tile differs from the plain one")
-        expect(redTile != blueTile, "two tints do not share a cache entry")
     }
 
     /// The whole point of carrying `extent`: one file, two sizes, and neither serves the other.
@@ -110,8 +94,8 @@ struct EntryIconTests {
     /// A second ask must hit the cache, not redraw — that is what keeps a scrolled list cheap.
     static func askingTwiceIsStable() {
         let url = URL(fileURLWithPath: "/System/Applications/Calculator.app")
-        let first = bitmap(IconCache.icon(for: .tintedSymbol(name: "gear", tint: red), fileURL: url))
-        let second = bitmap(IconCache.icon(for: .tintedSymbol(name: "gear", tint: red), fileURL: url))
+        let first = bitmap(IconCache.icon(for: .symbol("gear"), fileURL: url))
+        let second = bitmap(IconCache.icon(for: .symbol("gear"), fileURL: url))
         expect(first != nil && first == second, "the same icon is stable across two asks")
     }
 
@@ -238,7 +222,6 @@ struct EntryIconTests {
         everyCasePrintsDistinctly()
         hashingSeparatesTheCases()
         everyCaseDraws()
-        tintsAndSymbolsDoNotShareABitmap()
         windowTilesDifferAcrossFractions()
         oneFileAtTwoExtentsDiffers()
         askingTwiceIsStable()

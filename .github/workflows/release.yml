@@ -28,6 +28,7 @@ jobs:
       display_name: ${{ steps.meta.outputs.display_name }}
       bundle_id: ${{ steps.meta.outputs.bundle_id }}
       arm_dmg_sha256: ${{ steps.notarize.outputs.arm_dmg_sha256 }}
+      profile: ${{ steps.meta.outputs.profile }}
     steps:
       - name: Verify release secrets
         env:
@@ -86,6 +87,7 @@ jobs:
             beta)   SUFFIX="-beta.${GITHUB_RUN_NUMBER}"; DISPLAY="Termcast Beta"; BUNDLE="com.mj0lken.termcast.beta"; CASK="termcast@beta"; PRERELEASE=true ;;
             stable) SUFFIX="";                           DISPLAY="Termcast";      BUNDLE="com.mj0lken.termcast";      CASK="termcast";      PRERELEASE=false ;;
           esac
+          PROFILE="$( [ "$CHANNEL" = beta ] && echo "Termcast Beta Developer ID" || echo "Termcast Developer ID")"
           FULL="${BASE_VERSION}${SUFFIX}"
           {
             echo "full_version=${FULL}"
@@ -95,6 +97,7 @@ jobs:
             echo "dmg_file=Termcast-${FULL}.dmg"
             echo "zip_file=Termcast-${FULL}.zip"
             echo "prerelease=${PRERELEASE}"
+            echo "profile=${PROFILE}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Import signing certificate
@@ -127,12 +130,25 @@ jobs:
             echo "DEVELOPMENT_TEAM=$TEAM"
           } >> "$GITHUB_ENV"
 
+      - name: Install the provisioning profile
+        env:
+          PROFILE: ${{ steps.meta.outputs.profile }}
+        run: ./Scripts/install-provisioning-profile.sh "Config/Profiles/${PROFILE// /_}.provisionprofile"
+
+      # Developer ID builds reach only Production, where an undeployed field fails every save.
+      - name: Check the CloudKit schema
+        env:
+          CLOUDKIT_MANAGEMENT_TOKEN: ${{ secrets.CLOUDKIT_MANAGEMENT_TOKEN }}
+          BUNDLE_ID: ${{ steps.meta.outputs.bundle_id }}
+        run: ./Scripts/check-cloudkit-schema.sh "iCloud.$BUNDLE_ID"
+
       - name: Build app
         env:
           VERSION: ${{ steps.meta.outputs.full_version }}
           DISPLAY_NAME: ${{ steps.meta.outputs.display_name }}
           BUNDLE_ID: ${{ steps.meta.outputs.bundle_id }}
           BUILD_NUMBER: ${{ github.run_number }}
+          PROFILE: ${{ steps.meta.outputs.profile }}
         run: |
           xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
@@ -140,6 +156,7 @@ jobs:
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             OTHER_CODE_SIGN_FLAGS="--timestamp" \
             PRODUCT_NAME="$DISPLAY_NAME" TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            TINYCAST_ENTITLEMENTS=Tinycast/TinycastCloud.entitlements TINYCAST_PROVISIONING_PROFILE="$PROFILE" \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             build
 
@@ -283,6 +300,7 @@ jobs:
       DISPLAY_NAME: ${{ needs.build.outputs.display_name }}
       BUNDLE_ID: ${{ needs.build.outputs.bundle_id }}
       ARM_SHA: ${{ needs.build.outputs.arm_dmg_sha256 }}
+      PROFILE: ${{ needs.build.outputs.profile }}
       CASK: termcast
     steps:
       - uses: actions/checkout@v7
@@ -312,6 +330,9 @@ jobs:
             echo "DEVELOPMENT_TEAM=$TEAM"
           } >> "$GITHUB_ENV"
 
+      - name: Install the provisioning profile
+        run: ./Scripts/install-provisioning-profile.sh "Config/Profiles/${PROFILE// /_}.provisionprofile"
+
       - name: Build app
         env:
           BUILD_NUMBER: ${{ github.run_number }}
@@ -322,6 +343,7 @@ jobs:
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             OTHER_CODE_SIGN_FLAGS="--timestamp" \
             PRODUCT_NAME="$DISPLAY_NAME" TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            TINYCAST_ENTITLEMENTS=Tinycast/TinycastCloud.entitlements TINYCAST_PROVISIONING_PROFILE="$PROFILE" \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             build
 
