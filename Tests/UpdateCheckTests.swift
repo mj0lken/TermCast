@@ -11,6 +11,7 @@ struct UpdateCheckTests {
         try await cancelsAndRestarts()
         await manualCheckAnswersDuringAutomaticOne()
         try reportsInstalledVersionOnce()
+        tellsRateLimitFromUnreachable()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -65,7 +66,7 @@ struct UpdateCheckTests {
         expect(offers == 1, "restarting never repeats an announcement already shown")
 
         store.stop()
-        let manual = Task { await store.check() }
+        let manual = Task { (try? await store.check()) != nil }
         await waitUntil { fixture.requests == 3 }
         store.stop()
         fixture.respond(feed(version: "1.3.0"))
@@ -88,7 +89,7 @@ struct UpdateCheckTests {
 
         store.start(after: .zero)
         await waitUntil { fixture.requests == 1 }
-        let manual = Task { await store.check() }
+        let manual = Task { (try? await store.check()) != nil }
         await waitUntil { fixture.requests == 2 }
         fixture.respond(feed(version: "1.1.0"))
         fixture.respond(feed(version: "1.1.0"))
@@ -96,6 +97,23 @@ struct UpdateCheckTests {
         expect(answered, "a manual check during an automatic one gets its own answer")
         await waitUntil { !store.isChecking }
         expect(store.update?.version == AppVersion("1.1.0"), "both checks leave the release in place")
+    }
+
+    static func tellsRateLimitFromUnreachable() {
+        let lifts = Date(timeIntervalSince1970: 1_800_000_000)
+        expect(
+            UpdateCheckStore.failure(status: 403, remaining: "0", reset: "1800000000")
+                == .rateLimited(until: lifts),
+            "an exhausted limit reports when it lifts")
+        expect(
+            UpdateCheckStore.failure(status: 429, remaining: nil, reset: nil) == .rateLimited(until: nil),
+            "a 429 without a reset stamp is still a rate limit")
+        expect(
+            UpdateCheckStore.failure(status: 403, remaining: "12", reset: "1800000000") == .unreachable,
+            "a 403 with requests left is not a rate limit")
+        expect(
+            UpdateCheckStore.failure(status: 500, remaining: "0", reset: nil) == .unreachable,
+            "a server error is not a rate limit")
     }
 
     static func reportsInstalledVersionOnce() throws {
@@ -184,9 +202,9 @@ struct UpdateCheckTests {
     final class FetchFixture {
         var requests = 0
         var wasCancelled = false
-        private var responses: [CheckedContinuation<Data?, Never>] = []
+        private var responses: [CheckedContinuation<Data, Never>] = []
 
-        func fetch() async -> Data? {
+        func fetch() async -> Data {
             requests += 1
             let data = await withCheckedContinuation { responses.append($0) }
             wasCancelled = Task.isCancelled

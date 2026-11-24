@@ -124,7 +124,9 @@ at the next launch, or sooner for a newer release. Check for Updates always offe
 than what is running, unless an update is already downloading or waiting for quit. Then it shows that
 update instead, since offering it again would discard the download or the staged copy.
 
-Check for Updates reports in a HUD: progress while it asks, then up to date or unreachable. When there
+Check for Updates reports in a HUD: progress while it asks, then up to date, unreachable, or rate
+limited. GitHub caps unauthenticated requests per address, so a 403 with no requests left or a 429
+is reported as its own failure, with the time the limit lifts when GitHub stamps one. When there
 is an update, it opens the palette so the pill shows.
 
 ## Installing

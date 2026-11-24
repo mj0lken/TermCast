@@ -65157,6 +65157,110 @@
         }
       }
     },
+    "GitHub is limiting requests from this network. Try again after %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub begrenzt Anfragen aus diesem Netzwerk. Versuche es nach %@ erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub está limitando las solicitudes de esta red. Inténtalo de nuevo después de las %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub limite les requêtes de ce réseau. Réessayez après %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHubがこのネットワークからのリクエストを制限しています。%@以降にもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub에서 이 네트워크의 요청을 제한하고 있습니다. %@ 이후에 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O GitHub está limitando as solicitações desta rede. Tente novamente após %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub ограничивает запросы из этой сети. Повторите попытку после %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 正在限制来自此网络的请求。请在 %@ 之后重试。"
+          }
+        }
+      }
+    },
+    "GitHub is limiting requests from this network. Try again later." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub begrenzt Anfragen aus diesem Netzwerk. Versuche es später erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub está limitando las solicitudes de esta red. Inténtalo de nuevo más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub limite les requêtes de ce réseau. Réessayez plus tard."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHubがこのネットワークからのリクエストを制限しています。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub에서 이 네트워크의 요청을 제한하고 있습니다. 나중에 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O GitHub está limitando as solicitações desta rede. Tente novamente mais tarde."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub ограничивает запросы из этой сети. Повторите попытку позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 正在限制来自此网络的请求。请稍后重试。"
+          }
+        }
+      }
+    },
     "Give the action a name." : {
       "localizations" : {
         "de" : {
