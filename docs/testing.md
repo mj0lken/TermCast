@@ -1065,6 +1065,8 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   checks resume. Settings search for "updates" reveals the toggle; settings.json edits and a backup
   round trip preserve the choice.
 - Every pane renders and the sidebar switches without flicker
+- The sidebar's bottom actions stay put while the pane list scrolls and while searching: Check for
+  Updates… runs the same check as the menu-bar item, Quit quits, and neither takes the selection
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
 - Export produces a `.termcast`; import applies `.termcast` or `.tinycast` and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it

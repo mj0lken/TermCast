@@ -16,6 +16,7 @@ struct SettingsSidebarView: View {
             } else {
                 found
             }
+            SettingsSidebarActions()
         }
         .searchable(text: $query, isPresented: $searching, placement: .sidebar, prompt: "Search")
         .onExitCommand { query = "" }
@@ -84,6 +85,71 @@ struct SettingsSidebarView: View {
             get: { navigation.tab },
             set: { if let tab = $0 { navigation.select(tab) } }
         )
+    }
+}
+
+/// Actions, not panes: outside both lists, so neither can ever select one.
+private struct SettingsSidebarActions: View {
+    @Environment(AppCore.self) private var core
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+            VStack(spacing: Theme.Spacing.xxs) {
+                Button {
+                    core.updateCoordinator.checkForUpdates()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.down.circle")
+                }
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Label("Quit \(Bundle.main.appDisplayName)", systemImage: "power")
+                }
+            }
+            .buttonStyle(SettingsSidebarActionStyle())
+            .padding(Theme.Spacing.lg)
+        }
+    }
+}
+
+private struct SettingsSidebarActionStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SettingsSidebarActionRow(configuration: configuration)
+    }
+}
+
+private struct SettingsSidebarActionRow: View {
+    let configuration: ButtonStyleConfiguration
+    @State private var isHovered = false
+
+    var body: some View {
+        configuration.label
+            .labelStyle(SettingsSidebarActionLabelStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, Theme.Spacing.xs)
+            .background(
+                fill, in: RoundedRectangle(cornerRadius: Theme.Radius.barControl, style: .continuous)
+            )
+            .contentShape(.rect)
+            .onHover { isHovered = $0 }
+    }
+
+    private var fill: Color {
+        if configuration.isPressed { return Theme.Colors.selection }
+        return isHovered ? Theme.Colors.rowHover : .clear
+    }
+}
+
+private struct SettingsSidebarActionLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: Theme.Spacing.md) {
+            configuration.icon
+                .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.settingsRowIcon + Theme.Spacing.xxs)
+            configuration.title.lineLimit(1)
+        }
     }
 }
 
