@@ -8,9 +8,11 @@ final class NotchTrayController {
     private static let hoverExitGrace: TimeInterval = 0.22
 
     var refreshCalendarState: (() -> (enabled: Bool, hasAccess: Bool, events: [MeetingEvent]))?
-    /// A header shortcut that opens something; the two menu shortcuts never arrive here.
+    /// A header shortcut that opens something; the menu shortcuts never arrive here.
     var onShortcut: ((NotchShortcut) -> Void)?
     var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
+    var snippets: (() -> [NotchSnippetChoice])?
+    var onExpandSnippet: ((NotchSnippetChoice.ID) -> Void)?
     var terminalSessions: (() -> [NotchTerminalSession])?
     var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
     var onOpenTerminal: (() -> Void)?
@@ -108,10 +110,14 @@ final class NotchTrayController {
         state.showsMedia = settings.notchShowsMedia
         state.showsCalendar = settings.notchShowsCalendar
         state.showsBattery = settings.notchShowsBattery
+        let arrangement = settings.notchShortcutLayout
+        state.shortcutsBeforeNotch = arrangement.beforeNotch.filter(settings.isAvailable)
+        state.shortcutsAfterNotch = arrangement.afterNotch.filter(settings.isAvailable)
         state.shortcuts = NotchShortcut.visible(
-            settings.notchShortcuts,
+            arrangement.row,
             showsBattery: settings.notchShowsBattery && battery.status.hasBattery,
-            isAvailable: isAvailable)
+            reserved: state.shortcutsAfterNotch.count,
+            isAvailable: settings.isAvailable)
         state.hidesAllDayEvents = settings.notchHidesAllDayEvents
         state.style = NotchHUDStyle(
             showsPercentage: settings.notchShowsPercentage,
@@ -258,6 +264,11 @@ final class NotchTrayController {
                 runWindowCommand: { [weak self] id in
                     self?.close()
                     self?.onRunWindowCommand?(id)
+                },
+                snippets: { [weak self] in self?.snippets?() ?? [] },
+                expandSnippet: { [weak self] id in
+                    self?.close()
+                    self?.onExpandSnippet?(id)
                 }),
             onEnableCalendar: { [weak self] in
                 self?.close()
@@ -281,16 +292,6 @@ final class NotchTrayController {
         }
         trayPanel = created
         return created
-    }
-
-    /// A shortcut whose feature is off draws nothing, and gives its slot to the next one.
-    private func isAvailable(_ shortcut: NotchShortcut) -> Bool {
-        switch shortcut {
-        case .clipboard: settings.clipboardEnabled
-        case .notebook: settings.notesEnabled
-        case .windowManagement: settings.windowManagementEnabled
-        case .camera, .timer, .settings: true
-        }
     }
 
     private func handleSensorHover(_ hovering: Bool) {

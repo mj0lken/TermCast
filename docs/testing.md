@@ -5,7 +5,7 @@ is a set of standalone harnesses, and the manual half is the sweep at the bottom
 
 ## Definition of done
 
-The mechanical bar, in one place so it cannot drift. All five pass before a change is finished.
+The mechanical bar, in one place so it cannot drift. All six pass before a change is finished.
 
 | Check | Command |
 | --- | --- |
@@ -13,10 +13,29 @@ The mechanical bar, in one place so it cannot drift. All five pass before a chan
 | Lint, settings search, translations and migrations | `./Scripts/lint.sh` |
 | Pure-layer purity | `grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/` |
 | A clean build | `xcodebuild … -configuration Debug CODE_SIGNING_ALLOWED=NO`, zero **new** warnings |
+| No leaks, memory under the ceiling | `./Scripts/check-leaks.sh`, after the Debug build |
 | Docs still true | any doc your change made wrong, fixed in the same commit |
 
 There is no CI: every item is on you, run locally. Each is expanded below; the manual sweep at the
-end of this file is the sixth, judged by what you touched.
+end of this file is the seventh, judged by what you touched.
+
+## Leaks and memory
+
+```sh
+./Scripts/check-leaks.sh                       # the Debug build
+./Scripts/check-leaks.sh "" settings/notch     # also opens the deep-link paths you name
+./Scripts/check-leaks.sh /path/to/Termcast.app # any other build, e.g. a release candidate
+```
+
+It launches the app, opens and closes the launcher, Clipboard History and the emoji picker five
+times by deep link, and prints the footprint table a PR asks for. It fails on a leak root that is not
+Apple's own, on more than 5 MB of growth between the first cycle and the last, and on any reading
+over 100 MB. The first cycle fills caches, so "settled" sits above "idle" and only growth after it
+counts. Needs an unlocked screen and no Accessibility grant; it quits any running copy of that build.
+`LEAKS_STACKS=1` adds allocation stacks to `build/leaks-report.txt`, at the cost of honest footprints.
+
+Three `com.apple.linkd.autoShortcut` XPC cycles from App Intents are present at launch on every run
+and hold no frame of ours; the script counts them apart and does not fail on them.
 
 ## The harnesses
 
@@ -1065,6 +1084,8 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   checks resume. Settings search for "updates" reveals the toggle; settings.json edits and a backup
   round trip preserve the choice.
 - Every pane renders and the sidebar switches without flicker
+- The sidebar's bottom actions stay put while the pane list scrolls and while searching: Check for
+  Updates… runs the same check as the menu-bar item, Quit quits, and neither takes the selection
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
 - Export produces a `.termcast`; import applies `.termcast` or `.tinycast` and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it

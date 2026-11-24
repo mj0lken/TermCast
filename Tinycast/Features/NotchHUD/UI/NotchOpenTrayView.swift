@@ -111,6 +111,14 @@ struct NotchShortcutActions {
     /// A button that only opens something; the tray closes before it runs.
     let open: (NotchShortcut) -> Void
     let runWindowCommand: (WindowCommand.ID) -> Void
+    let snippets: () -> [NotchSnippetChoice]
+    let expandSnippet: (NotchSnippetChoice.ID) -> Void
+}
+
+/// One line of the Snippets shortcut's menu.
+struct NotchSnippetChoice: Identifiable {
+    let id: String
+    let name: String
 }
 
 struct NotchTerminalActions {

@@ -26,6 +26,9 @@ final class NotchHUDManager: HealthCheckable {
     @ObservationIgnored var onOpenNotes: (() -> Void)?
     @ObservationIgnored var onOpenCamera: (() -> Void)?
     @ObservationIgnored var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
+    @ObservationIgnored var onOpenEmoji: (() -> Void)?
+    @ObservationIgnored var snippets: (() -> [NotchSnippetChoice])?
+    @ObservationIgnored var onExpandSnippet: ((NotchSnippetChoice.ID) -> Void)?
     @ObservationIgnored var terminalSessions: (() -> [NotchTerminalSession])?
     @ObservationIgnored var onOpenTerminalSession: ((NotchTerminalSession.ID) -> Void)?
     @ObservationIgnored var onOpenTerminal: (() -> Void)?
@@ -440,6 +443,8 @@ final class NotchHUDManager: HealthCheckable {
         created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
         created.onShortcut = { [weak self] in self?.run($0) }
         created.onRunWindowCommand = { [weak self] id in self?.onRunWindowCommand?(id) }
+        created.snippets = { [weak self] in self?.snippets?() ?? [] }
+        created.onExpandSnippet = { [weak self] id in self?.onExpandSnippet?(id) }
         created.onEnableCalendar = { [weak self] in self?.onEnableCalendar?() }
         created.onJoinMeeting = { [weak self] meeting in self?.onJoinMeeting?(meeting) }
         return created
@@ -460,9 +465,10 @@ final class NotchHUDManager: HealthCheckable {
         case .clipboard: onOpenClipboard?()
         case .notebook: onOpenNotes?()
         case .camera: onOpenCamera?()
+        case .emoji: onOpenEmoji?()
         case .settings: onOpenSettings?()
-        // Both are menus in the header, so neither arrives as a plain press.
-        case .windowManagement, .timer: break
+        // These are menus in the header, so none arrives as a plain press.
+        case .windowManagement, .timer, .snippets: break
         }
     }
 
@@ -495,6 +501,9 @@ final class NotchHUDManager: HealthCheckable {
             _ = settings.notchShowsBattery
             _ = settings.notchShowsMedia
             _ = settings.notchShortcuts
+            _ = settings.notchShortcutsBeforeNotch
+            _ = settings.notchShortcutsAfterNotch
+            _ = settings.snippetsEnabled
             _ = settings.notchShowsLiveActivities
             _ = settings.notchInputSourceNotifications
             _ = settings.clipboardEnabled

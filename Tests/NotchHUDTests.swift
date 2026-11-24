@@ -565,6 +565,41 @@ struct NotchHUDTests {
             NotchShortcut.shortcuts(from: NotchShortcut.allCases.map(\.rawValue)) == nil,
             "a row longer than the header holds is rejected")
         expect(NotchShortcut.shortcuts(from: []) == [], "an empty row is allowed")
+        let short = NotchShortcutLayout(row: [.clipboard, .notebook, .settings])
+        expect(
+            short.placing(.timer, in: .row)?.row == [.clipboard, .notebook, .settings, .timer],
+            "a new shortcut goes last")
+        expect(
+            short.placing(.timer, in: .row, before: .notebook)?.row
+                == [.clipboard, .timer, .notebook, .settings], "or before the one named")
+        expect(
+            short.placing(.settings, in: .row, before: .clipboard)?.row == [.settings, .clipboard, .notebook],
+            "moving one never lists it twice")
+        let beside = short.placing(.notebook, in: .beforeNotch)
+        expect(
+            beside?.beforeNotch == [.notebook] && beside?.row == [.clipboard, .settings],
+            "a shortcut moved beside the cutout leaves the row")
+        expect(beside?.zone(of: .notebook) == .beforeNotch, "and knows where it is")
+        expect(
+            beside?.placing(.timer, in: .beforeNotch)?.placing(.emoji, in: .beforeNotch) == nil,
+            "each side of the cutout holds two")
+        let full = NotchShortcutLayout(row: [.clipboard, .notebook, .camera, .windowManagement, .timer])
+        expect(full.placing(.settings, in: .row) == nil, "a full row takes no more")
+        expect(full.placing(.timer, in: .row, before: .clipboard)?.row.first == .timer, "but still reorders")
+        expect(
+            full.replacing(.camera, with: .settings)?.row
+                == [.clipboard, .notebook, .settings, .windowManagement, .timer],
+            "a swap puts the new shortcut in the old one's place")
+        expect(full.replacing(.settings, with: .camera) == nil, "nothing replaces one that is not placed")
+        expect(full.unused == [.snippets, .emoji, .settings], "what is not placed is unused")
+        let repaired = NotchShortcutLayout(
+            beforeNotch: [.camera, .timer, .emoji, .snippets], afterNotch: [.timer], row: [.camera])
+        expect(
+            repaired.row == [.camera] && repaired.beforeNotch == [.timer, .emoji] && repaired.afterNotch.isEmpty,
+            "stored repeats keep their first place and a side is cut to two")
+        expect(
+            NotchShortcut.visible(full.row, showsBattery: false, reserved: 2) { _ in true }.count == 4,
+            "shortcuts right of the cutout take room from the row")
 
         let row: [NotchShortcut] = [.clipboard, .notebook, .camera, .timer, .settings]
         expect(
