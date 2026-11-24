@@ -31,7 +31,10 @@ It launches the app, opens and closes the launcher, Clipboard History and the em
 times by deep link, and prints the footprint table a PR asks for. It fails on a leak root that is not
 Apple's own, on more than 5 MB of growth between the first cycle and the last, and on any reading
 over 100 MB. The first cycle fills caches, so "settled" sits above "idle" and only growth after it
-counts. Needs an unlocked screen and no Accessibility grant; it quits any running copy of that build.
+counts. Needs an unlocked screen and a Mac left alone while it runs, since a click elsewhere dismisses the
+palette; it fails when the palette does not open rather than measure nothing. It needs no
+Accessibility grant, quits any running copy of that build, and aims its links at the build under
+test so another copy with the same bundle id cannot answer them.
 `LEAKS_STACKS=1` adds allocation stacks to `build/leaks-report.txt`, at the cost of honest footprints.
 
 Three `com.apple.linkd.autoShortcut` XPC cycles from App Intents are present at launch on every run
