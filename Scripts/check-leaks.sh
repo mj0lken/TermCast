@@ -55,10 +55,13 @@ palette_is_open() { [ "$(swift "$WORK/palette.swift" "$PID")" = "open" ]; }
 close_palette() {
     for _ in 1 2 3 4; do
         palette_is_open || return 0
-        open -g "$SCHEME://command/search-emoji"
-        sleep 2
+        open -g -a "$APP" "$SCHEME://command/search-emoji"
+        # Polled, so a link a busy machine handles late is not answered with a second toggle.
+        for _ in 1 2 3 4 5; do
+            sleep 2
+            palette_is_open || return 0
+        done
     done
-    palette_is_open || return 0
     echo "✗ the palette would not close — is the screen locked?" >&2
     exit 1
 }
@@ -84,14 +87,16 @@ close_palette
 sleep "$SETTLE_SECONDS"
 IDLE="$(footprint_mb "$PID" now)"
 
-open -g "$SCHEME://"
+open -g -a "$APP" "$SCHEME://"
 sleep 2
+# Without this a locked screen measures nothing and every reading passes.
+palette_is_open || { echo "✗ the palette did not open — is the screen locked?" >&2 && exit 1; }
 PALETTE_OPEN="$(footprint_mb "$PID" now)"
 
 WARM=""
 for cycle in $(seq "$CYCLES"); do
     for link in "" "command/clipboard-history" "command/search-emoji" ${EXTRA_LINKS[@]+"${EXTRA_LINKS[@]}"}; do
-        open -g "$SCHEME://$link"
+        open -g -a "$APP" "$SCHEME://$link"
         sleep 1
     done
     close_palette
@@ -101,7 +106,7 @@ for cycle in $(seq "$CYCLES"); do
         WARM="$(footprint_mb "$PID" now)"
     fi
 done
-open -g "$SCHEME://command/clipboard-history"
+open -g -a "$APP" "$SCHEME://command/clipboard-history"
 sleep 2
 IN_USE="$(footprint_mb "$PID" now)"
 
