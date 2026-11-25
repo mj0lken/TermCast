@@ -4,6 +4,8 @@ import SwiftUI
 enum NotchHeaderMetrics {
     static let buttonSize: CGFloat = 24
     static let tabPadding: CGFloat = 12
+    /// Tried widest first: the tabs give up padding before the leading half outgrows its room.
+    static let tabPaddings: [CGFloat] = [tabPadding, 8, 5]
     static let tabSpacing = Theme.Spacing.xs
     static let shortcutSpacing = Theme.Spacing.sm
     static let edgeInset = Theme.Spacing.lg
@@ -18,43 +20,18 @@ struct NotchOpenHeaderBar: View {
     let timer: NotchTimer
     let shortcuts: NotchShortcutActions
 
+    /// Each side of the cutout gets exactly its room, so a crowded side never pushes the other out.
+    private var halfWidth: CGFloat {
+        let cutout = state.layout.isNotched ? state.layout.notchWidth : 0
+        return max((state.layout.trayWidth - cutout) / 2, 0)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            HStack(spacing: NotchHeaderMetrics.tabSpacing) {
-                NotchTabButton(
-                    symbol: "house.fill",
-                    label: String(localized: "Home"),
-                    isSelected: state.tab == .home,
-                    badgeCount: 0
-                ) {
-                    state.tab = .home
-                }
-
-                NotchTabButton(
-                    symbol: "tray.fill",
-                    label: String(localized: "Shelf"),
-                    isSelected: state.tab == .shelf,
-                    badgeCount: shelfCount
-                ) {
-                    state.tab = .shelf
-                }
-
-                if state.showsTerminal {
-                    NotchTabButton(
-                        symbol: "apple.terminal.fill",
-                        label: String(localized: "Terminal Sessions"),
-                        isSelected: state.tab == .terminal,
-                        badgeCount: runningTerminalCount
-                    ) {
-                        state.tab = .terminal
-                    }
-                }
-                Spacer(minLength: 0)
-                HStack(spacing: NotchHeaderMetrics.shortcutSpacing) { shortcutButtons(state.shortcutsBeforeNotch) }
+            ViewThatFits(in: .horizontal) {
+                ForEach(NotchHeaderMetrics.tabPaddings, id: \.self) { leadingHalf(tabPadding: $0) }
             }
-            .padding(.leading, NotchHeaderMetrics.edgeInset)
-            .padding(.trailing, NotchHeaderMetrics.shortcutSpacing)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: halfWidth, alignment: .leading)
 
             if state.layout.isNotched {
                 ZStack {
@@ -80,38 +57,67 @@ struct NotchOpenHeaderBar: View {
             }
             .padding(.leading, NotchHeaderMetrics.shortcutSpacing)
             .padding(.trailing, NotchHeaderMetrics.edgeInset)
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .frame(width: halfWidth, alignment: .trailing)
         }
         .animation(.easeOut(duration: 0.16), value: state.inlineHUDMetric)
     }
 
-    private func shortcutButtons(_ row: [NotchShortcut]) -> some View {
-        ForEach(row, id: \.self) { shortcut in
-            NotchShortcutButton(shortcut: shortcut, timer: timer, actions: shortcuts)
+    /// The tabs' capsule lines up with the page below, which sits a step further in than the header.
+    private func leadingHalf(tabPadding: CGFloat) -> some View {
+        HStack(spacing: NotchHeaderMetrics.tabSpacing) {
+            NotchTabButton(
+                symbol: "house.fill", label: String(localized: "Home"), isSelected: state.tab == .home,
+                badgeCount: 0, padding: tabPadding
+            ) {
+                state.tab = .home
+            }
+            NotchTabButton(
+                symbol: "tray.fill", label: String(localized: "Shelf"), isSelected: state.tab == .shelf,
+                badgeCount: shelfCount, padding: tabPadding
+            ) {
+                state.tab = .shelf
+            }
+            if state.showsTerminal {
+                NotchTabButton(
+                    symbol: "apple.terminal.fill", label: String(localized: "Terminal Sessions"),
+                    isSelected: state.tab == .terminal, badgeCount: runningTerminalCount, padding: tabPadding
+                ) {
+                    state.tab = .terminal
+                }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: NotchHeaderMetrics.shortcutSpacing) { shortcutButtons(state.shortcutsBeforeNotch) }
+        }
+        .padding(.leading, NotchHeaderMetrics.edgeInset + Theme.Spacing.xs)
+        .padding(.trailing, NotchHeaderMetrics.shortcutSpacing)
+    }
+
+    /// A nil place is a gap the user left, drawn as the room a button would take.
+    private func shortcutButtons(_ places: [NotchShortcut?]) -> some View {
+        ForEach(Array(places.enumerated()), id: \.offset) { place in
+            if let shortcut = place.element {
+                NotchShortcutButton(shortcut: shortcut, timer: timer, actions: shortcuts)
+            } else {
+                Color.clear
+                    .frame(width: NotchHeaderMetrics.buttonSize, height: NotchHeaderMetrics.buttonSize)
+                    .accessibilityHidden(true)
+            }
         }
     }
 }
 
-private struct NotchHeaderIconButton: View {
+/// A header shortcut's face, shared by the plain buttons and the menus so every one reads alike.
+private struct NotchHeaderIcon: View {
     let symbol: String
-    let label: String
-    let action: () -> Void
-
-    @State private var isHovering = false
+    let isHovering: Bool
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(isHovering ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
-                .frame(width: NotchHeaderMetrics.buttonSize, height: NotchHeaderMetrics.buttonSize)
-                .background(Circle().fill(isHovering ? Theme.Colors.controlHover : .clear))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovering = $0 }
-        .help(label)
-        .accessibilityLabel(label)
+        Image(systemName: symbol)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(isHovering ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+            .frame(width: NotchHeaderMetrics.buttonSize, height: NotchHeaderMetrics.buttonSize)
+            .background(Circle().fill(isHovering ? Theme.Colors.controlHover : .clear))
+            .contentShape(Rectangle())
     }
 }
 
@@ -120,6 +126,7 @@ private struct NotchTabButton: View {
     let label: String
     let isSelected: Bool
     let badgeCount: Int
+    let padding: CGFloat
     let action: () -> Void
 
     var body: some View {
@@ -136,7 +143,7 @@ private struct NotchTabButton: View {
                 }
             }
             .foregroundStyle(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
-            .padding(.horizontal, NotchHeaderMetrics.tabPadding)
+            .padding(.horizontal, padding)
             .frame(height: NotchHeaderMetrics.buttonSize)
             .background(
                 Capsule()
@@ -210,46 +217,60 @@ private struct NotchShortcutButton: View {
     let timer: NotchTimer
     let actions: NotchShortcutActions
 
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovering = false
+
     private static let windowGroups: Set<WindowCommand.Group> = [.halves, .quarters, .sizing]
 
+    private var icon: NotchHeaderIcon { NotchHeaderIcon(symbol: shortcut.symbol, isHovering: isHovering) }
+
     var body: some View {
+        control
+            .buttonStyle(.plain)
+            .onHover { isHovering = $0 }
+            .help(shortcut.title)
+            .accessibilityLabel(shortcut.title)
+    }
+
+    @ViewBuilder
+    private var control: some View {
         switch shortcut {
-        case .clipboard, .notebook, .camera, .emoji, .settings:
-            NotchHeaderIconButton(symbol: shortcut.symbol, label: shortcut.title) {
+        case .clipboard, .notebook, .camera, .emoji, .settings, .gap:
+            Button {
                 actions.open(shortcut)
+            } label: {
+                icon
             }
         case .windowManagement:
             menu { windowCommands }
         case .timer:
             menu { timerPresets }
         case .snippets:
-            menu { snippetChoices }
+            Button {
+                NotchSnippetMenu.present(
+                    actions.snippets(), at: NSEvent.mouseLocation, isDark: colorScheme == .dark,
+                    expand: actions.expandSnippet)
+            } label: {
+                icon
+            }
         }
     }
 
-    @ViewBuilder
-    private var snippetChoices: some View {
-        let choices = actions.snippets()
-        if choices.isEmpty {
-            Text("No Snippets")
-        }
-        ForEach(choices) { choice in
-            Button(choice.name) { actions.expandSnippet(choice.id) }
-        }
+    /// A binding a menu cannot draw as a key equivalent, spelled out; nil when the menu draws it.
+    private func spelled(_ binding: HotKeyBinding?) -> String? {
+        guard let binding, binding.menuShortcut == nil else { return nil }
+        return binding.keycaps.joined(separator: " ")
+    }
+
+    private func title(_ name: String, binding: HotKeyBinding?) -> String {
+        spelled(binding).map { name + "  " + $0 } ?? name
     }
 
     private func menu(@ViewBuilder _ content: () -> some View) -> some View {
-        Menu(content: content) {
-            Image(systemName: shortcut.symbol)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.Colors.textSecondary)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .frame(width: NotchHeaderMetrics.buttonSize, height: NotchHeaderMetrics.buttonSize)
-        .help(shortcut.title)
-        .accessibilityLabel(shortcut.title)
+        Menu(content: content) { icon }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .fixedSize()
     }
 
     /// The placements worth a click; the rest of the catalog stays on its shortcuts and the launcher.
@@ -259,11 +280,13 @@ private struct NotchShortcutButton: View {
         ForEach(groups, id: \.group) { entry in
             Section(entry.group.title) {
                 ForEach(entry.commands) { command in
+                    let binding = actions.windowCommandBinding(command.id)
                     Button {
                         actions.runWindowCommand(command.id)
                     } label: {
-                        Label(command.name, systemImage: command.sfSymbol)
+                        Label(title(command.name, binding: binding), systemImage: command.sfSymbol)
                     }
+                    .keyboardShortcut(binding?.menuShortcut)
                 }
             }
         }
@@ -278,6 +301,7 @@ private struct NotchShortcutButton: View {
                 Text(Duration.seconds(minutes * 60), format: .units(allowed: [.minutes], width: .wide))
             }
         }
+        Button("Custom…") { actions.askTimerLength() }
         if timer.end != nil {
             Divider()
             Button("Cancel Timer") { timer.cancel() }

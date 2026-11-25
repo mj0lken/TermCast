@@ -24,9 +24,9 @@ final class NotchOpenTrayState {
     var showsCalendar = true
     var showsBattery = true
     /// The header's shortcut row as it is drawn: configured, available, and cut to what fits.
-    var shortcuts: [NotchShortcut] = []
-    var shortcutsBeforeNotch: [NotchShortcut] = []
-    var shortcutsAfterNotch: [NotchShortcut] = []
+    var shortcuts: [NotchShortcut?] = []
+    var shortcutsBeforeNotch: [NotchShortcut?] = []
+    var shortcutsAfterNotch: [NotchShortcut?] = []
     var showsTerminal = false
     var hidesAllDayEvents = false
     var meetingLeadMinutes = 10

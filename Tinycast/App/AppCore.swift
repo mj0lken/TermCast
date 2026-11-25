@@ -472,6 +472,15 @@ final class AppCore {
             notchHUD.onRunWindowCommand = { [weak self] id in
                 self?.windowCommandCoordinator.runWindowCommand(id: id)
             }
+            notchHUD.windowCommandBinding = { [weak self] id in
+                self?.hotKeys.binding(for: .windowCommand(id: id))
+            }
+            notchHUD.onAskTimerLength = { [weak self] in
+                Task { [weak self] in
+                    guard let self, let minutes = await self.dialogs.pickTimerLength() else { return }
+                    self.notchHUD.startTimer(minutes: minutes)
+                }
+            }
             notchHUD.onOpenNotes = { [weak self] in
                 self?.notesCoordinator.toggle()
             }
@@ -479,8 +488,12 @@ final class AppCore {
                 self?.paletteCoordinator.showPalette(mode: .emoji)
             }
             notchHUD.snippets = { [weak self] in
-                (self?.snippetsStore.snippets ?? []).filter(\.snippet.isEnabled)
-                    .map { NotchSnippetChoice(id: $0.id, name: $0.snippet.name) }
+                guard let self else { return [] }
+                return self.snippetsStore.snippets.filter(\.snippet.isEnabled).map {
+                    NotchSnippetChoice(
+                        id: $0.id, name: $0.snippet.name, keyword: $0.snippet.keyword,
+                        binding: self.hotKeys.binding(for: .snippet(id: $0.id)))
+                }
             }
             notchHUD.onExpandSnippet = { [weak self] id in
                 self?.snippetCoordinator.expandSnippetFromHotKey(id: id)

@@ -26,6 +26,8 @@ final class NotchHUDManager: HealthCheckable {
     @ObservationIgnored var onOpenNotes: (() -> Void)?
     @ObservationIgnored var onOpenCamera: (() -> Void)?
     @ObservationIgnored var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
+    @ObservationIgnored var windowCommandBinding: ((WindowCommand.ID) -> HotKeyBinding?)?
+    @ObservationIgnored var onAskTimerLength: (() -> Void)?
     @ObservationIgnored var onOpenEmoji: (() -> Void)?
     @ObservationIgnored var snippets: (() -> [NotchSnippetChoice])?
     @ObservationIgnored var onExpandSnippet: ((NotchSnippetChoice.ID) -> Void)?
@@ -443,6 +445,8 @@ final class NotchHUDManager: HealthCheckable {
         created.meetingLeadMinutes = { [weak self] in self?.meetingLeadMinutes?() ?? 10 }
         created.onShortcut = { [weak self] in self?.run($0) }
         created.onRunWindowCommand = { [weak self] id in self?.onRunWindowCommand?(id) }
+        created.windowCommandBinding = { [weak self] id in self?.windowCommandBinding?(id) }
+        created.onAskTimerLength = { [weak self] in self?.onAskTimerLength?() }
         created.snippets = { [weak self] in self?.snippets?() ?? [] }
         created.onExpandSnippet = { [weak self] id in self?.onExpandSnippet?(id) }
         created.onEnableCalendar = { [weak self] in self?.onEnableCalendar?() }
@@ -460,6 +464,10 @@ final class NotchHUDManager: HealthCheckable {
         return created
     }
 
+    func startTimer(minutes: Int) {
+        timer.start(minutes: minutes)
+    }
+
     private func run(_ shortcut: NotchShortcut) {
         switch shortcut {
         case .clipboard: onOpenClipboard?()
@@ -468,7 +476,7 @@ final class NotchHUDManager: HealthCheckable {
         case .emoji: onOpenEmoji?()
         case .settings: onOpenSettings?()
         // These are menus in the header, so none arrives as a plain press.
-        case .windowManagement, .timer, .snippets: break
+        case .windowManagement, .timer, .snippets, .gap: break
         }
     }
 

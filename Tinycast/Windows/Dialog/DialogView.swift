@@ -50,6 +50,8 @@ struct DialogView: View {
                     SnippetArgumentFields(
                         state: arguments, onSubmit: { onChoose(request.defaultIndex) })
                 case .clipboardText(let state): ClipboardEditField(state: state)
+                case .timerLength(let state):
+                    NotchTimerLengthField(state: state, onSubmit: { onChoose(request.defaultIndex) })
                 case nil: EmptyView()
                 }
             }

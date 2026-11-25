@@ -302,7 +302,7 @@ final class AppSettings {
         }
     }
 
-    /// The three stored lists as one arrangement; reading it repairs repeats and overfull zones.
+    /// The three stored lists as one arrangement of fixed places; reading it repairs repeats.
     var notchShortcutLayout: NotchShortcutLayout {
         get {
             NotchShortcutLayout(
@@ -310,9 +310,9 @@ final class AppSettings {
                 row: notchShortcuts)
         }
         set {
-            notchShortcuts = newValue.row
-            notchShortcutsBeforeNotch = newValue.beforeNotch
-            notchShortcutsAfterNotch = newValue.afterNotch
+            notchShortcuts = newValue.stored(.row)
+            notchShortcutsBeforeNotch = newValue.stored(.beforeNotch)
+            notchShortcutsAfterNotch = newValue.stored(.afterNotch)
         }
     }
 

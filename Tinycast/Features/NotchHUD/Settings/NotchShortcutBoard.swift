@@ -5,6 +5,11 @@ struct NotchShortcutBoard: View {
     @Environment(AppSettings.self) private var settings
 
     @State private var held: NotchShortcut?
+    @State private var pointer: CGPoint?
+    @State private var slotFrames: [Slot: CGRect] = [:]
+    @State private var trayFrame = CGRect.zero
+    @State private var hiddenFrame = CGRect.zero
+    @State private var probe = NotchBoardProbeView()
 
     private static let barHeight: CGFloat = 32
     private static let trayWidth: CGFloat = 540
@@ -15,46 +20,77 @@ struct NotchShortcutBoard: View {
     private static let zoneInset: CGFloat = 3
     private static let rowTitleWidth: CGFloat = 150
     private static let slotSize = NotchHeaderMetrics.buttonSize
-    private static let dragPollInterval = Duration.milliseconds(80)
+    private static let dragPollInterval = Duration.milliseconds(16)
+    private nonisolated static let boardSpace = "NotchShortcutBoard"
 
     private typealias Zone = NotchShortcutLayout.Zone
+    private typealias Slot = NotchShortcutLayout.Slot
 
-    /// Only what the tray can draw; a shortcut whose feature is off is left off the board.
+    /// Only what the tray draws; a shortcut that is off or has no room is left off the board.
     private var layout: NotchShortcutLayout {
-        NotchShortcut.allCases.filter { !settings.isAvailable($0) }
-            .reduce(settings.notchShortcutLayout) { $0.removing($1) }
+        settings.notchShortcutLayout.keeping(where: settings.isAvailable)
+            .fitting(showsBattery: settings.notchShowsBattery)
     }
 
     private var unused: [NotchShortcut] { layout.unused.filter(settings.isAvailable) }
 
-    /// True while the held shortcut can only enter `zone` by replacing one in it.
-    private func swapsHeld(in zone: Zone) -> Bool {
-        guard let held else { return false }
-        return !layout.hasRoom(for: held, in: zone)
+    private func placing(_ shortcut: NotchShortcut, in slot: Slot) -> NotchShortcutLayout? {
+        layout.placing(shortcut, in: slot, showsBattery: settings.notchShowsBattery)
+    }
+
+    /// The mouse in the board's own space, read from AppKit because it is exact throughout a drag.
+    private var mouseLocation: CGPoint? {
+        probe.window.map { probe.convert($0.mouseLocationOutsideOfEventStream, from: nil) }
+    }
+
+    private var isHiddenTargeted: Bool {
+        held != nil && pointer.map(hiddenFrame.contains) ?? false
+    }
+
+    /// The place under the pointer, when the held shortcut can go there.
+    private var landing: Slot? {
+        guard let held, let pointer, trayFrame.contains(pointer) else { return nil }
+        return slot(at: pointer).flatMap { placing(held, in: $0) == nil ? nil : $0 }
+    }
+
+    private func drop(_ shortcut: NotchShortcut, at point: CGPoint) {
+        if hiddenFrame.contains(point) {
+            hide(shortcut)
+        } else if trayFrame.contains(point) {
+            apply(slot(at: point).flatMap { placing(shortcut, in: $0) })
+        }
+    }
+
+    /// The drawn place nearest the pointer, so every point of the tray names exactly one.
+    private func slot(at point: CGPoint) -> Slot? {
+        let drawn = Zone.allCases.flatMap { zone in
+            layout.drawable(zone, showsBattery: settings.notchShowsBattery).map { Slot(zone: zone, index: $0) }
+        }
+        let framed = drawn.compactMap { slot in slotFrames[slot].map { (slot, abs($0.midX - point.x)) } }
+        return framed.min { $0.1 < $1.1 }?.0
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             screen
             hiddenRow
-            if Zone.allCases.contains(where: swapsHeld) {
-                Label(
-                    "Full places swap: drop on the one to replace, and it goes back to its list.",
-                    systemImage: "arrow.left.arrow.right"
-                )
-                .font(.caption)
-                .foregroundStyle(Color.accentColor)
-            }
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .background(NotchBoardProbe(view: probe))
+        .coordinateSpace(.named(Self.boardSpace))
+        .dropDestination(for: String.self) { _, _ in }
         .animation(.easeOut(duration: 0.15), value: held)
+        .animation(.easeOut(duration: 0.12), value: landing)
         .task(id: held) {
-            // SwiftUI reports no end of a drag, so the held button is the only sign of one.
-            guard held != nil else { return }
+            // A drop session reported places shifted from the tray, so the mouse itself decides.
+            guard let held else { return }
             while NSEvent.pressedMouseButtons != 0 {
+                pointer = mouseLocation
                 guard (try? await Task.sleep(for: Self.dragPollInterval)) != nil else { return }
             }
-            held = nil
+            if let point = mouseLocation ?? pointer { drop(held, at: point) }
+            self.held = nil
+            pointer = nil
         }
     }
 
@@ -81,15 +117,17 @@ struct NotchShortcutBoard: View {
         let shape = UnevenRoundedRectangle(
             bottomLeadingRadius: Self.trayCornerRadius, bottomTrailingRadius: Self.trayCornerRadius,
             style: .continuous)
-        return NotchShortcutDropZone(drop: add) { isLit in
-            VStack(spacing: 0) {
-                header
-                page
-            }
-            .frame(maxWidth: Self.trayWidth)
-            .background(shape.fill(.black))
-            .clipShape(shape)
-            .overlay(shape.strokeBorder(Color.accentColor.opacity(isLit ? 1 : 0), lineWidth: 2))
+        return VStack(spacing: 0) {
+            header
+            page
+        }
+        .frame(maxWidth: Self.trayWidth)
+        .background(shape.fill(.black))
+        .clipShape(shape)
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .named(Self.boardSpace))
+        } action: {
+            trayFrame = $0
         }
     }
 
@@ -128,40 +166,55 @@ struct NotchShortcutBoard: View {
         .frame(height: Self.barHeight)
     }
 
-    /// One zone's shortcuts and its free places; every zone lights the same way while one is held.
+    /// One zone's places in order, each a shortcut or a free place a drop can take.
     private func group(_ zone: Zone) -> some View {
-        let shortcuts = layout[zone]
         let shape = Capsule()
         let isOffered = held != nil
-        return NotchShortcutDropZone { place($0, in: zone, before: nil) } content: { isLit in
-            HStack(spacing: 0) {
-                ForEach(shortcuts, id: \.self) { tile($0, in: zone) }
-                ForEach(0..<max(zone.capacity - shortcuts.count, 0), id: \.self) { _ in
-                    slot(isOffered: isOffered)
+        let places = layout[zone]
+        return HStack(spacing: 0) {
+            ForEach(Array(layout.drawable(zone, showsBattery: settings.notchShowsBattery)), id: \.self) { index in
+                let slot = Slot(zone: zone, index: index)
+                Group {
+                    if let shortcut = places[index] {
+                        tile(shortcut, isInHeader: true, isLanding: landing == slot)
+                    } else {
+                        free(isOffered: isOffered, landing: landing == slot ? held : nil)
+                    }
+                }
+                .onGeometryChange(for: CGRect.self) {
+                    $0.frame(in: .named(Self.boardSpace))
+                } action: {
+                    slotFrames[slot] = $0
                 }
             }
-            .padding(.horizontal, Theme.Spacing.xs)
-            .background(
-                shape.fill(Color.accentColor.opacity(isLit ? 0.5 : isOffered ? 0.3 : 0))
-                    .padding(.vertical, Self.zoneInset)
-            )
-            .overlay(
-                shape.strokeBorder(Color.accentColor.opacity(isOffered ? 1 : 0), lineWidth: 1.5)
-                    .padding(.vertical, Self.zoneInset)
-            )
-            .animation(.snappy(duration: 0.25), value: shortcuts)
         }
+        .padding(.horizontal, Theme.Spacing.xs)
+        .overlay(
+            shape.strokeBorder(Color.accentColor.opacity(isOffered ? 0.35 : 0), lineWidth: 1)
+                .padding(.vertical, Self.zoneInset)
+        )
+        .animation(.snappy(duration: 0.25), value: places)
     }
 
-    private func slot(isOffered: Bool) -> some View {
-        Circle()
+    /// A free place; `landing` is the shortcut a drop would put in it.
+    private func free(isOffered: Bool, landing: NotchShortcut?) -> some View {
+        let isLanding = landing != nil
+        return Circle()
             .strokeBorder(
                 isOffered ? Color.accentColor : Color.white.opacity(0.3),
-                style: StrokeStyle(lineWidth: isOffered ? 1.5 : 1, dash: [3, 3])
+                style: StrokeStyle(lineWidth: isLanding ? 2 : 1, dash: isLanding ? [] : [3, 3])
             )
-            .background(Circle().fill(Color.accentColor.opacity(isOffered ? 0.25 : 0)))
+            .background(Circle().fill(Color.accentColor.opacity(isLanding ? 0.85 : 0)))
+            .overlay {
+                if let landing {
+                    Image(systemName: landing.symbol)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+            }
             .frame(width: Self.slotSize, height: Self.slotSize)
-            .padding(.horizontal, NotchHeaderMetrics.shortcutSpacing / 2)
+            .scaleEffect(isLanding ? 1.12 : 1)
+            .frame(width: Self.slotSize + NotchHeaderMetrics.shortcutSpacing, height: Self.barHeight)
             .accessibilityHidden(true)
     }
 
@@ -192,122 +245,111 @@ struct NotchShortcutBoard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(width: Self.rowTitleWidth, alignment: .leading)
-            NotchShortcutDropZone { shortcut in
-                settings.notchShortcutLayout = layout.removing(shortcut)
-                return true
-            } content: { isLit in
-                let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                HStack(spacing: 0) {
-                    if unused.isEmpty {
-                        Text("Drag a shortcut here to take it out of the notch.")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    ForEach(unused, id: \.self) { tile($0, in: nil) }
-                }
-                .padding(.horizontal, Theme.Spacing.sm)
-                .frame(maxWidth: .infinity, minHeight: Self.barHeight + Theme.Spacing.xs, alignment: .leading)
-                .background(shape.fill(.quaternary.opacity(isLit ? 1 : 0.5)))
-                .overlay(
-                    shape.strokeBorder(
-                        isLit || held != nil ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.separator),
-                        style: StrokeStyle(lineWidth: isLit ? 2 : 1, dash: [4, 3])))
+            hiddenList
+        }
+    }
+
+    private var hiddenList: some View {
+        let isLit = isHiddenTargeted
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        return HStack(spacing: 0) {
+            if unused.isEmpty {
+                Text("Drag a shortcut here to take it out of the notch.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
+            ForEach(unused, id: \.self) { tile($0, isInHeader: false, isLanding: false) }
+        }
+        .padding(.horizontal, Theme.Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: Self.barHeight + Theme.Spacing.xs, alignment: .leading)
+        .background(shape.fill(.quaternary.opacity(isLit ? 1 : 0.5)))
+        .overlay(
+            shape.strokeBorder(
+                isLit || held != nil ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.separator),
+                style: StrokeStyle(lineWidth: isLit ? 2 : 1, dash: [4, 3]))
+        )
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .named(Self.boardSpace))
+        } action: {
+            hiddenFrame = $0
         }
     }
 
     // MARK: - Tiles
 
-    /// `zone` is nil for a shortcut that is not in the header.
-    private func tile(_ shortcut: NotchShortcut, in zone: Zone?) -> some View {
-        let isOverLimit = zone == .row && !drawnRow.contains(shortcut)
-        return NotchShortcutTile(
+    /// `isLanding` marks the header shortcut a drop would trade places with.
+    private func tile(_ shortcut: NotchShortcut, isInHeader: Bool, isLanding: Bool) -> some View {
+        NotchShortcutTile(
             shortcut: shortcut,
-            name: isOverLimit
-                ? String(localized: "\(shortcut.title) has no room in the header.") : shortcut.title,
-            tint: zone == nil ? .primary : .white,
-            isDimmed: isOverLimit,
-            isSwapTarget: zone.map(swapsHeld) ?? false,
-            ringSize: zone == nil ? nil : Self.slotSize,
+            tint: isInHeader ? .white : .primary,
+            isLanding: isLanding,
+            isHeld: held == shortcut,
+            ringSize: isInHeader ? Self.slotSize : nil,
             height: Self.barHeight,
-            onDrag: { held = shortcut }
-        ) { dropped in
-            guard let zone, dropped != shortcut else { return false }
-            return place(dropped, in: zone, before: shortcut)
-                || apply(layout.replacing(shortcut, with: dropped))
-        } menu: {
-            if zone == nil {
-                Button("Add") { add(shortcut) }
-                    .disabled(!Zone.allCases.contains { layout.hasRoom(for: shortcut, in: $0) })
-            } else {
-                Button("Remove") { settings.notchShortcutLayout = layout.removing(shortcut) }
+            onDrag: { held = shortcut },
+            menu: {
+                if isInHeader {
+                    Button("Remove") { hide(shortcut) }
+                } else {
+                    Button("Add") { apply(added(shortcut)) }
+                        .disabled(added(shortcut) == nil)
+                }
             }
+        )
+    }
+
+    /// The first free place that has room: the row from its edge, then outward from the cutout.
+    private func added(_ shortcut: NotchShortcut) -> NotchShortcutLayout? {
+        let order: [(Zone, Bool)] = [(.row, true), (.afterNotch, false), (.beforeNotch, true)]
+        let slots = order.flatMap { zone, isReversed in
+            let indices = Array(layout[zone].indices)
+            return (isReversed ? indices.reversed() : indices).map { Slot(zone: zone, index: $0) }
         }
+        return slots.lazy.filter { layout[$0] == nil }.compactMap { placing(shortcut, in: $0) }.first
     }
 
-    private func place(_ shortcut: NotchShortcut, in zone: Zone, before anchor: NotchShortcut?) -> Bool {
-        apply(layout.placing(shortcut, in: zone, before: anchor))
+    private func hide(_ shortcut: NotchShortcut) {
+        apply(layout.removing(shortcut))
     }
 
-    /// Into the row while it has room, then beside the cutout.
-    @discardableResult
-    private func add(_ shortcut: NotchShortcut) -> Bool {
-        let zones: [Zone] = [.row, .afterNotch, .beforeNotch]
-        return zones.contains { place(shortcut, in: $0, before: nil) }
-    }
-
-    private func apply(_ next: NotchShortcutLayout?) -> Bool {
-        guard let next else { return false }
+    private func apply(_ next: NotchShortcutLayout?) {
+        guard let next else { return }
         settings.notchShortcutLayout = next
-        return true
-    }
-
-    /// The row as the tray draws it: cut to the room the battery and the cutout's side leave.
-    private var drawnRow: [NotchShortcut] {
-        NotchShortcut.visible(
-            layout.row, showsBattery: settings.notchShowsBattery, reserved: layout.afterNotch.count,
-            isAvailable: { _ in true })
     }
 }
 
-/// An area that takes a dropped shortcut and lights while one hovers.
-private struct NotchShortcutDropZone<Content: View>: View {
-    let drop: (NotchShortcut) -> Bool
-    @ViewBuilder let content: (Bool) -> Content
+/// An AppKit view under the board, there only to convert the mouse into the board's coordinates.
+private final class NotchBoardProbeView: NSView {
+    override var isFlipped: Bool { true }
 
-    @State private var isTargeted = false
-
-    var body: some View {
-        content(isTargeted)
-            .contentShape(Rectangle())
-            .dropDestination(for: String.self) { dropped, _ in
-                guard let shortcut = dropped.first.flatMap(NotchShortcut.init(rawValue:)) else { return false }
-                return drop(shortcut)
-            } isTargeted: {
-                isTargeted = $0
-            }
-            .animation(.easeOut(duration: 0.15), value: isTargeted)
-    }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
-/// One draggable shortcut; another dropped on it lands before it, or replaces it in a full header.
+private struct NotchBoardProbe: NSViewRepresentable {
+    let view: NotchBoardProbeView
+
+    func makeNSView(context: Context) -> NotchBoardProbeView { view }
+
+    func updateNSView(_ nsView: NotchBoardProbeView, context: Context) {}
+}
+
+/// One draggable shortcut; in the header it fills while a drop would trade places with it.
 private struct NotchShortcutTile<MenuContent: View>: View {
     let shortcut: NotchShortcut
-    let name: String
     let tint: Color
-    let isDimmed: Bool
-    let isSwapTarget: Bool
+    let isLanding: Bool
+    let isHeld: Bool
     /// The place a header shortcut sits in, drawn so it reads as one of the board's slots.
     let ringSize: CGFloat?
     let height: CGFloat
     let onDrag: () -> Void
-    let drop: (NotchShortcut) -> Bool
     @ViewBuilder let menu: MenuContent
 
     @State private var isHovering = false
-    @State private var isTargeted = false
 
-    private var highlightInset: CGFloat { 4 }
+    private static var highlightInset: CGFloat { 4 }
+
+    private var name: String { shortcut.title }
 
     private var glyph: some View {
         Image(systemName: shortcut.symbol)
@@ -322,23 +364,18 @@ private struct NotchShortcutTile<MenuContent: View>: View {
             .background {
                 if let ringSize {
                     Circle()
-                        .fill(tint.opacity(isHovering ? 0.28 : 0.12))
-                        .strokeBorder(tint.opacity(isHovering ? 0.7 : 0.35), lineWidth: 1)
+                        .fill(isLanding ? Color.accentColor.opacity(0.85) : tint.opacity(isHovering ? 0.28 : 0.12))
+                        .strokeBorder(
+                            isLanding ? Color.accentColor : tint.opacity(isHovering ? 0.7 : 0.35),
+                            lineWidth: isLanding ? 2 : 1
+                        )
                         .frame(width: ringSize, height: ringSize)
+                        .scaleEffect(isLanding ? 1.12 : 1)
                 } else {
-                    shape.fill(tint.opacity(isHovering ? 0.16 : 0)).padding(.vertical, highlightInset)
+                    shape.fill(tint.opacity(isHovering ? 0.16 : 0)).padding(.vertical, Self.highlightInset)
                 }
             }
-            .overlay {
-                shape
-                    .fill(Color.accentColor.opacity(isTargeted ? 0.45 : 0))
-                    .strokeBorder(
-                        Color.accentColor, style: StrokeStyle(lineWidth: 1.5, dash: isTargeted ? [] : [3, 3])
-                    )
-                    .padding(.vertical, highlightInset)
-                    .opacity(isSwapTarget ? 1 : 0)
-            }
-            .opacity(isDimmed ? 0.4 : 1)
+            .opacity(isHeld ? 0.35 : 1)
             .contentShape(Rectangle())
             .onHover { isHovering = $0 }
             .onDrag {
@@ -347,20 +384,13 @@ private struct NotchShortcutTile<MenuContent: View>: View {
             } preview: {
                 glyph.background(.regularMaterial, in: shape)
             }
-            .dropDestination(for: String.self) { dropped, _ in
-                guard let other = dropped.first.flatMap(NotchShortcut.init(rawValue:)) else { return false }
-                return drop(other)
-            } isTargeted: {
-                isTargeted = $0
-            }
             .contextMenu {
                 Text(verbatim: name)
                 menu
             }
             .help(name)
             .animation(.easeOut(duration: 0.12), value: isHovering)
-            .animation(.easeOut(duration: 0.12), value: isTargeted)
-            .animation(.easeOut(duration: 0.12), value: isSwapTarget)
+            .animation(.easeOut(duration: 0.12), value: isLanding)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(name)
     }
