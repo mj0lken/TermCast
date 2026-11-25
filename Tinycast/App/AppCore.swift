@@ -106,6 +106,7 @@ final class AppCore {
     let chatPresets = ChatPresetStore()
     let chatGPTSubscription = ChatGPTSubscriptionManager()
     let installedAI = InstalledAIManager()
+    let planUsage = PlanUsageMonitor()
     @ObservationIgnored private var appliedLaunchRevisions: [InstalledAIKind: Int] = [:]
 
     /// Settings' own process only: its line to the main app, which panes read and ask through.
@@ -181,7 +182,8 @@ final class AppCore {
         store: rooms, minimums: roomMinimums, ledger: roomParking, session: roomSession,
         settings: settings, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
         visibility: visibility, ranking: launcherRanking, aliases: aliases, palette: palette,
-        paletteCoordinator: paletteCoordinator, core: self)
+        paletteCoordinator: paletteCoordinator,
+        hud: RoomHUDController(settings: settings, presenter: pillPresenter), core: self)
     @ObservationIgnored private(set) lazy var customCommandCoordinator = CustomCommandCoordinator(
         store: customCommands, settings: settings, appIndex: appIndex,
         paletteCoordinator: paletteCoordinator, settingsCoordinator: settingsCoordinator,
@@ -267,6 +269,9 @@ final class AppCore {
         chats: aiChats, settings: settings, appIndex: appIndex,
         paletteCoordinator: paletteCoordinator, settingsCoordinator: settingsCoordinator,
         core: self)
+    @ObservationIgnored private(set) lazy var planUsageCoordinator = PlanUsageCoordinator(
+        monitor: planUsage, settings: settings, aiSettings: aiSettings, installedAI: installedAI,
+        subscription: chatGPTSubscription, core: self)
     @ObservationIgnored private(set) lazy var quickAICoordinator = QuickAICoordinator(
         chats: aiChats, settings: settings, palette: palette,
         paletteCoordinator: paletteCoordinator, core: self)
@@ -276,7 +281,12 @@ final class AppCore {
         core: self)
 
     @ObservationIgnored private lazy var windowController = PaletteWindowController(core: self)
-    @ObservationIgnored private lazy var messageHUD = MessageHUDController(settings: settings)
+    /// Every pill shares this panel, so a later one replaces the earlier rather than stacking.
+    @ObservationIgnored private lazy var pillPresenter = HUDPresenter(
+        anchor: .edgeInset(Theme.Size.hudEdgeOffset), dwell: Theme.Duration.messageHUD,
+        screen: { [settings] in settings.openOnCursorScreen ? .underCursor : .primary })
+    @ObservationIgnored private lazy var messageHUD = MessageHUDController(
+        settings: settings, presenter: pillPresenter)
     private(set) var isShowingDialog = false
     /// A link that launched the app can arrive before `start` wires anything; it waits, then runs.
     @ObservationIgnored private var pendingURLs: [URL]? = []
@@ -335,6 +345,7 @@ final class AppCore {
             fileSearchCoordinator.applyPolicy()
             notesCoordinator.applyEnabled()
             aiChatCoordinator.applyEnabled()
+            planUsageCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -952,6 +963,10 @@ final class AppCore {
         track(
             { _ = $0.notesShowsInMenuBar }, reproject: { $0.notesCoordinator.applyMenuBarItem() })
         track({ _ = $0.aiEnabled }, reproject: { $0.aiChatCoordinator.applyEnabled() })
+        track({ _ = $0.aiEnabled }, reproject: { $0.planUsageCoordinator.applyEnabled() })
+        track(
+            aiSettings, { _ = $0.usageMenuBarEnabled },
+            reproject: { $0.planUsageCoordinator.applyEnabled() })
         track(
             { _ = $0.dictationIdleRelease },
             reproject: {

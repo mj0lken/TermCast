@@ -41,6 +41,8 @@ enum RoomRunner {
         var hiddenApps = Set<pid_t>()
         var missing: [String] = []
         var isBlockedOnPermission = false
+
+        var isClean: Bool { placed > 0 && missing.isEmpty }
     }
 
     // MARK: - Entering
