@@ -143,8 +143,9 @@ Clipboard, Notebook, Camera and Settings in the row.
   counting gaps. The cutout's right side takes its room first: `drawable` is the places a zone can
   draw, `fitting` drops the row's far places beyond it, and `placing` refuses a drop that would not fit.
 - **Only an enabled feature has a shortcut.** `AppSettings.isAvailable` decides it for the tray and
-  the board alike. A shortcut whose feature is off leaves its place empty and the others stay put; the
-  board's next edit drops it from the stored lists.
+  the board alike. A shortcut whose feature is off leaves its place empty and the others stay put. The
+  board edits that filtered view, so `restoring` puts back what it left out before the layout is
+  stored: turning the feature on again, or hiding the battery readout, brings the shortcut back.
 - **The board shows only what the header draws, and a drag marks one place.** While a
   shortcut is held the board reads the mouse from AppKit, since a SwiftUI drop session reported
   places shifted from the tray; the drawn place nearest the pointer is the landing, filled while the

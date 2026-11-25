@@ -13,7 +13,7 @@ struct NotchTimerLengthField: View {
     let onSubmit: () -> Void
 
     var body: some View {
-        TextField("", text: $state.text, prompt: Text("Minutes"))
+        TextField("Minutes", text: $state.text)
             .dialogTextField()
             .onSubmit(onSubmit)
     }

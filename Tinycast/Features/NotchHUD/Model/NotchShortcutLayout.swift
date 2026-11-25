@@ -26,8 +26,7 @@ struct NotchShortcutLayout: Equatable, Sendable {
 
     private var places: [Zone: [NotchShortcut?]]
 
-    /// Stored lists are untrusted: a repeat keeps its first place, and a list without gaps is packed
-    /// against the side its zone aligns to.
+    /// Stored lists are untrusted: repeats keep their first place, and a gapless list packs to its side.
     init(beforeNotch: [NotchShortcut] = [], afterNotch: [NotchShortcut] = [], row: [NotchShortcut]) {
         var seen: Set<NotchShortcut> = []
         func claim(_ stored: [NotchShortcut], _ zone: Zone) -> [NotchShortcut?] {
@@ -101,8 +100,7 @@ struct NotchShortcutLayout: Equatable, Sendable {
         keeping { $0 != shortcut }
     }
 
-    /// `shortcut` in `slot`; one already there takes the place `shortcut` left, or leaves the header.
-    /// Nil when the header has no room for the result.
+    /// One already in `slot` takes the place `shortcut` left, or leaves; nil when the result has no room.
     func placing(_ shortcut: NotchShortcut, in slot: Slot, showsBattery: Bool) -> NotchShortcutLayout? {
         guard shortcut != .gap, self[slot.zone].indices.contains(slot.index), self[slot] != shortcut else {
             return nil
@@ -111,6 +109,28 @@ struct NotchShortcutLayout: Equatable, Sendable {
         let vacated = self.slot(of: shortcut).map { removing(shortcut).setting($0, to: displaced) } ?? self
         let next = vacated.setting(slot, to: shortcut)
         return next.fits(showsBattery: showsBattery) ? next : nil
+    }
+
+    /// `shortcut` in the first free place with room: the row from its edge, then out from the cutout.
+    func adding(_ shortcut: NotchShortcut, showsBattery: Bool) -> NotchShortcutLayout? {
+        let order: [Zone] = [.row, .afterNotch, .beforeNotch]
+        let slots = order.flatMap { zone in
+            let indices = Array(self[zone].indices)
+            return (zone.isTrailingAligned ? indices.reversed() : indices).map { Slot(zone: zone, index: $0) }
+        }
+        return slots.lazy.filter { self[$0] == nil }
+            .compactMap { placing(shortcut, in: $0, showsBattery: showsBattery) }.first
+    }
+
+    /// What `isSetAside` names goes back where `stored` had it, so editing a filtered view loses nothing.
+    func restoring(from stored: NotchShortcutLayout, where isSetAside: (NotchShortcut) -> Bool) -> NotchShortcutLayout {
+        let slots = Zone.allCases.flatMap { zone in stored[zone].indices.map { Slot(zone: zone, index: $0) } }
+        return slots.reduce(self) { layout, slot in
+            guard let shortcut = stored[slot], isSetAside(shortcut), layout[slot] == nil,
+                layout.slot(of: shortcut) == nil
+            else { return layout }
+            return layout.setting(slot, to: shortcut)
+        }
     }
 
     private func fits(showsBattery: Bool) -> Bool {

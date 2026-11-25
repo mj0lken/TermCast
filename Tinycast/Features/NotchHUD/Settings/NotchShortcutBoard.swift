@@ -10,6 +10,7 @@ struct NotchShortcutBoard: View {
     @State private var trayFrame = CGRect.zero
     @State private var hiddenFrame = CGRect.zero
     @State private var probe = NotchBoardProbeView()
+    @State private var hasBattery = BatteryStatusService.hasInternalBattery
 
     private static let barHeight: CGFloat = 32
     private static let trayWidth: CGFloat = 540
@@ -26,16 +27,17 @@ struct NotchShortcutBoard: View {
     private typealias Zone = NotchShortcutLayout.Zone
     private typealias Slot = NotchShortcutLayout.Slot
 
+    private var showsBattery: Bool { settings.notchShowsBattery && hasBattery }
+
     /// Only what the tray draws; a shortcut that is off or has no room is left off the board.
     private var layout: NotchShortcutLayout {
-        settings.notchShortcutLayout.keeping(where: settings.isAvailable)
-            .fitting(showsBattery: settings.notchShowsBattery)
+        settings.notchShortcutLayout.keeping(where: settings.isAvailable).fitting(showsBattery: showsBattery)
     }
 
     private var unused: [NotchShortcut] { layout.unused.filter(settings.isAvailable) }
 
     private func placing(_ shortcut: NotchShortcut, in slot: Slot) -> NotchShortcutLayout? {
-        layout.placing(shortcut, in: slot, showsBattery: settings.notchShowsBattery)
+        layout.placing(shortcut, in: slot, showsBattery: showsBattery)
     }
 
     /// The mouse in the board's own space, read from AppKit because it is exact throughout a drag.
@@ -64,7 +66,7 @@ struct NotchShortcutBoard: View {
     /// The drawn place nearest the pointer, so every point of the tray names exactly one.
     private func slot(at point: CGPoint) -> Slot? {
         let drawn = Zone.allCases.flatMap { zone in
-            layout.drawable(zone, showsBattery: settings.notchShowsBattery).map { Slot(zone: zone, index: $0) }
+            layout.drawable(zone, showsBattery: showsBattery).map { Slot(zone: zone, index: $0) }
         }
         let framed = drawn.compactMap { slot in slotFrames[slot].map { (slot, abs($0.midX - point.x)) } }
         return framed.min { $0.1 < $1.1 }?.0
@@ -85,10 +87,11 @@ struct NotchShortcutBoard: View {
             // A drop session reported places shifted from the tray, so the mouse itself decides.
             guard let held else { return }
             while NSEvent.pressedMouseButtons != 0 {
-                pointer = mouseLocation
+                let next = mouseLocation
+                if next != pointer { pointer = next }
                 guard (try? await Task.sleep(for: Self.dragPollInterval)) != nil else { return }
             }
-            if let point = mouseLocation ?? pointer { drop(held, at: point) }
+            if let point = pointer ?? mouseLocation { drop(held, at: point) }
             self.held = nil
             pointer = nil
         }
@@ -172,7 +175,7 @@ struct NotchShortcutBoard: View {
         let isOffered = held != nil
         let places = layout[zone]
         return HStack(spacing: 0) {
-            ForEach(Array(layout.drawable(zone, showsBattery: settings.notchShowsBattery)), id: \.self) { index in
+            ForEach(Array(layout.drawable(zone, showsBattery: showsBattery)), id: \.self) { index in
                 let slot = Slot(zone: zone, index: index)
                 Group {
                     if let shortcut = places[index] {
@@ -291,21 +294,12 @@ struct NotchShortcutBoard: View {
                 if isInHeader {
                     Button("Remove") { hide(shortcut) }
                 } else {
-                    Button("Add") { apply(added(shortcut)) }
-                        .disabled(added(shortcut) == nil)
+                    let added = layout.adding(shortcut, showsBattery: showsBattery)
+                    Button("Add") { apply(added) }
+                        .disabled(added == nil)
                 }
             }
         )
-    }
-
-    /// The first free place that has room: the row from its edge, then outward from the cutout.
-    private func added(_ shortcut: NotchShortcut) -> NotchShortcutLayout? {
-        let order: [(Zone, Bool)] = [(.row, true), (.afterNotch, false), (.beforeNotch, true)]
-        let slots = order.flatMap { zone, isReversed in
-            let indices = Array(layout[zone].indices)
-            return (isReversed ? indices.reversed() : indices).map { Slot(zone: zone, index: $0) }
-        }
-        return slots.lazy.filter { layout[$0] == nil }.compactMap { placing(shortcut, in: $0) }.first
     }
 
     private func hide(_ shortcut: NotchShortcut) {
@@ -314,7 +308,11 @@ struct NotchShortcutBoard: View {
 
     private func apply(_ next: NotchShortcutLayout?) {
         guard let next else { return }
-        settings.notchShortcutLayout = next
+        let shown = layout
+        // The board edits a filtered view, so what it left out goes back before the layout is stored.
+        settings.notchShortcutLayout = next.restoring(from: settings.notchShortcutLayout) {
+            shown.slot(of: $0) == nil
+        }
     }
 }
 

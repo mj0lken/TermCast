@@ -553,6 +553,9 @@ struct NotchHUDTests {
             "a timer is never shorter than a minute")
         expect(NotchTimerPreset.minutes(from: " 90 ") == 90, "a typed length is whole minutes")
         expect(
+            NotchTimerPreset.minutes(from: "1") == 1 && NotchTimerPreset.minutes(from: "1440\n") == 1440,
+            "a minute and a day are both allowed, and a trailing newline is ignored")
+        expect(
             NotchTimerPreset.minutes(from: "0") == nil && NotchTimerPreset.minutes(from: "1441") == nil
                 && NotchTimerPreset.minutes(from: "ten") == nil && NotchTimerPreset.minutes(from: "") == nil,
             "anything but a minute to a day is refused")
@@ -639,5 +642,40 @@ struct NotchHUDTests {
             repaired.trimmed(.row) == [.camera] && repaired[.beforeNotch] == [.timer, .emoji]
                 && repaired.trimmed(.afterNotch).isEmpty,
             "stored repeats keep their first place and a side is cut to two")
+        let sides = NotchShortcutLayout(beforeNotch: [.timer, .gap], afterNotch: [.gap, .emoji], row: [])
+        expect(
+            sides[.beforeNotch] == [.timer, nil] && sides.stored(.beforeNotch) == [.timer, .gap]
+                && sides[.afterNotch] == [nil, .emoji] && sides.stored(.afterNotch) == [.gap, .emoji],
+            "a gap next to the cutout is kept on either side and stored")
+        expect(
+            short.removing(.notebook)[.row] == [nil, nil, .clipboard, nil, .settings]
+                && short.removing(.timer) == short,
+            "removing leaves the place empty, and a shortcut that is not placed changes nothing")
+        let traded = place(beside, .settings, .beforeNotch, 0)
+        expect(
+            traded?[.beforeNotch] == [.settings, nil] && traded?[.row] == [nil, nil, .clipboard, nil, .notebook],
+            "a trade across zones puts each shortcut in the other's place")
+        expect(place(short, .gap, .row, 0) == nil, "a gap is never placed")
+        expect(
+            short.adding(.timer, showsBattery: false)?[.row] == [nil, .timer, .clipboard, .notebook, .settings],
+            "an added shortcut takes the row's nearest free place")
+        expect(
+            full.adding(.emoji, showsBattery: false)?[.afterNotch] == [.emoji, nil],
+            "then the place right of the cutout")
+        let packed = NotchShortcutLayout(afterNotch: [.emoji], row: five)
+        expect(
+            packed.adding(.snippets, showsBattery: false)?[.beforeNotch] == [nil, .snippets]
+                && NotchShortcutLayout(beforeNotch: [.settings, .snippets], row: Array(five.dropLast()))
+                    .adding(.timer, showsBattery: true) == nil,
+            "then left of it, and nowhere once the header is full")
+        let shown = short.keeping { $0 != .notebook }
+        expect(
+            shown.removing(.clipboard).restoring(from: short) { $0 == .notebook }[.row]
+                == [nil, nil, nil, .notebook, .settings],
+            "a shortcut the board left out goes back to its place, and a removed one stays out")
+        expect(
+            place(shown, .timer, .row, 3)?.restoring(from: short) { $0 == .notebook }[.row]
+                == [nil, nil, .clipboard, .timer, .settings],
+            "unless its place was taken meanwhile")
     }
 }

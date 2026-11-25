@@ -11,7 +11,7 @@ enum NotchTimerPreset {
 
     /// A typed length in whole minutes, or nil when it is not a number in `customRange`.
     static func minutes(from text: String) -> Int? {
-        Int(text.trimmingCharacters(in: .whitespaces)).flatMap { customRange.contains($0) ? $0 : nil }
+        Int(text.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { customRange.contains($0) ? $0 : nil }
     }
 
     static func end(afterMinutes minutes: Int, from now: Date) -> Date {

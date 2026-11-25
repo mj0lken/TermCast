@@ -1,7 +1,6 @@
 import AppKit
 
-/// The Snippets shortcut's menu, built in AppKit because only an attributed title gives a menu
-/// labelled columns for text that is not a key equivalent.
+/// The Snippets shortcut's menu; only AppKit's attributed titles give a menu labelled text columns.
 @MainActor
 enum NotchSnippetMenu {
     private static let columnGap: CGFloat = 28
