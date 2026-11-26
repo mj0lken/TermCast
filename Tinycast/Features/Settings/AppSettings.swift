@@ -302,7 +302,7 @@ final class AppSettings {
         }
     }
 
-    /// The three stored lists as one arrangement; reading it repairs repeats and overfull zones.
+    /// The three stored lists as one arrangement of fixed places; reading it repairs repeats.
     var notchShortcutLayout: NotchShortcutLayout {
         get {
             NotchShortcutLayout(
@@ -310,9 +310,9 @@ final class AppSettings {
                 row: notchShortcuts)
         }
         set {
-            notchShortcuts = newValue.row
-            notchShortcutsBeforeNotch = newValue.beforeNotch
-            notchShortcutsAfterNotch = newValue.afterNotch
+            notchShortcuts = newValue.stored(.row)
+            notchShortcutsBeforeNotch = newValue.stored(.beforeNotch)
+            notchShortcutsAfterNotch = newValue.stored(.afterNotch)
         }
     }
 
@@ -1206,8 +1206,9 @@ final class AppSettings {
         case .allowedDeepLinks: adopt(\.allowedDeepLinks, from: stored)
         // Read by the AI, Quick Actions and MCP stores, which reload themselves.
         case .aiInstalledProviders, .aiConnections, .aiDefaultModel, .aiWebSearch, .aiChoices,
-            .aiExpandsReasoning, .aiSystemPrompt, .aiSystemPromptEnabled, .aiRetention, .aiOpensTo,
-            .aiNewChatAfter, .aiToolRounds, .aiShownModels, .aiDisabledRoutes, .aiInstalledOverrides,
+            .aiExpandsReasoning, .aiUsageMenuBar, .aiUsageAlerts, .aiSystemPrompt,
+            .aiSystemPromptEnabled, .aiRetention, .aiOpensTo, .aiNewChatAfter, .aiToolRounds,
+            .aiShownModels, .aiDisabledRoutes, .aiInstalledOverrides,
             .mcpServers, .quickActionModel, .quickActionModelOverrides, .quickActionPreviews,
             .quickActionInstructions, .quickActionLanguage:
             break

@@ -11,6 +11,8 @@ final class NotchTrayController {
     /// A header shortcut that opens something; the menu shortcuts never arrive here.
     var onShortcut: ((NotchShortcut) -> Void)?
     var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
+    var windowCommandBinding: ((WindowCommand.ID) -> HotKeyBinding?)?
+    var onAskTimerLength: (() -> Void)?
     var snippets: (() -> [NotchSnippetChoice])?
     var onExpandSnippet: ((NotchSnippetChoice.ID) -> Void)?
     var terminalSessions: (() -> [NotchTerminalSession])?
@@ -110,14 +112,11 @@ final class NotchTrayController {
         state.showsMedia = settings.notchShowsMedia
         state.showsCalendar = settings.notchShowsCalendar
         state.showsBattery = settings.notchShowsBattery
-        let arrangement = settings.notchShortcutLayout
-        state.shortcutsBeforeNotch = arrangement.beforeNotch.filter(settings.isAvailable)
-        state.shortcutsAfterNotch = arrangement.afterNotch.filter(settings.isAvailable)
-        state.shortcuts = NotchShortcut.visible(
-            arrangement.row,
-            showsBattery: settings.notchShowsBattery && battery.status.hasBattery,
-            reserved: state.shortcutsAfterNotch.count,
-            isAvailable: settings.isAvailable)
+        let arrangement = settings.notchShortcutLayout.keeping(where: settings.isAvailable)
+            .fitting(showsBattery: settings.notchShowsBattery && battery.status.hasBattery)
+        state.shortcutsBeforeNotch = arrangement.trimmed(.beforeNotch)
+        state.shortcutsAfterNotch = arrangement.trimmed(.afterNotch)
+        state.shortcuts = arrangement.trimmed(.row)
         state.hidesAllDayEvents = settings.notchHidesAllDayEvents
         state.style = NotchHUDStyle(
             showsPercentage: settings.notchShowsPercentage,
@@ -264,6 +263,11 @@ final class NotchTrayController {
                 runWindowCommand: { [weak self] id in
                     self?.close()
                     self?.onRunWindowCommand?(id)
+                },
+                windowCommandBinding: { [weak self] id in self?.windowCommandBinding?(id) },
+                askTimerLength: { [weak self] in
+                    self?.close()
+                    self?.onAskTimerLength?()
                 },
                 snippets: { [weak self] in self?.snippets?() ?? [] },
                 expandSnippet: { [weak self] id in

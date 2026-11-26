@@ -52,17 +52,18 @@ Hardware-blended inline Notch HUD, persistent closed-notch live activities, and 
 | `Features/NotchHUD/UI/NotchLiveActivityView.swift` | Left wing (the purple terminal glyph with its count, then the activity's glyph: artwork, calendar, mic or timer) and right readout (equaliser, countdown, waveform, capture dot) |
 | `Features/NotchHUD/UI/NotchEqualizerView.swift` | Core Animation equaliser bars |
 | `Features/NotchHUD/UI/NotchOpenTrayView.swift` | The expanded tray's shape and page switch, and the action bundles its pages are handed |
-| `Features/NotchHUD/UI/NotchTrayHeader.swift` | Header band: tabs, the shortcut row (buttons and the Window Management and Timer menus), battery readout and the inline HUD chip |
+| `Features/NotchHUD/UI/NotchTrayHeader.swift` | Header band: tabs, the shortcut row (buttons and menus, all drawn with one `NotchHeaderIcon`), battery readout and the inline HUD chip |
+| `Features/NotchHUD/UI/NotchSnippetMenu.swift` | The Snippets shortcut's AppKit menu: labelled columns for name, keyword and hotkey |
 | `Features/NotchHUD/UI/NotchTrayHomePage.swift` | `Home`: the Now Playing card, source label and scrubber |
 | `Features/NotchHUD/UI/NotchTrayCalendarCard.swift` | `Home`: the week strip, the selected day's events and the Join pill |
 | `Features/NotchHUD/UI/NotchTrayShelfPage.swift` | `Shelf`: the AirDrop target and the staged items |
 | `Features/NotchHUD/UI/NotchTrayTerminalPage.swift` | `Terminal`: the live sessions list |
-| `Features/NotchHUD/Model/NotchShortcut.swift` | Pure header shortcut list: the options, the stored row's validity, the limit and what is drawn |
-| `Features/NotchHUD/Model/NotchShortcutLayout.swift` | Pure arrangement of the shortcuts over the row and the two sides of the cutout: capacities, placing, swapping, removing, and repair of stored lists |
+| `Features/NotchHUD/Model/NotchShortcut.swift` | Pure header shortcut list: the options, the `gap` marker, a stored list's validity and the limits |
+| `Features/NotchHUD/Model/NotchShortcutLayout.swift` | Pure arrangement of the shortcuts in fixed places over the row and the two sides of the cutout: gaps, shared room, placing, trading places, removing, and repair of stored lists |
 | `Features/NotchHUD/Settings/AppSettings+NotchShortcuts.swift` | `isAvailable`: whether a shortcut's own feature is on |
 | `Features/NotchHUD/Settings/NotchSettingsView.swift` | **Settings → Features → Notch** controls and live HUD / Tray previews |
 | `Features/NotchHUD/Settings/NotchShortcutsSection.swift` | The pane's Shortcuts section: hosts the board |
-| `Features/NotchHUD/Settings/NotchShortcutBoard.swift` | A replica of the open notch above a Hidden Shortcuts row: drag between the row, either side of the cutout and the hidden list, or onto a shortcut in a full zone to swap (`NotchShortcutLayout`); spaced by the header's own `NotchHeaderMetrics` |
+| `Features/NotchHUD/Settings/NotchShortcutBoard.swift` | A replica of the open notch above a Hidden Shortcuts row: drag a shortcut onto any place of the row or either side of the cutout, onto another to trade places, or to the hidden list (`NotchShortcutLayout`); spaced by the header's own `NotchHeaderMetrics` |
 
 ## Now Playing relay
 
@@ -103,7 +104,9 @@ activity on its wings: a glyph on the left, a compact readout on the right.
   Events are re-read on a calendar change, at each scheduled boundary and when the day changes.
 - **Dictation** mirrors `DictationCoordinator.onListeningChanged` and `onLevels`; the notch owns none of
   the recording.
-- **Timers** start from the Timer shortcut in the tray header (`NotchTimerPreset.minutes`). One sleep on
+- **Timers** start from the Timer shortcut in the tray header (`NotchTimerPreset.minutes`), or from
+  its **Custom…** item, which closes the tray and asks for whole minutes through
+  `DialogController.pickTimerLength` (a minute to a day, asked again until valid). One sleep on
   the continuous clock ends the timer, so a lid-closed timer finishes on wake; it then plays a sound and
   shows a notice.
 - **Terminal sessions** come from a closure `AppCore` supplies over `TerminalStore`; the `Terminal` tab
@@ -121,22 +124,40 @@ model stays pure. With the tray open a notice becomes the header's inline chip.
 
 The open notch's header holds the tabs on the leading side of the cutout and a row of shortcuts on the
 trailing side, plus up to two shortcuts against each side of the cutout. `NotchShortcutLayout` is the
-whole arrangement, stored as three lists: `AppSettings.notchShortcuts` (the row),
+whole arrangement: fixed places per zone (`Slot`), any of which may stay empty, so a shortcut sits
+where the user dropped it. It is stored as three lists: `AppSettings.notchShortcuts` (the row),
 `notchShortcutsBeforeNotch` and `notchShortcutsAfterNotch`, mirrored in `settings.json` as
 `notch.shortcuts`, `notch.shortcutsBeforeNotch` and `notch.shortcutsAfterNotch`. Any of Clipboard
 History, Notebook, Camera Mirror, Window Management, Timer, Snippets, Emoji & Symbols and Notch
 Settings can sit in any zone, once; the pane's **Shortcuts** board edits them by drag. The default is
 Clipboard, Notebook, Camera and Settings in the row.
 
+- **A gap is stored as `gap`.** `NotchShortcut.gap` exists only to hold an empty place between
+  shortcuts in a stored list; `NotchShortcut.choices` is everything a user can place. A list without
+  gaps is packed against the side its zone aligns to (the row to the header's edge, each side of the
+  cutout to the cutout), which is how lists written before gaps existed read back unchanged.
 - **The stored lists are untrusted.** `NotchShortcutLayout.init` keeps a repeated shortcut's first
   place (row first) and cuts each zone to its capacity, so a bad edit never draws twice.
-- **The row is cut to what fits.** `NotchShortcut.limit(showsBattery:)` is five, or four while the
-  battery readout shares the side, and the trailing half holds `NotchShortcut.slots` in all, so the
-  shortcuts right of the cutout take their room first. `NotchShortcut.visible` drops a shortcut whose
-  feature is off and hands its slot to the next one, so a feature toggle never rewrites what is stored.
+- **The trailing half has shared room.** `NotchShortcut.limit(showsBattery:)` is five row places, or
+  four while the battery readout shares the side, and the half holds `NotchShortcut.slots` in all,
+  counting gaps. The cutout's right side takes its room first: `drawable` is the places a zone can
+  draw, `fitting` drops the row's far places beyond it, and `placing` refuses a drop that would not fit.
 - **Only an enabled feature has a shortcut.** `AppSettings.isAvailable` decides it for the tray and
-  the board alike; the board leaves an unavailable shortcut out, and its next edit drops it from the
-  stored lists.
+  the board alike. A shortcut whose feature is off leaves its place empty and the others stay put. The
+  board edits that filtered view, so `restoring` puts back what it left out before the layout is
+  stored: turning the feature on again, or hiding the battery readout, brings the shortcut back.
+- **The board shows only what the header draws, and a drag marks one place.** While a
+  shortcut is held the board reads the mouse from AppKit, since a SwiftUI drop session reported
+  places shifted from the tray; the drawn place nearest the pointer is the landing, filled while the
+  drop is allowed, and the release applies it. The board-wide drop destination only accepts the drag. A drop on a placed shortcut trades places with it, or sends it to Hidden Shortcuts when
+  the dragged one came from there.
+- **Each side of the cutout has exactly its room.** The header gives both halves a fixed width, so a
+  crowded side never pushes the other past the tray's edge; the tabs give up padding
+  (`NotchHeaderMetrics.tabPaddings`) before the leading half overflows.
+- **Menu items show their hotkey.** A Window Management command or snippet with a binding draws it
+  as the item's key equivalent (`HotKeyBinding.menuShortcut`); one a menu cannot spell, such as a
+  lone modifier, a double tap or a 🌐 chord, is written after the name. The Snippets menu is an AppKit `NSMenu`
+  (`NotchSnippetMenu`) so each snippet's keyword and hotkey get their own labelled column; it takes the tray's own colour scheme from the environment, as the SwiftUI menus do.
 - **Window Management, Timer and Snippets are menus; the rest are buttons.** Window Management lists
   the halves, quarters and sizing placements and runs one through `WindowCommandCoordinator` on the
   frontmost window, which the non-activating tray never displaces. Snippets lists the enabled snippets

@@ -28,6 +28,9 @@ final class BatteryStatusService {
 
     private(set) var status = Status(hasBattery: false, percentage: 100, isPluggedIn: true, isCharging: false)
 
+    /// Whether this Mac has a battery at all, for a caller that needs no updates.
+    static var hasInternalBattery: Bool { readStatus().hasBattery }
+
     @ObservationIgnored var onPowerSourceChanged: ((Status) -> Void)?
 
     @ObservationIgnored private var runLoopSource: CFRunLoopSource?

@@ -111,6 +111,9 @@ struct NotchShortcutActions {
     /// A button that only opens something; the tray closes before it runs.
     let open: (NotchShortcut) -> Void
     let runWindowCommand: (WindowCommand.ID) -> Void
+    let windowCommandBinding: (WindowCommand.ID) -> HotKeyBinding?
+    /// Asks for a length of the reader's own; the tray closes first so the dialog can take focus.
+    let askTimerLength: () -> Void
     let snippets: () -> [NotchSnippetChoice]
     let expandSnippet: (NotchSnippetChoice.ID) -> Void
 }
@@ -119,6 +122,9 @@ struct NotchShortcutActions {
 struct NotchSnippetChoice: Identifiable {
     let id: String
     let name: String
+    /// The text that expands it when typed, which is what a reader knows a snippet by.
+    let keyword: String?
+    let binding: HotKeyBinding?
 }
 
 struct NotchTerminalActions {

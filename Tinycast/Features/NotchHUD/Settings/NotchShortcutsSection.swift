@@ -4,7 +4,9 @@ import SwiftUI
 struct NotchShortcutsSection: View {
     @Environment(AppSettings.self) private var settings
 
-    private var limit: Int { NotchShortcut.limit(showsBattery: settings.notchShowsBattery) }
+    @State private var hasBattery = BatteryStatusService.hasInternalBattery
+
+    private var limit: Int { NotchShortcut.limit(showsBattery: settings.notchShowsBattery && hasBattery) }
 
     var body: some View {
         Section {

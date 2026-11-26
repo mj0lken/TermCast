@@ -10,6 +10,10 @@ enum NotchShortcut: String, CaseIterable, Sendable {
     case snippets
     case emoji
     case settings
+    /// An empty place kept between shortcuts in a stored list; never drawn or offered.
+    case gap
+
+    static let choices = allCases.filter { $0 != .gap }
 
     static let defaults: [NotchShortcut] = [.clipboard, .notebook, .camera, .settings]
 
@@ -25,16 +29,8 @@ enum NotchShortcut: String, CaseIterable, Sendable {
     }
 
     static func isValid(_ shortcuts: [NotchShortcut]) -> Bool {
-        shortcuts.count <= limit(showsBattery: false) && Set(shortcuts).count == shortcuts.count
-    }
-
-    /// What the header draws: the configured row, minus what is unavailable, cut to what fits.
-    static func visible(
-        _ shortcuts: [NotchShortcut], showsBattery: Bool, reserved: Int = 0,
-        isAvailable: (NotchShortcut) -> Bool
-    ) -> [NotchShortcut] {
-        let room = min(limit(showsBattery: showsBattery), slots(showsBattery: showsBattery) - reserved)
-        return Array(shortcuts.filter(isAvailable).prefix(max(room, 0)))
+        let placed = shortcuts.filter { $0 != .gap }
+        return shortcuts.count <= limit(showsBattery: false) && Set(placed).count == placed.count
     }
 
     /// Everything the trailing half has room for: the row plus the shortcuts kept beside the cutout.
@@ -52,6 +48,7 @@ enum NotchShortcut: String, CaseIterable, Sendable {
         case .snippets: "text.quote"
         case .emoji: "face.smiling"
         case .settings: "gearshape"
+        case .gap: ""
         }
     }
 
@@ -65,6 +62,7 @@ enum NotchShortcut: String, CaseIterable, Sendable {
         case .snippets: String(localized: "Snippets")
         case .emoji: String(localized: "Emoji & Symbols")
         case .settings: String(localized: "Notch Settings")
+        case .gap: ""
         }
     }
 }

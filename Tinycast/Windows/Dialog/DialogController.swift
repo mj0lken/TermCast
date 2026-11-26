@@ -107,6 +107,22 @@ final class DialogController: NSObject, NSWindowDelegate {
         return state.text
     }
 
+    /// Whole minutes for a custom timer, asked again until the text is a valid length; nil if dismissed.
+    func pickTimerLength() async -> Int? {
+        let state = NotchTimerLengthState()
+        let request = DialogRequest(
+            title: String(localized: "Set Timer"), message: NotchTimerPreset.customLengthHint, symbol: "timer",
+            actions: [
+                DialogAction(title: String(localized: "Start")),
+                DialogAction(title: String(localized: "Cancel"), role: .cancel)
+            ],
+            defaultIndex: 0, cancelIndex: 1, accessory: .timerLength(state))
+        while await present(request) == 0 {
+            if let minutes = state.minutes { return minutes }
+        }
+        return nil
+    }
+
     private func present(_ request: DialogRequest) async -> Int {
         guard continuation == nil else { return request.cancelIndex }
         return await withCheckedContinuation { continuation in
@@ -114,7 +130,7 @@ final class DialogController: NSObject, NSWindowDelegate {
             onPresentationChanged(true)
             let width =
                 switch request.accessory {
-                case nil, .volume: metrics.size.dialogCompactWidth
+                case nil, .volume, .timerLength: metrics.size.dialogCompactWidth
                 case .snippetArguments(let arguments) where arguments.asksOnlyForChoices:
                     metrics.size.dialogCompactWidth
                 case .snippetArguments, .clipboardText: metrics.size.dialogWidth
